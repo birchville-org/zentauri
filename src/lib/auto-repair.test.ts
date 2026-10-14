@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { autoRepairMarkdown } from "./auto-repair";
+import { adjustContainerNesting, autoRepairMarkdown } from "./auto-repair";
 
 describe("autoRepairMarkdown", () => {
   it("should return unchanged text when no repair needed", () => {
@@ -158,6 +158,33 @@ Text
 ::::`;
 
     const result = autoRepairMarkdown(input);
+    expect(result.didRepair).toBe(true);
+    expect(result.repaired).toBe(expected);
+  });
+
+  it("should preserve CRLF line endings when adjusting containers", () => {
+    const input = "::: note-box\r\n::: grammar-box\r\nText\r\n:::\r\n:::\r\n";
+    const expected =
+      ":::: note-box\r\n::: grammar-box\r\nText\r\n:::\r\n::::\r\n";
+    const result = adjustContainerNesting(input);
+    expect(result.didRepair).toBe(true);
+    expect(result.repaired).toBe(expected);
+  });
+
+  it("should handle single-line inline code fences without desynchronizing fence state", () => {
+    const input =
+      "```markdown ::: not-a-box ```\n\n::: note-box\nReal container\n:::";
+    const result = adjustContainerNesting(input);
+    expect(result.didRepair).toBe(false);
+    expect(result.repaired).toBe(input);
+  });
+
+  it("should not let an unknown container opener pop an outer known container when names filter is used", () => {
+    const input =
+      "::: note-box\n::: unknown-box\nInhalt\n:::\nWeiterer Text\n:::";
+    const expected =
+      ":::: note-box\n::: unknown-box\nInhalt\n:::\nWeiterer Text\n::::";
+    const result = adjustContainerNesting(input, { names: ["note-box"] });
     expect(result.didRepair).toBe(true);
     expect(result.repaired).toBe(expected);
   });

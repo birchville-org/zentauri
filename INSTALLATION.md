@@ -11,7 +11,7 @@ Because ZenTauri is an open-source project and is **not signed with a paid Apple
 Follow these simple steps for first-time installation:
 
 ### Step 1: Download & Install
-1. Download the latest `.dmg` installer from the [ZenTauri GitHub Releases](https://github.com/marcodem/zentauri/releases).
+1. Download the latest `.dmg` installer from the [ZenTauri GitHub Releases](https://github.com/birchville-org/zentauri/releases).
 2. Open the `.dmg` file and drag **ZenTauri** to your **Applications** folder.
 
 ### Step 2: Grant Security Permission (macOS Gatekeeper)
@@ -43,7 +43,7 @@ Once ZenTauri is installed and granted initial permission on your Mac:
 ---
 
 ## 🪟 Windows Installation
-1. Download the `.exe` or `.msi` installer from [GitHub Releases](https://github.com/marcodem/zentauri/releases).
+1. Download the `.exe` or `.msi` installer from [GitHub Releases](https://github.com/birchville-org/zentauri/releases).
 2. If Windows Defender SmartScreen displays a warning, click **More info** $\rightarrow$ **Run anyway**.
 
 ---

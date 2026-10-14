@@ -4,6 +4,22 @@ title: Release Notes
 
 # 🚀 Zentauri Release Notes
 
+### ZenTauri v1.3.2
+- **Rendering-Engine Upgrade:** Aktualisierung auf `markdown-it-extensible` v1.3.2 und `markdown-it-container` v4.0.0 via npm-Registry für robuste CI/CD- und Cross-Platform-Builds.
+- **XSS-Sanitization & Token-Streaming:** Automatisches HTML-Escaping für Container-Titel (`::: box [Titel]`) und vollständiges Markdown-It Token-Streaming für Sanskrit-Klammern (`《...》` / `⟪...⟫`), wodurch rohe HTML-Injektionen bereits auf AST-Ebene ausgeschlossen werden.
+- **Direktiven-Härtung & Edge-Cases:** Lookbehind-Schutz (`(?<![\w:-])`) und Buchstaben-Präfix (`:[a-zA-Z]`) verhindern Fehlschläge bei Zeitangaben (`10:30[Uhr]`) oder Code-Zugriffen (`obj:key[0]`). Vollständige Unterstützung verschachtelter eckiger Klammern in Direktiven (`:[sig][Hinweis [1]]`).
+- **Nesting-Stack & Code-Fence Schutz:** Unbekannte Container bringen den Stack bekannter Boxen nicht mehr durcheinander. Einzeilige Code-Fences werden sauber getrackt.
+- **Webview-Performance:** Synchrone Dateisystem-Lookups (`configFile: false`) im UI-Render-Loop vollständig deaktiviert.
+
+---
+
+### ZenTauri v1.3.1
+- **File Explorer Layout-Optimierungen:** Begrenzung der maximalen Sidebar-Breite auf 480px für saubere Darstellung auf Ultra-Wide-Monitoren.
+- **Horizontales Scrollen:** Horizontales Scrollen für überlange Dateinamen im Dateibaum und in Tabs.
+- **Sticky Header:** Sticky-Positionierung von Ordner-Headern und Aktions-Icons beim horizontalen Scrollen.
+
+---
+
 ### ZenTauri v1.3.0
 - **Akademische Fußnoten:** Vollständige bidirektionale Fußnotennavigation (`markdown-it-footnote`) mit Ziffernmarkern, benannten Zitaten (`[^ref]`), sauberer Trennlinie und Rücksprung-Links (`↩`).
 - **Definitionslisten:** Standardkonformes Parsing von Definitionslisten (`markdown-it-deflist`) für Fachglossare, grammatikalische Begriffspaare und Lexika mittels semantischem `<dl>`, `<dt>` und `<dd>`.

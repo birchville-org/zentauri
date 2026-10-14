@@ -21,9 +21,9 @@ ZENTAURI_CARD = """            <div class="card service-card" id="zentauri">
                     <span id="label-zentauri">Prüfe…</span>
                 </div>
                 <div class="btn-row">
-                    <a class="btn" href="https://marcodem.github.io/zentauri/" target="_blank" rel="noopener">Dokumentation &rarr;</a>
-                    <a class="btn" href="https://github.com/marcodem/zentauri/releases" target="_blank" rel="noopener">Downloads &rarr;</a>
-                    <a class="btn" href="https://github.com/marcodem/zentauri" target="_blank" rel="noopener">GitHub &rarr;</a>
+                    <a class="btn" href="https://birchville-org.github.io/zentauri/" target="_blank" rel="noopener">Dokumentation &rarr;</a>
+                    <a class="btn" href="https://github.com/birchville-org/zentauri/releases" target="_blank" rel="noopener">Downloads &rarr;</a>
+                    <a class="btn" href="https://github.com/birchville-org/zentauri" target="_blank" rel="noopener">GitHub &rarr;</a>
                 </div>
             </div>
 """
@@ -52,7 +52,7 @@ def transform_html(content: str) -> str:
     # 2. Add zentauri to services array for live status checks
     if "{ id: 'zentauri'" not in content:
         heritage_svc = "{ id: 'heritage',     url: 'https://birchville-org.github.io/HeritageDictionnaire/', gated: false }"
-        zentauri_svc = heritage_svc + ",\n            { id: 'zentauri',     url: 'https://marcodem.github.io/zentauri/', gated: false }"
+        zentauri_svc = heritage_svc + ",\n            { id: 'zentauri',     url: 'https://birchville-org.github.io/zentauri/', gated: false }"
         if heritage_svc in content:
             content = content.replace(heritage_svc, zentauri_svc)
         else:
@@ -63,7 +63,7 @@ def transform_html(content: str) -> str:
             new_services = """        const services = [
             { id: 'payer',        url: 'https://payer.birchville.cc',        gated: false },
             { id: 'heritage',     url: 'https://birchville-org.github.io/HeritageDictionnaire/', gated: false },
-            { id: 'zentauri',     url: 'https://marcodem.github.io/zentauri/', gated: false }
+            { id: 'zentauri',     url: 'https://birchville-org.github.io/zentauri/', gated: false }
         ];"""
             if old_services in content:
                 content = content.replace(old_services, new_services)

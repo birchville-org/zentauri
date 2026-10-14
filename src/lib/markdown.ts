@@ -413,6 +413,7 @@ function createBaseMarkdownIt(): MarkdownIt {
 const mdBasic = createBaseMarkdownIt();
 const mdExtended = createBaseMarkdownIt().use(extensiblePlugin, {
   injectStyles: false,
+  configFile: false,
   blockContainers: [
     { name: "grammar-box2", className: "grammar-box2" },
     { name: "grammarbox2", className: "grammar-box2" },
@@ -445,6 +446,38 @@ const mdExtended = createBaseMarkdownIt().use(extensiblePlugin, {
     { name: "custom5", className: "custom5" },
   ],
 });
+
+export const REGISTERED_CONTAINER_NAMES = new Set([
+  "grammar-box2",
+  "grammarbox2",
+  "grammar-box",
+  "grammarbox",
+  "deleteme-box",
+  "deletemebox",
+  "metrik-schema",
+  "metrikschema",
+  "note-box",
+  "notebox",
+  "laut-table",
+  "lauttable",
+  "media",
+  "center",
+  "important",
+  "indent",
+  "compact",
+  "no-header",
+  "noheader",
+  "info",
+  "tip",
+  "warning",
+  "danger",
+  "details",
+  "custom1",
+  "custom2",
+  "custom3",
+  "custom4",
+  "custom5",
+]);
 
 export function normalizeMarkdownSource(
   src: string,
@@ -519,6 +552,7 @@ export function normalizeMarkdownSource(
   if (extensionsEnabled) {
     const nestingResult = adjustContainerNesting(result, {
       closeUnclosed: true,
+      names: REGISTERED_CONTAINER_NAMES,
     });
     if (nestingResult.didRepair) {
       result = nestingResult.repaired;

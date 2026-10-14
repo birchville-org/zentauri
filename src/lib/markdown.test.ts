@@ -209,4 +209,37 @@ Ausseres Fazit
     const withoutLines = renderMarkdown(md, { sourceLines: false });
     expect(withoutLines).not.toContain("data-source-line");
   });
+
+  it("escapes special characters and HTML inside container titles (v1.3.2 security)", () => {
+    const html = renderMarkdown(
+      "::: note-box [<script>alert('xss')</script>]\nInhalt\n:::",
+    );
+    expect(html).toContain("&lt;script&gt;alert('xss')&lt;/script&gt;");
+    expect(html).not.toContain("<script>alert('xss')</script>");
+  });
+
+  it("handles nested brackets in inline directives correctly", () => {
+    const html = renderMarkdown(
+      "Hier ist ein :sig[Wichtiger Hinweis [mit Klammer]].",
+    );
+    expect(html).toContain(
+      '<strong class="signalrot">Wichtiger Hinweis [mit Klammer]</strong>',
+    );
+  });
+
+  it("prevents false-positive matches for time notations and code array accesses", () => {
+    const html = renderMarkdown(
+      "Treffen um 10:30[Uhr] oder Array-Zugriff foo:bar[0].",
+    );
+    expect(html).not.toContain('<span class="30">');
+    expect(html).toContain("10:30[Uhr]");
+    expect(html).toContain("foo:bar[0]");
+  });
+
+  it("renders Sanskrit brackets via token streaming with proper attributes and text escaping", () => {
+    const html = renderMarkdown("Sanskrit: 《rāmaḥ & sītā》");
+    expect(html).toContain(
+      '<span class="sanskrit-dev" translate="no" lang="sa">rāmaḥ &amp; sītā</span>',
+    );
+  });
 });

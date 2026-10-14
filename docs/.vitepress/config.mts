@@ -32,7 +32,10 @@ export default defineConfig({
           { text: "Features", link: "/scholarly-features" },
           { text: "Roadmap", link: "/roadmap" },
           { text: "Release Notes", link: "/release-notes" },
-          { text: "GitHub", link: "https://github.com/marcodem/zentauri" },
+          {
+            text: "GitHub",
+            link: "https://github.com/birchville-org/zentauri",
+          },
         ],
         sidebar: [
           {
@@ -94,7 +97,10 @@ export default defineConfig({
           { text: "Funktionen", link: "/de/scholarly-features" },
           { text: "Roadmap", link: "/de/roadmap" },
           { text: "Release Notes", link: "/de/release-notes" },
-          { text: "GitHub", link: "https://github.com/marcodem/zentauri" },
+          {
+            text: "GitHub",
+            link: "https://github.com/birchville-org/zentauri",
+          },
         ],
         sidebar: [
           {

@@ -4,6 +4,22 @@ title: Release Notes
 
 # 🚀 Zentauri Release Notes
 
+### ZenTauri v1.3.2
+- **Markdown Rendering Engine Upgrade:** Upgraded `markdown-it-extensible` to 1.3.2 and `markdown-it-container` to 4.0.0 from npm registry for robust builds and cross-platform compatibility.
+- **XSS Sanitization & Token Streaming:** Automatic HTML-escaping for container titles (`::: box [Title]`) and full Markdown-It token-streaming for Sanskrit brackets (`《...》` / `⟪...⟫`), eliminating raw HTML injection vectors.
+- **Inline Directive Hardening:** Added lookbehind protection (`(?<![\w:-])`) and letter-prefix constraints (`:[a-zA-Z]`) to prevent false-positive parsing on time strings (`10:30[Uhr]`) and object/array code accesses (`obj:key[0]`). Added full support for nested brackets in directive payload (`:[sig][Note [1]]`).
+- **Nesting Stack & Code-Fence Protection:** Protected nesting parser stack from unclosed external/unknown containers, preventing premature closure of known scholarly blocks. Single-line code fences are accurately tracked.
+- **Webview Performance & Stabilität:** Disabled synchronous filesystem lookups (`configFile: false`) in the UI render loop.
+
+---
+
+### ZenTauri v1.3.1
+- **File Explorer Layout Refinements:** Constrained sidebar width up to 480px, preventing layout breakage on ultra-wide screens.
+- **Horizontal Scrolling:** Clean horizontal scrolling for file tree items and open tabs with long filenames.
+- **Sticky Headers:** Action icons and folder headers remain visible during horizontal scrolling.
+
+---
+
 ### ZenTauri v1.3.0
 - **Academic Footnotes Support:** Full bidirectional footnote navigation (`markdown-it-footnote`) with numerical markers, named citations (`[^ref]`), footnote separator styling, and return backlink jumps (`↩`).
 - **Definition Lists Support:** Standards-compliant term definition parsing (`markdown-it-deflist`) for scholarly glossaries, grammatical terminology, and lexicons using `<dl>`, `<dt>`, and `<dd>` semantics.

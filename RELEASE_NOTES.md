@@ -1,3 +1,27 @@
+# Release Notes — ZenTauri v1.3.2
+
+ZenTauri v1.3.2 is a security and stability patch release upgrading the shared `markdown-it-extensible` engine to v1.3.2, introducing AST token streaming for Sanskrit markup, container title XSS sanitization, nesting stack protection, and directive parsing enhancements.
+
+## Fixes & Enhancements (v1.3.2)
+
+### 🔒 Security & Sandbox
+* **Container Title Escaping:** Container titles in brackets (`::: box [Title]`) are strictly sanitized via `md.utils.escapeHtml()`, eliminating XSS vectors on AST level.
+* **Sanskrit Token Streaming:** Converted Sanskrit brackets (`《...》` / `⟪...⟫`) from raw HTML injection (`html_inline`) to native token streaming (`span_open`, `text`, `span_close`), ensuring enclosed text is escaped safely.
+* **Attribute & Tag Injection Protection:** Custom inline directives and containers validate CSS class names and HTML tags against strict whitelists (`ALLOWED_INLINE_TAGS`).
+
+### 🧩 Core Rendering & Syntax Hardening
+* **Engine Update:** Upgraded shared `markdown-it-extensible` engine to v1.3.2 and `markdown-it-container` to v4.0.0.
+* **Directive False-Positive Prevention:** Added lookbehind protection `(?<![\w:-])` and letter prefix `:[a-zA-Z]` to prevent false-positive directive matches on time expressions (e.g. `10:30[Uhr]`) or code accesses (`data:field[0]`).
+* **Nested Bracket Directives:** Inline directives now fully support nested brackets in payload (e.g. `:[sig][Reference [42]]`).
+* **Nesting Stack Protection:** Unknown container openers are isolated so they no longer prematurely close outer known scholarly containers.
+* **Single-Line Code Fences:** Fixed code-fence toggling on single-line code blocks.
+
+### ⚡ Performance & Platform
+* **Webview Optimization:** Passed `configFile: false` to disable synchronous `markdown-it-extensible.json` filesystem probing in the UI thread.
+* **Repository Alignment:** Harmonized all documentation, download, and update endpoints with the `birchville-org` organization.
+
+---
+
 # Release Notes — ZenTauri v1.3.1
 
 ZenTauri v1.3.1 is a patch release focusing on UI/UX refinements in the File Explorer, ensuring a cleaner layout on ultra-wide screens and robust handling of long filenames.
@@ -103,7 +127,7 @@ ZenTauri v1.1.18 introduces standalone single-file editing mode, protected syste
 * **Selective Folder Removal:** Removing a workspace folder closes only tabs residing inside that directory, keeping all other tabs intact.
 
 ### 📚 Documentation Migration & Birchville Design Polish
-* **VitePress on GitHub Pages:** Technical documentation and guides published at `https://marcodem.github.io/zentauri/`.
+* **VitePress on GitHub Pages:** Technical documentation and guides published at `https://birchville-org.github.io/zentauri/`.
 * **Sidebar Caret Alignment:** Cleaned up heading margins, flex layout, and caret alignment in the VitePress documentation sidebar.
 
 ---

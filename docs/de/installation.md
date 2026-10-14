@@ -15,7 +15,7 @@ Da Zentauri ein Open-Source-Projekt ist und nicht mit einem kostenpflichtigen Ap
 Folgen Sie diesen einfachen Schritten für die Ersteinrichtung:
 
 ### Schritt 1: Herunterladen & Installieren
-1. Laden Sie die neueste `.dmg`-Installationsdatei von den [ZenTauri GitHub Releases](https://github.com/marcodem/zentauri/releases) herunter.
+1. Laden Sie die neueste `.dmg`-Installationsdatei von den [ZenTauri GitHub Releases](https://github.com/birchville-org/zentauri/releases) herunter.
 2. Öffnen Sie die `.dmg`-Datei und ziehen Sie **ZenTauri** in Ihren **Programme**-Ordner (`Applications`).
 
 ### Schritt 2: Sicherheitsfreigabe (macOS Gatekeeper)
@@ -47,13 +47,13 @@ Sobald Zentauri auf Ihrem Mac installiert und freigegeben ist:
 ---
 
 ## 🪟 Windows Installation
-1. Laden Sie den `.exe`- oder `.msi`-Installer von den [GitHub Releases](https://github.com/marcodem/zentauri/releases) herunter.
+1. Laden Sie den `.exe`- oder `.msi`-Installer von den [GitHub Releases](https://github.com/birchville-org/zentauri/releases) herunter.
 2. Falls Windows Defender SmartScreen einen Hinweis anzeigt, klicken Sie auf **Weitere Informationen** → **Trotzdem ausführen**.
 
 ---
 
 ## 🐧 Linux Installation
-1. Laden Sie das `.AppImage`- oder `.deb`-Paket von den [GitHub Releases](https://github.com/marcodem/zentauri/releases) herunter.
+1. Laden Sie das `.AppImage`- oder `.deb`-Paket von den [GitHub Releases](https://github.com/birchville-org/zentauri/releases) herunter.
 2. Machen Sie das `.AppImage` vor dem Start ausführbar:
    ```bash
    chmod +x ZenTauri_*.AppImage

@@ -2,7 +2,7 @@
 
 > **ZenTauri is a minimalistic Markdown editor with an extensible syntax plugin and KaTeX for math formulae and mermaid for diagrams. It is preloaded with syntax extensions for scholarly display of Sanskrit Grammar.**
 
-📚 **Online Documentation & Technical Wiki:** [https://marcodem.github.io/zentauri/](https://marcodem.github.io/zentauri/)
+📚 **Online Documentation & Technical Wiki:** [https://birchville-org.github.io/zentauri/](https://birchville-org.github.io/zentauri/)
 
 Zentauri is a lightweight (ca. 30MB on Mac), high-performance Markdown note-taking editor. Built with Tauri and Vue.js, it was first conceived as an extension to ZenNotes, but later built on a modern native desktop tech stack (Tauri -> ZenTauri). It combines native desktop performance with advanced scholarly Markdown rendering features specifically aligned with the Payer project (Sanskritkurs) standards.
 
@@ -12,7 +12,7 @@ Zentauri is a lightweight (ca. 30MB on Mac), high-performance Markdown note-taki
 > - **Minimal Layout Syntax:** Zentauri is not a bloated desktop publishing (DTP) suite. It deliberately provides only a focused set of extra Markdown syntax extensions (`::: grammar-box`, `::: note-box`, `::: center`, `:indent`, `:br`, and table spans) that allow a minimal, structured layout directly within the document flow.
 > - **PDF Export:** An integrated PDF export feature is available, designed to output the rendered HTML structure cleanly for archiving and sharing, rather than offering freeform print layouting.
 
-If you wish to explore the full architecture, developer notes, and syntax extensions, visit the [Documentation Wiki](https://marcodem.github.io/zentauri/).
+If you wish to explore the full architecture, developer notes, and syntax extensions, visit the [Documentation Wiki](https://birchville-org.github.io/zentauri/).
 
 ---
 
@@ -66,10 +66,10 @@ If you wish to explore the full architecture, developer notes, and syntax extens
 ## Documentation
 
 Comprehensive architecture guides, scholarly feature specifications, and technology stack overviews are published at:
-👉 **[https://marcodem.github.io/zentauri/](https://marcodem.github.io/zentauri/)**
+👉 **[https://birchville-org.github.io/zentauri/](https://birchville-org.github.io/zentauri/)**
 
-- 📐 **[System Architecture](https://marcodem.github.io/zentauri/system-architecture)**: Rust-First backend, SQLite workspace indexing, Typst native PDF export pipeline.
-- 📝 **[Scholarly Extensions](https://marcodem.github.io/zentauri/scholarly-features)**: Specialized containers, Devanagari highlighting, and interactive knowledge graph.
+- 📐 **[System Architecture](https://birchville-org.github.io/zentauri/system-architecture)**: Rust-First backend, SQLite workspace indexing, Typst native PDF export pipeline.
+- 📝 **[Scholarly Extensions](https://birchville-org.github.io/zentauri/scholarly-features)**: Specialized containers, Devanagari highlighting, and interactive knowledge graph.
 
 ---
 

@@ -16,39 +16,82 @@ export interface ContainerNestingResult {
   adjustedCount: number;
 }
 
+export interface ContainerNestingOptions {
+  names?: Iterable<string> | null;
+  closeUnclosed?: boolean;
+}
+
+export const DEFAULT_CONTAINER_NAMES: ReadonlySet<string> = new Set([
+  "grammar-box2",
+  "grammarbox2",
+  "grammar-box",
+  "grammarbox",
+  "deleteme-box",
+  "deletemebox",
+  "metrik-schema",
+  "metrikschema",
+  "note-box",
+  "notebox",
+  "laut-table",
+  "lauttable",
+  "media",
+  "center",
+  "important",
+  "indent",
+  "compact",
+  "no-header",
+  "noheader",
+  "info",
+  "tip",
+  "warning",
+  "danger",
+  "details",
+  "custom1",
+  "custom2",
+  "custom3",
+  "custom4",
+  "custom5",
+]);
+
+const OPEN_RE = /^([ \t]*)(:{3,})([ \t]*)([a-zA-Z0-9_-]+)(.*)$/;
+const CLOSE_RE = /^([ \t]*)(:{3,})[ \t]*$/;
+const CODE_FENCE_OPEN_RE = /^[ \t]*(`{3,}|~{3,})/;
+const CODE_FENCE_CLOSE_RE = /^[ \t]*(`{3,}|~{3,})[ \t]*$/;
+
 interface ContainerBlock {
-  id: number;
+  isKnown: boolean;
   openLineIndex: number;
   closeLineIndex: number | null;
   indent: string;
-  colons: string;
+  colons: number;
   space: string;
   name: string;
   rest: string;
   closeIndent: string;
-  closeColons: string;
+  closeColons: number;
   targetColonsCount: number;
   children: ContainerBlock[];
-  parent: ContainerBlock | null;
 }
 
 /**
  * Adjusts container colons according to hierarchy depth.
- * In markdown-it / VitePress container rules, an outer container MUST have strictly more colons
- * than any container nested directly or indirectly inside it.
- * (e.g., innermost = :::, outer = ::::, outermost = :::::)
+ * Outer containers are rewritten to use strictly more colons than any container nested inside them.
  */
 export function adjustContainerNesting(
   src: string,
-  options?: { closeUnclosed?: boolean },
+  options?: ContainerNestingOptions,
 ): ContainerNestingResult {
-  if (!src) {
+  if (!src || src.indexOf(":::") === -1) {
     return { repaired: src, didRepair: false, adjustedCount: 0 };
   }
 
-  const hasTrailingNewline = src.endsWith("\n");
-  const rawLines = src.split("\n");
-  // If the last line is empty due to a trailing newline, remove it temporarily
+  const names = options?.names
+    ? new Set(Array.from(options.names, (n) => String(n).toLowerCase()))
+    : null;
+
+  const eol = src.includes("\r\n") ? "\r\n" : "\n";
+  const hasTrailingNewline = src.endsWith(eol);
+  const rawLines = src.split(eol);
   const lines =
     hasTrailingNewline &&
     rawLines.length > 0 &&
@@ -59,61 +102,51 @@ export function adjustContainerNesting(
   const stack: ContainerBlock[] = [];
   const roots: ContainerBlock[] = [];
   const allContainers: ContainerBlock[] = [];
-  let nextId = 1;
 
-  let inCodeFence = false;
-  let codeFenceChar = "";
-  let codeFenceLen = 0;
+  let fenceChar = "";
+  let fenceLen = 0;
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
 
-    // Check code fence toggle
-    const fenceMatch = line.match(/^[ \t]*(`{3,}|~{3,})/);
-    if (fenceMatch) {
-      const char = fenceMatch[1][0];
-      const len = fenceMatch[1].length;
-      if (!inCodeFence) {
-        inCodeFence = true;
-        codeFenceChar = char;
-        codeFenceLen = len;
+    if (!fenceChar) {
+      const fm = line.match(CODE_FENCE_OPEN_RE);
+      if (fm) {
+        const char = fm[1][0];
+        const len = fm[1].length;
+        const infoString = line.slice(fm[0].length);
+        if (!infoString.includes(char)) {
+          fenceChar = char;
+          fenceLen = len;
+          continue;
+        }
+      }
+    } else {
+      const fm = line.match(CODE_FENCE_CLOSE_RE);
+      if (fm && fm[1][0] === fenceChar && fm[1].length >= fenceLen) {
+        fenceChar = "";
+        fenceLen = 0;
         continue;
       }
-      if (char === codeFenceChar && len >= codeFenceLen) {
-        inCodeFence = false;
-        continue;
-      }
-    }
-
-    if (inCodeFence) {
       continue;
     }
 
-    // Check for container opener: :::{3,} [name] [rest]
-    const openMatch = line.match(
-      /^([ \t]*)(:{3,})([ \t]*)([a-zA-Z0-9_-]+)(.*)$/,
-    );
+    const openMatch = line.match(OPEN_RE);
     if (openMatch) {
-      const indent = openMatch[1];
-      const colons = openMatch[2];
-      const space = openMatch[3] || " ";
-      const name = openMatch[4];
-      const rest = openMatch[5];
-
+      const isKnown = !names || names.has(openMatch[4].toLowerCase());
       const block: ContainerBlock = {
-        id: nextId++,
+        isKnown,
         openLineIndex: i,
         closeLineIndex: null,
-        indent,
-        colons,
-        space,
-        name,
-        rest,
-        closeIndent: indent,
-        closeColons: colons,
-        targetColonsCount: colons.length,
+        indent: openMatch[1],
+        colons: openMatch[2].length,
+        space: openMatch[3] || " ",
+        name: openMatch[4],
+        rest: openMatch[5],
+        closeIndent: openMatch[1],
+        closeColons: 0,
+        targetColonsCount: openMatch[2].length,
         children: [],
-        parent: stack.length > 0 ? stack[stack.length - 1] : null,
       };
 
       if (stack.length > 0) {
@@ -126,38 +159,25 @@ export function adjustContainerNesting(
       continue;
     }
 
-    // Check for container closer: :::{3,}
-    const closeMatch = line.match(/^([ \t]*)(:{3,})[ \t]*$/);
-    if (closeMatch) {
-      if (stack.length > 0) {
-        const top = stack.pop()!;
-        top.closeLineIndex = i;
-        top.closeIndent = closeMatch[1];
-        top.closeColons = closeMatch[2];
-      }
+    const closeMatch = line.match(CLOSE_RE);
+    if (closeMatch && stack.length > 0) {
+      const top = stack.pop()!;
+      top.closeLineIndex = i;
+      top.closeIndent = closeMatch[1];
+      top.closeColons = closeMatch[2].length;
     }
   }
 
-  // Calculate required colon counts bottom-up (post-order traversal)
   function computeTargetColons(block: ContainerBlock): number {
     let maxChildColons = 0;
     for (const child of block.children) {
-      const childColons = computeTargetColons(child);
-      if (childColons > maxChildColons) {
-        maxChildColons = childColons;
-      }
+      maxChildColons = Math.max(maxChildColons, computeTargetColons(child));
     }
-
-    if (block.children.length > 0) {
-      block.targetColonsCount = Math.max(
-        block.colons.length,
-        maxChildColons + 1,
-        3,
-      );
-    } else {
-      block.targetColonsCount = Math.max(block.colons.length, 3);
-    }
-
+    block.targetColonsCount = Math.max(
+      block.colons,
+      block.children.length > 0 ? maxChildColons + 1 : 3,
+      3,
+    );
     return block.targetColonsCount;
   }
 
@@ -168,42 +188,41 @@ export function adjustContainerNesting(
   let didRepair = false;
   let adjustedCount = 0;
 
-  // Update existing opening and closing fences
   for (const block of allContainers) {
-    const openNeedsUpdate = block.targetColonsCount !== block.colons.length;
-    const closeNeedsUpdate =
+    if (!block.isKnown) continue;
+
+    const openChanged = block.targetColonsCount !== block.colons;
+    const closeChanged =
       block.closeLineIndex !== null &&
-      (block.targetColonsCount !== block.closeColons.length ||
-        block.closeColons.length !== block.colons.length);
+      block.closeColons !== block.targetColonsCount;
 
-    if (openNeedsUpdate || closeNeedsUpdate) {
-      didRepair = true;
-      adjustedCount++;
+    if (!openChanged && !closeChanged) continue;
 
-      const newColons = ":".repeat(block.targetColonsCount);
-      lines[block.openLineIndex] =
-        `${block.indent}${newColons}${block.space}${block.name}${block.rest}`;
+    didRepair = true;
+    adjustedCount++;
 
-      if (block.closeLineIndex !== null) {
-        lines[block.closeLineIndex] = `${block.closeIndent}${newColons}`;
-      }
+    const newColons = ":".repeat(block.targetColonsCount);
+    lines[block.openLineIndex] =
+      `${block.indent}${newColons}${block.space}${block.name}${block.rest}`;
+
+    if (block.closeLineIndex !== null) {
+      lines[block.closeLineIndex] = `${block.closeIndent}${newColons}`;
     }
   }
 
-  // Auto-close unclosed containers if requested
   if (options?.closeUnclosed && stack.length > 0) {
-    didRepair = true;
     while (stack.length > 0) {
       const unclosed = stack.pop()!;
+      if (!unclosed.isKnown) continue;
+      didRepair = true;
       adjustedCount++;
-      const closerColons = ":".repeat(unclosed.targetColonsCount);
-      lines.push(`${unclosed.indent}${closerColons}`);
+      lines.push(`${unclosed.indent}${":".repeat(unclosed.targetColonsCount)}`);
     }
   }
 
-  let repairedText = lines.join("\n");
+  let repairedText = lines.join(eol);
   if (hasTrailingNewline) {
-    repairedText += "\n";
+    repairedText += eol;
   }
 
   return {
