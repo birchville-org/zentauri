@@ -1,3 +1,24 @@
+# Release Notes — ZenTauri v1.3.3
+
+ZenTauri v1.3.3 is a security and stability maintenance release featuring strict workspace boundary enforcement, SQL wildcard query protection, XSS and UI spoofing sanitization, Typst PDF relative image path resolution, and graceful tray application shutdown.
+
+## Fixes & Enhancements (v1.3.3)
+
+### 🔒 Security & Sandbox
+* **Workspace Boundary Verification:** Enforced strict workspace boundaries (`is_within_known_workspace`) for all filesystem mutations (`move_file_item`, `duplicate_file_item`, `delete_file_item`), preventing path traversal outside mounted workspaces.
+* **Cross-Device Move Error Propagation:** Refactored cross-device move operations to ensure atomic behavior and robust error propagation upon cleanup.
+* **SQL LIKE Wildcard Escaping:** Escaped LIKE query wildcards (`_` and `%`) in directory synchronization and search routines to prevent unintended pattern matches.
+* **XSS & Phishing Prevention:** Configured DOMPurify with strict `FORBID_TAGS` (`style`, `form`, `input`, `button`, `textarea`, `select`) to eliminate UI spoofing and phishing vectors.
+* **CSP Streamlining:** Removed deprecated custom URI schemes (`zen:`, `zen-asset:`) from Content Security Policy and link resolvers.
+
+### ⚡ Core Functionality & PDF Export
+* **Typst PDF Image Path Resolution:** Passed active document's base directory to Typst converter, correctly resolving relative image paths into absolute paths for reliable PDF compilation.
+* **Graceful Tray Shutdown:** Wired system tray quit menu to dispatch `request-app-quit`, flushing debounced auto-saves and saving modified tabs before process exit.
+* **File Explorer Validation:** Added path separator and collision validation for file renaming operations, preventing accidental file overwrites.
+* **CI/CD Quality Gate:** Added automated pre-release quality gate (`check` job) to validate linter, type checks, unit tests, and backend tests prior to building release binaries.
+
+---
+
 # Release Notes — ZenTauri v1.3.2
 
 ZenTauri v1.3.2 is a security and stability patch release upgrading the shared `markdown-it-extensible` engine to v1.3.2, introducing AST token streaming for Sanskrit markup, container title XSS sanitization, nesting stack protection, and directive parsing enhancements.
