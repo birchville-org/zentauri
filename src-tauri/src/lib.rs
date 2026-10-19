@@ -584,8 +584,11 @@ pub fn is_protected_system_destination(path: &std::path::Path) -> bool {
         return true;
     }
 
-    // Direct root file, e.g. /evil.pdf
+    // Direct root file, e.g. /evil.pdf, or root directory (except standard /tmp directory)
     if parts.len() == 1 {
+        if parts[0] == "tmp" && path.is_dir() {
+            return false;
+        }
         return true;
     }
 
@@ -949,27 +952,25 @@ pub fn run() {
 
             Ok(())
         })
-        .on_window_event(|window, event| {
-            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
-                #[cfg(target_os = "macos")]
-                {
-                    api.prevent_close();
-                    let _ = window.hide();
-                }
+        .on_window_event(|_window, _event| {
+            #[cfg(target_os = "macos")]
+            if let tauri::WindowEvent::CloseRequested { api, .. } = _event {
+                api.prevent_close();
+                let _ = _window.hide();
             }
         })
         .build(tauri::generate_context!())
         .expect("error while building tauri application");
 
-    app.run(|app_handle, event| match event {
+    app.run(|_app_handle, event| match event {
         #[cfg(target_os = "macos")]
         tauri::RunEvent::Opened { urls } => {
             for url in urls {
                 if let Ok(path) = url.to_file_path() {
                     let path_str = path.to_string_lossy().to_string();
-                    let _ = app_handle.fs_scope().allow_file(&path);
-                    let _ = app_handle.emit("open-file-path", &path_str);
-                    if let Some(state) = app_handle.try_state::<PendingOpenFiles>() {
+                    let _ = _app_handle.fs_scope().allow_file(&path);
+                    let _ = _app_handle.emit("open-file-path", &path_str);
+                    if let Some(state) = _app_handle.try_state::<PendingOpenFiles>() {
                         state.0.lock().unwrap().push(path_str);
                     }
                 }
@@ -977,7 +978,7 @@ pub fn run() {
         }
         #[cfg(target_os = "macos")]
         tauri::RunEvent::Reopen { .. } => {
-            if let Some(window) = app_handle.get_webview_window("main") {
+            if let Some(window) = _app_handle.get_webview_window("main") {
                 let _ = window.show();
                 let _ = window.set_focus();
             }

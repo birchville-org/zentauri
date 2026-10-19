@@ -191,4 +191,10 @@ fn test_export_pdf_validation_rules() {
     let temp_target = std::env::temp_dir().join("valid_export_test.pdf");
     let result = validate_export_destination(temp_target.to_str().unwrap());
     assert!(result.is_ok(), "Temp path must be allowed: {:?}", result);
+
+    #[cfg(unix)]
+    if std::path::Path::new("/tmp").is_dir() {
+        let tmp_direct = validate_export_destination("/tmp/linux_valid_export.pdf");
+        assert!(tmp_direct.is_ok(), "/tmp direct export must be allowed on unix: {:?}", tmp_direct);
+    }
 }
