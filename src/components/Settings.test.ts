@@ -6,9 +6,14 @@ const mockCheckForUpdates = vi.fn();
 const mockInstallAppUpdate = vi.fn();
 const mockRelaunch = vi.fn();
 
+const mockOpenReleasePage = vi.fn();
+
 vi.mock("../lib/updater", () => ({
   checkForUpdates: () => mockCheckForUpdates(),
   installAppUpdate: (...args: unknown[]) => mockInstallAppUpdate(...args),
+  openReleasePage: (...args: unknown[]) => mockOpenReleasePage(...args),
+  GITHUB_RELEASES_URL:
+    "https://github.com/birchville-org/zentauri/releases/latest",
 }));
 
 vi.mock("@tauri-apps/plugin-process", () => ({
@@ -63,6 +68,18 @@ describe("Settings Component - Update Flow & Layout", () => {
     expect(installBtn).toBeDefined();
     expect(installBtn!.exists()).toBe(true);
 
+    // Fallback manual download button must also be present
+    const manualBtn = wrapper
+      .findAll("button")
+      .find((b) => b.text().includes("Manuell im Browser herunterladen"));
+    expect(manualBtn).toBeDefined();
+    expect(manualBtn!.exists()).toBe(true);
+
+    await manualBtn!.trigger("click");
+    expect(mockOpenReleasePage).toHaveBeenCalledWith(
+      "https://github.com/birchville-org/zentauri/releases/tag/v1.2.0",
+    );
+
     // Release notes should be collapsed by default
     expect(wrapper.find(".release-notes-content").exists()).toBe(false);
 
@@ -109,6 +126,36 @@ describe("Settings Component - Update Flow & Layout", () => {
     await wrapper.vm.$nextTick();
     await new Promise((r) => setTimeout(r, 10));
     expect(mockRelaunch).toHaveBeenCalled();
+  });
+
+  it("shows browser download fallback button when update check fails", async () => {
+    mockCheckForUpdates.mockResolvedValue({
+      available: false,
+      error: "Connection refused",
+    });
+
+    const wrapper = mount(Settings, {
+      props: { isOpen: true },
+    });
+
+    const checkBtnEl = wrapper
+      .findAll("button")
+      .find((b) => b.text().includes("Check for Updates"));
+    await checkBtnEl!.trigger("click");
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.text()).toContain("Update check failed: Connection refused");
+
+    const fallbackBtn = wrapper
+      .findAll("button")
+      .find((b) => b.text().includes("Im Browser herunterladen"));
+    expect(fallbackBtn).toBeDefined();
+    expect(fallbackBtn!.exists()).toBe(true);
+
+    await fallbackBtn!.trigger("click");
+    expect(mockOpenReleasePage).toHaveBeenCalledWith(
+      "https://github.com/birchville-org/zentauri/releases/latest",
+    );
   });
 
   it("allows selecting Payer-Day and Payer-Night palettes and applies them", async () => {

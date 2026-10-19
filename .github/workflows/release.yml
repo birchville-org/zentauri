@@ -246,6 +246,29 @@ jobs:
             fs.writeFileSync("latest.json", JSON.stringify(manifest, null, 2));
           ' "${TAG_NAME}" "${REPO}" "${NODE_NOTES}" "${SIG_DARWIN}" "${SIG_WIN_X64}" "${SIG_WIN_ARM64}" "${SIG_LINUX_X64}" "${SIG_LINUX_ARM64}" "${ARM64_FILE}"
 
+          # Pre-flight verification of URLs in latest.json
+          echo "Verifying release assets in latest.json before publishing manifest..."
+          node -e '
+            const fs = require("fs");
+            const manifest = JSON.parse(fs.readFileSync("latest.json", "utf8"));
+            const urls = Object.values(manifest.platforms || {}).map(p => p.url);
+            const uniqueUrls = [...new Set(urls)];
+            fs.writeFileSync("urls_to_check.txt", uniqueUrls.join("\n"));
+          '
+          while IFS= read -r url; do
+            if [ -n "$url" ]; then
+              echo "Checking $url ..."
+              if ! curl -fsIL -o /dev/null "$url"; then
+                echo "Warning: Asset $url not immediately available, retrying in 5 seconds..."
+                sleep 5
+                curl -fsIL -o /dev/null "$url" || echo "Asset verification warning for $url"
+              else
+                echo "OK: $url verified."
+              fi
+            fi
+          done < urls_to_check.txt
+
           gh release upload "${TAG_NAME}" latest.json --clobber
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+

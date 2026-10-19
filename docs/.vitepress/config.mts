@@ -67,11 +67,11 @@ export default defineConfig({
             items: [
               {
                 text: "GitHub Repository",
-                link: "https://github.com/marcodem/zentauri",
+                link: "https://github.com/birchville-org/zentauri",
               },
               {
                 text: "Releases & Downloads",
-                link: "https://github.com/marcodem/zentauri/releases",
+                link: "https://github.com/birchville-org/zentauri/releases",
               },
             ],
           },
@@ -135,11 +135,11 @@ export default defineConfig({
             items: [
               {
                 text: "GitHub Repository",
-                link: "https://github.com/marcodem/zentauri",
+                link: "https://github.com/birchville-org/zentauri",
               },
               {
                 text: "Releases & Downloads",
-                link: "https://github.com/marcodem/zentauri/releases",
+                link: "https://github.com/birchville-org/zentauri/releases",
               },
             ],
           },
@@ -157,7 +157,7 @@ export default defineConfig({
     logoLink: "https://birchville.org",
     siteTitle: "Zentauri",
     socialLinks: [
-      { icon: "github", link: "https://github.com/marcodem/zentauri" },
+      { icon: "github", link: "https://github.com/birchville-org/zentauri" },
     ],
   },
 });

@@ -1,3 +1,20 @@
+# Release Notes — ZenTauri v1.3.4
+
+ZenTauri v1.3.4 is a reliability and error-recovery patch release introducing a dual-track download mechanism with resilient manual fallback links, updater error-state recovery, Settings version binding fixes, repository URL alignment, and CI/CD pre-flight asset verification.
+
+## Fixes & Enhancements (v1.3.4)
+
+### 🔄 Dual-Track Updater & Error Recovery
+* **Dual-Track Download Mechanism:** Added dedicated browser download buttons (`openReleasePage`) linking to GitHub Releases in both `UpdateNotification.vue` and `Settings.vue`. If the in-app Tauri updater encounters an installation or permission failure, users are never trapped and can immediately download the installer/DMG in their browser.
+* **Updater Error State Recovery:** Display a prominent recovery button ("Im Browser herunterladen ↗") whenever update checks or installations encounter network errors or filesystem permissions issues.
+* **Settings Version Variable Binding:** Resolved missing `updateVersion` ref binding in Settings template, ensuring version strings render reliably in the release notes view.
+
+### 🌐 Links & CI/CD Hardening
+* **Repository & Documentation Links:** Updated all VitePress documentation and social links from deprecated `marcodem/zentauri` to `birchville-org/zentauri`.
+* **CI/CD Manifest Pre-flight Verification:** Added automated pre-flight URL verification (`curl -fsIL`) to the release workflow's `manifest` job, ensuring all platform asset URLs exist before uploading `latest.json`.
+
+---
+
 # Release Notes — ZenTauri v1.3.3
 
 ZenTauri v1.3.3 is a security and stability maintenance release featuring strict workspace boundary enforcement, SQL wildcard query protection, XSS and UI spoofing sanitization, Typst PDF relative image path resolution, and graceful tray application shutdown.

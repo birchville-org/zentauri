@@ -4,6 +4,15 @@ title: Release Notes
 
 # 🚀 Zentauri Release Notes
 
+### ZenTauri v1.3.4
+- **Zwei-Wege-Update & Manueller Download-Fallback:** Direkte Browser-Download-Buttons zu den GitHub Releases sowohl in `UpdateNotification.vue` als auch in `Settings.vue`. Sollte der In-App-Updater fehlschlagen oder an Sandbox-/Berechtigungsfehlern scheitern, kann der Benutzer das Update jederzeit mit einem Klick manuell herunterladen.
+- **Fehlerbehandlung mit Recovery-Button:** Bei Fehlern während der Update-Prüfung oder Installation wird ein prominenter Recovery-Button ("Im Browser herunterladen ↗") angezeigt, sodass der Downloadpfad niemals blockiert ist.
+- **Settings-Versionsbindung:** Fehlende `updateVersion`-Ref im Settings-Template ergänzt, damit Versionsnummern in den Release Notes zuverlässig gerendert werden.
+- **Repository-URL-Bereinigung:** Alle VitePress-Dokumentations- und Social-Links von veraltetem `marcodem/zentauri` auf `birchville-org/zentauri` vereinheitlicht.
+- **CI/CD Manifest Pre-flight-Prüfung:** Automatische URL-Prüfung (`curl -fsIL`) im `manifest`-Job der Release-Pipeline zur Verifikation aller Plattform-Assets vor der Veröffentlichung von `latest.json`.
+
+---
+
 ### ZenTauri v1.3.3
 - **Workspace-Boundary & Sandbox-Schutz (Rust Backend):** Strikte Prüfung aller Dateioperationen (`move_file_item`, `duplicate_file_item`, `delete_file_item`) gegen die aktiven Projekt-Workspaces (`is_within_known_workspace`) zur Verhinderung von Path-Traversal. Sichere Fehlerbehandlung beim Verschieben über Partitionsgrenzen.
 - **SQL-Wildcard & Injection-Schutz:** Konsequentes Escaping von LIKE-Wildcards (`_` und `%`) in SQLite-Synchronisations- und Suchabfragen.

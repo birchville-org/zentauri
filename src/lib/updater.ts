@@ -54,3 +54,19 @@ export async function installAppUpdate(
     }
   });
 }
+
+export const GITHUB_RELEASES_URL =
+  "https://github.com/birchville-org/zentauri/releases/latest";
+
+export async function openReleasePage(
+  url: string = GITHUB_RELEASES_URL,
+): Promise<void> {
+  try {
+    const { openUrl } = await import("@tauri-apps/plugin-opener");
+    await openUrl(url);
+  } catch {
+    if (typeof window !== "undefined" && window.open) {
+      window.open(url, "_blank");
+    }
+  }
+}

@@ -3,7 +3,12 @@ import { relaunch } from "@tauri-apps/plugin-process";
 import type { Update } from "@tauri-apps/plugin-updater";
 import { computed, onMounted, onUnmounted, ref, shallowRef, toRaw } from "vue";
 import { renderMarkdown } from "../lib/markdown";
-import { checkForUpdates, installAppUpdate } from "../lib/updater";
+import {
+  GITHUB_RELEASES_URL,
+  checkForUpdates,
+  installAppUpdate,
+  openReleasePage,
+} from "../lib/updater";
 
 const isTauri =
   typeof window !== "undefined" &&
@@ -49,6 +54,13 @@ async function runUpdateCheck(force = false) {
   } catch (err) {
     console.warn("Silent background update check error:", err);
   }
+}
+
+function handleManualDownload() {
+  const url = updateVersion.value
+    ? `https://github.com/birchville-org/zentauri/releases/tag/v${updateVersion.value}`
+    : GITHUB_RELEASES_URL;
+  openReleasePage(url);
 }
 
 function dismiss() {
@@ -100,10 +112,12 @@ onUnmounted(() => {
 
 defineExpose({
   runUpdateCheck,
+  handleManualDownload,
   isVisible,
   showNotes,
   updateBody,
   updateVersion,
+  errorMessage,
 });
 </script>
 
@@ -195,28 +209,51 @@ defineExpose({
         </div>
       </div>
 
-      <!-- Error message -->
-      <div v-else-if="errorMessage" class="mt-2 text-xs text-rose-500">
-        {{ errorMessage }}
+      <!-- Error message with manual download fallback -->
+      <div v-else-if="errorMessage" class="mt-2.5 p-2 rounded-lg bg-red-500/10 border border-red-500/20 text-xs text-rose-500 flex flex-col gap-1.5">
+        <span>{{ errorMessage }}</span>
+        <button
+          type="button"
+          @click="handleManualDownload"
+          class="inline-flex items-center gap-1 text-amber-700 dark:text-amber-400 hover:underline font-medium text-[11px] cursor-pointer"
+        >
+          <span>Manuell im Browser herunterladen (GitHub Releases)</span>
+          <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+          </svg>
+        </button>
       </div>
 
       <!-- Action Buttons -->
-      <div v-if="!isInstalling" class="mt-3.5 flex items-center justify-end gap-2 pt-2 border-t border-app-border/50">
+      <div v-if="!isInstalling" class="mt-3.5 flex items-center justify-between gap-2 pt-2 border-t border-app-border/50">
         <button
-          @click="dismiss"
-          class="px-3 py-1.5 text-xs font-medium text-app-text-muted hover:text-app-text rounded-lg hover:bg-app-bg-hover transition-colors"
+          type="button"
+          @click="handleManualDownload"
+          class="text-[11px] text-amber-700 dark:text-amber-400 hover:underline flex items-center gap-1 cursor-pointer"
+          title="Im Web-Browser von GitHub herunterladen"
         >
-          Später
-        </button>
-        <button
-          @click="handleInstall"
-          class="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-amber-600 hover:bg-amber-700 text-white dark:bg-amber-500 dark:hover:bg-amber-600 dark:text-slate-950 transition-colors shadow-sm flex items-center gap-1.5"
-        >
-          <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+          <span>Browser-Download</span>
+          <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
           </svg>
-          Jetzt aktualisieren
         </button>
+        <div class="flex items-center gap-2">
+          <button
+            @click="dismiss"
+            class="px-3 py-1.5 text-xs font-medium text-app-text-muted hover:text-app-text rounded-lg hover:bg-app-bg-hover transition-colors cursor-pointer"
+          >
+            Später
+          </button>
+          <button
+            @click="handleInstall"
+            class="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-amber-600 hover:bg-amber-700 text-white dark:bg-amber-500 dark:hover:bg-amber-600 dark:text-slate-950 transition-colors shadow-sm flex items-center gap-1.5 cursor-pointer"
+          >
+            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            Jetzt aktualisieren
+          </button>
+        </div>
       </div>
     </div>
   </Transition>

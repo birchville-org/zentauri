@@ -5,7 +5,12 @@ import type { Update } from "@tauri-apps/plugin-updater";
 import { computed, onMounted, ref, shallowRef, toRaw, watch } from "vue";
 import { renderMarkdown } from "../lib/markdown";
 import { THEME_OPTIONS, applyTheme } from "../lib/theme";
-import { checkForUpdates, installAppUpdate } from "../lib/updater";
+import {
+  GITHUB_RELEASES_URL,
+  checkForUpdates,
+  installAppUpdate,
+  openReleasePage,
+} from "../lib/updater";
 
 defineProps<{
   isOpen: boolean;
@@ -82,6 +87,7 @@ const updateState = ref<
   "idle" | "checking" | "available" | "up-to-date" | "downloading" | "error"
 >("idle");
 const updateMessage = ref("");
+const updateVersion = ref("");
 const updateBody = ref("");
 const showSettingsNotes = ref(false);
 const activeUpdate = shallowRef<Update | null>(null);
@@ -96,6 +102,7 @@ async function checkUpdates() {
   updateState.value = "checking";
   updateMessage.value = "Checking for updates...";
   activeUpdate.value = null;
+  updateVersion.value = "";
   updateBody.value = "";
   installProgress.value = 0;
 
@@ -106,12 +113,20 @@ async function checkUpdates() {
   } else if (result.available && result.update) {
     updateState.value = "available";
     activeUpdate.value = result.update;
+    updateVersion.value = result.version || "";
     updateBody.value = result.body || "";
     updateMessage.value = `New version v${result.version} is available!`;
   } else {
     updateState.value = "up-to-date";
     updateMessage.value = "ZenTauri is up to date.";
   }
+}
+
+function handleManualDownload() {
+  const url = updateVersion.value
+    ? `https://github.com/birchville-org/zentauri/releases/tag/v${updateVersion.value}`
+    : GITHUB_RELEASES_URL;
+  openReleasePage(url);
 }
 
 async function installUpdate() {
@@ -238,6 +253,32 @@ async function installUpdate() {
             Download & Install Update
           </button>
 
+          <!-- Fallback manual download when update is available -->
+          <button
+            v-if="updateState === 'available'"
+            type="button"
+            @click="handleManualDownload"
+            class="w-full py-1.5 bg-app-bg-secondary hover:bg-app-border border border-app-border text-app-text text-xs font-medium rounded-md transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+          >
+            <svg class="h-3.5 w-3.5 text-app-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            </svg>
+            Manuell im Browser herunterladen (GitHub Releases)
+          </button>
+
+          <!-- Fallback manual download when update check or install fails -->
+          <button
+            v-if="updateState === 'error'"
+            type="button"
+            @click="handleManualDownload"
+            class="w-full py-2 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-700 dark:text-amber-400 text-xs font-semibold rounded-md transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+          >
+            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            Im Browser herunterladen (GitHub Releases) ↗
+          </button>
+
           <!-- Downloading progress bar -->
           <div v-if="updateState === 'downloading'" class="flex flex-col gap-1">
             <div class="w-full bg-app-bg-secondary h-2 rounded-full overflow-hidden border border-app-border">
@@ -258,7 +299,7 @@ async function installUpdate() {
               @click="showSettingsNotes = !showSettingsNotes"
               class="text-xs font-medium text-amber-700 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-300 flex items-center justify-between cursor-pointer transition-colors"
             >
-              <span>Release Notes</span>
+              <span>Release Notes{{ updateVersion ? ` (v${updateVersion})` : '' }}</span>
               <span class="text-[11px] opacity-80">{{ showSettingsNotes ? 'Ausblenden' : 'Anzeigen' }}</span>
             </button>
             <div
@@ -268,9 +309,17 @@ async function installUpdate() {
             ></div>
           </div>
 
-          <p class="text-[11px] text-app-text-muted leading-relaxed">
-            Fast, extensible Markdown editor powered by Tauri and Vue 3.
-          </p>
+          <div class="flex items-center justify-between text-[11px] text-app-text-muted leading-relaxed">
+            <span>Fast, extensible Markdown editor powered by Tauri and Vue 3.</span>
+            <button
+              type="button"
+              @click="handleManualDownload"
+              class="text-amber-700 dark:text-amber-400 hover:underline shrink-0 ml-2 cursor-pointer"
+              title="GitHub Releases"
+            >
+              Downloads ↗
+            </button>
+          </div>
         </div>
       </div>
       
