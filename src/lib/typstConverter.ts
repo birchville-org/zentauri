@@ -157,6 +157,7 @@ export interface TypstExportOptions {
   margin?: { x?: string; y?: string };
   fontSize?: number;
   numbering?: string;
+  baseDir?: string;
 }
 
 export function convertMarkdownToTypst(
@@ -387,15 +388,27 @@ export function convertMarkdownToTypst(
                 typstCode += "]";
                 break;
               case "image": {
-                const src = escapeTypstString(child.attrGet("src") || "");
-                // Only embed images with valid paths to prevent Typst engine crashes
-                if (src.startsWith("http://") || src.startsWith("https://")) {
-                  typstCode += `[#link("${src}")[Image]]`;
-                } else if (
-                  src &&
-                  !src.startsWith("zen:") &&
-                  !src.startsWith("zen-asset:")
+                const rawSrc = child.attrGet("src") || "";
+                if (
+                  rawSrc.startsWith("http://") ||
+                  rawSrc.startsWith("https://")
                 ) {
+                  const href = escapeTypstString(rawSrc);
+                  typstCode += `[#link("${href}")[Image]]`;
+                } else if (rawSrc.trim()) {
+                  let imgPath = rawSrc.trim();
+                  if (
+                    options?.baseDir &&
+                    !imgPath.startsWith("/") &&
+                    !imgPath.includes(":")
+                  ) {
+                    const cleanBase = options.baseDir
+                      .replace(/\\/g, "/")
+                      .replace(/\/+$/, "");
+                    const cleanRel = imgPath.replace(/^(\.\/)+/, "");
+                    imgPath = `${cleanBase}/${cleanRel}`;
+                  }
+                  const src = escapeTypstString(imgPath.replace(/\\/g, "/"));
                   typstCode += `#image("${src}")`;
                 }
                 break;

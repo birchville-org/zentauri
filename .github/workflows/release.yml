@@ -7,7 +7,46 @@ on:
   workflow_dispatch:
 
 jobs:
+  check:
+    name: Pre-Release Quality Gate
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Linux dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev xdg-utils
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npx vue-tsc --noEmit
+
+      - name: Lint check
+        run: npx biome check .
+
+      - name: Run frontend tests
+        run: npm test
+
+      - name: Run backend tests
+        run: cargo test --manifest-path src-tauri/Cargo.toml
+
   release:
+    needs: check
     permissions:
       contents: write
     strategy:
@@ -31,6 +70,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Install Node.js
         uses: actions/setup-node@v4
@@ -53,9 +94,11 @@ jobs:
         run: npm ci
 
       - name: Prepare signing key
+        env:
+          RAW_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
         shell: bash
         run: |
-          CLEAN_KEY=$(echo "${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}" | tr -d '\r\n')
+          CLEAN_KEY=$(echo "$RAW_KEY" | tr -d '\r\n')
           echo "TAURI_SIGNING_PRIVATE_KEY=${CLEAN_KEY}" >> $GITHUB_ENV
 
       - name: Build and upload artifacts
@@ -81,11 +124,14 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Generate and upload updater manifest
         run: |
           TAG_NAME="${{ github.ref_name }}"
           CLEAN_VER="${TAG_NAME#v}"
+          REPO="${{ github.repository }}"
 
           # Download existing latest.json or .sig files
           gh release download "${TAG_NAME}" --pattern "*.sig" || true
@@ -139,47 +185,67 @@ jobs:
             process.stdout.write(JSON.stringify(text));
           ' "${TAG_NAME}")
 
-          cat <<EOF > latest.json
-          {
-            "version": "${TAG_NAME}",
-            "notes": ${NODE_NOTES},
-            "pub_date": "$(date -u +'%Y-%m-%dT%H:%M:%SZ')",
-            "platforms": {
+          node -e '
+            const fs = require("fs");
+            const tag = process.argv[1];
+            const cleanVer = tag.replace(/^v/, "");
+            const repo = process.argv[2];
+            const notes = JSON.parse(process.argv[3]);
+            const sigDarwin = process.argv[4];
+            const sigWinX64 = process.argv[5];
+            const sigWinArm64 = process.argv[6];
+            const sigLinuxX64 = process.argv[7];
+            const sigLinuxArm64 = process.argv[8];
+            const arm64File = process.argv[9];
+
+            const platforms = {
               "darwin-aarch64": {
-                "signature": "${SIG_DARWIN}",
-                "url": "https://github.com/marcodem/zentauri/releases/download/${TAG_NAME}/ZenTauri_universal.app.tar.gz"
+                "signature": sigDarwin,
+                "url": `https://github.com/${repo}/releases/download/${tag}/ZenTauri_universal.app.tar.gz`
               },
               "darwin-x86_64": {
-                "signature": "${SIG_DARWIN}",
-                "url": "https://github.com/marcodem/zentauri/releases/download/${TAG_NAME}/ZenTauri_universal.app.tar.gz"
+                "signature": sigDarwin,
+                "url": `https://github.com/${repo}/releases/download/${tag}/ZenTauri_universal.app.tar.gz`
               },
               "windows-x86_64": {
-                "signature": "${SIG_WIN_X64}",
-                "url": "https://github.com/marcodem/zentauri/releases/download/${TAG_NAME}/ZenTauri_${CLEAN_VER}_x64-setup.exe"
+                "signature": sigWinX64,
+                "url": `https://github.com/${repo}/releases/download/${tag}/ZenTauri_${cleanVer}_x64-setup.exe`
               },
               "windows-x86_64-nsis": {
-                "signature": "${SIG_WIN_X64}",
-                "url": "https://github.com/marcodem/zentauri/releases/download/${TAG_NAME}/ZenTauri_${CLEAN_VER}_x64-setup.exe"
+                "signature": sigWinX64,
+                "url": `https://github.com/${repo}/releases/download/${tag}/ZenTauri_${cleanVer}_x64-setup.exe`
               },
               "windows-aarch64": {
-                "signature": "${SIG_WIN_ARM64}",
-                "url": "https://github.com/marcodem/zentauri/releases/download/${TAG_NAME}/ZenTauri_${CLEAN_VER}_arm64-setup.exe"
+                "signature": sigWinArm64,
+                "url": `https://github.com/${repo}/releases/download/${tag}/ZenTauri_${cleanVer}_arm64-setup.exe`
               },
               "windows-aarch64-nsis": {
-                "signature": "${SIG_WIN_ARM64}",
-                "url": "https://github.com/marcodem/zentauri/releases/download/${TAG_NAME}/ZenTauri_${CLEAN_VER}_arm64-setup.exe"
+                "signature": sigWinArm64,
+                "url": `https://github.com/${repo}/releases/download/${tag}/ZenTauri_${cleanVer}_arm64-setup.exe`
               },
               "linux-x86_64": {
-                "signature": "${SIG_LINUX_X64}",
-                "url": "https://github.com/marcodem/zentauri/releases/download/${TAG_NAME}/ZenTauri_${CLEAN_VER}_amd64.AppImage"
-              },
-              "linux-aarch64": {
-                "signature": "${SIG_LINUX_ARM64}",
-                "url": "https://github.com/marcodem/zentauri/releases/download/${TAG_NAME}/${ARM64_FILE}"
+                "signature": sigLinuxX64,
+                "url": `https://github.com/${repo}/releases/download/${tag}/ZenTauri_${cleanVer}_amd64.AppImage`
               }
+            };
+
+            if (sigLinuxArm64 && sigLinuxArm64.trim()) {
+              platforms["linux-aarch64"] = {
+                "signature": sigLinuxArm64.trim(),
+                "url": `https://github.com/${repo}/releases/download/${tag}/${arm64File}`
+              };
             }
-          }
-          EOF
+
+            const manifest = {
+              version: tag,
+              notes: notes,
+              pub_date: new Date().toISOString(),
+              platforms: platforms
+            };
+
+            fs.writeFileSync("latest.json", JSON.stringify(manifest, null, 2));
+          ' "${TAG_NAME}" "${REPO}" "${NODE_NOTES}" "${SIG_DARWIN}" "${SIG_WIN_X64}" "${SIG_WIN_ARM64}" "${SIG_LINUX_X64}" "${SIG_LINUX_ARM64}" "${ARM64_FILE}"
+
           gh release upload "${TAG_NAME}" latest.json --clobber
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

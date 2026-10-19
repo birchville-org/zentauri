@@ -1,10 +1,5 @@
 pub mod db;
 
-#[tauri::command]
-fn greet(name: &str) -> String {
-    format!("Hello, {}! You've been greeted from Rust!", name)
-}
-
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
 pub struct HeadingItem {
     pub level: u32,
@@ -99,7 +94,7 @@ fn is_system_or_user_root(path: &Path) -> bool {
     }
 
     let top_system = [
-        "/applications", "/system", "/library", "/volumes", "/private", "/usr", "/bin", "/etc", "/var",
+        "/applications", "/system", "/library", "/volumes", "/private", "/usr", "/bin", "/etc", "/var", "/dev", "/proc", "/sys",
     ];
     if top_system.contains(&norm_lower.as_str()) {
         return true;
@@ -119,6 +114,38 @@ fn is_system_or_user_root(path: &Path) -> bool {
         }
     }
 
+    for part in &parts {
+        if *part == ".ssh"
+            || *part == ".gnupg"
+            || *part == ".aws"
+            || *part == ".bashrc"
+            || *part == ".zshrc"
+            || *part == ".profile"
+        {
+            return true;
+        }
+    }
+
+    false
+}
+
+fn is_within_known_workspace(target: &Path) -> bool {
+    let target_canon = target.canonicalize().unwrap_or_else(|_| target.to_path_buf());
+    if is_system_or_user_root(&target_canon) {
+        return false;
+    }
+
+    if let Ok(set) = KNOWN_WORKSPACES.lock() {
+        if set.is_empty() {
+            return true;
+        }
+        for root in set.iter() {
+            let root_canon = root.canonicalize().unwrap_or_else(|_| root.clone());
+            if target_canon.starts_with(&root_canon) {
+                return true;
+            }
+        }
+    }
     false
 }
 
@@ -244,6 +271,9 @@ fn move_file_item(source_path: &str, target_dir_path: &str) -> Result<String, St
     if is_system_or_user_root(source) || is_system_or_user_root(target_dir) {
         return Err("Cannot move items in or out of system or volume root directories".to_string());
     }
+    if !is_within_known_workspace(source) || !is_within_known_workspace(target_dir) {
+        return Err("Cannot move items outside of the active workspace".to_string());
+    }
 
     let file_name = source
         .file_name()
@@ -267,7 +297,8 @@ fn move_file_item(source_path: &str, target_dir_path: &str) -> Result<String, St
         if source.is_file() {
             fs::copy(&source, &destination)
                 .map_err(|copy_err| format!("Failed to move file across devices: {}", copy_err))?;
-            let _ = fs::remove_file(&source);
+            fs::remove_file(&source)
+                .map_err(|rm_err| format!("File copied to destination, but failed to remove source file: {}", rm_err))?;
         } else {
             return Err(format!("Failed to move folder: {}", e));
         }
@@ -284,6 +315,12 @@ fn duplicate_file_item(source_path: &str) -> Result<String, String> {
     let source = Path::new(source_path);
     if !source.exists() || !source.is_file() {
         return Err("Source file does not exist".to_string());
+    }
+    if is_system_or_user_root(source) {
+        return Err("Cannot duplicate system or root items".to_string());
+    }
+    if !is_within_known_workspace(source) {
+        return Err("Cannot duplicate items outside of the active workspace".to_string());
     }
 
     let parent = source.parent().ok_or_else(|| "Invalid parent dir".to_string())?;
@@ -326,6 +363,9 @@ fn delete_file_item(path: &str) -> Result<(), String> {
     if is_system_or_user_root(target) {
         return Err("Cannot delete system or root directories".to_string());
     }
+    if !is_within_known_workspace(target) {
+        return Err("Cannot delete items outside of the active workspace".to_string());
+    }
 
     let root = find_workspace_root(path);
     let root_str = root.to_string_lossy().to_string();
@@ -340,17 +380,18 @@ fn delete_file_item(path: &str) -> Result<(), String> {
     // 2. Clean up SQLite database (item itself + any descendants if it was a folder)
     if let Ok(mut conn) = db::init_db(&root_str) {
         if let Ok(tx) = conn.transaction() {
+            let escaped_prefix = format!("{}/%", db::escape_like(path));
             let _ = tx.execute(
-                "DELETE FROM files WHERE path = ?1 OR path LIKE (?1 || '/%')",
-                rusqlite::params![path],
+                "DELETE FROM files WHERE path = ?1 OR path LIKE ?2 ESCAPE '\\'",
+                rusqlite::params![path, &escaped_prefix],
             );
             let _ = tx.execute(
-                "DELETE FROM markdown_metadata WHERE file_path = ?1 OR file_path LIKE (?1 || '/%')",
-                rusqlite::params![path],
+                "DELETE FROM markdown_metadata WHERE file_path = ?1 OR file_path LIKE ?2 ESCAPE '\\'",
+                rusqlite::params![path, &escaped_prefix],
             );
             let _ = tx.execute(
-                "DELETE FROM markdown_links WHERE source_path = ?1 OR source_path LIKE (?1 || '/%')",
-                rusqlite::params![path],
+                "DELETE FROM markdown_links WHERE source_path = ?1 OR source_path LIKE ?2 ESCAPE '\\'",
+                rusqlite::params![path, &escaped_prefix],
             );
             let _ = tx.commit();
         }
@@ -429,12 +470,13 @@ fn watch_workspaces(
                     .into_iter()
                     .filter_map(|p| {
                         let s = p.to_string_lossy().to_string();
-                        if s.contains("/.git/")
-                            || s.ends_with("/.git")
-                            || s.contains("/.DS_Store")
-                            || s.contains("/node_modules/")
-                            || s.contains("/.zentauri/")
-                            || s.contains("/target/")
+                        let norm = s.replace('\\', "/");
+                        if norm.contains("/.git/")
+                            || norm.ends_with("/.git")
+                            || norm.contains("/.DS_Store")
+                            || norm.contains("/node_modules/")
+                            || norm.contains("/.zentauri/")
+                            || norm.contains("/target/")
                         {
                             None
                         } else {
@@ -730,7 +772,6 @@ pub fn run() {
             }
         }))
         .invoke_handler(tauri::generate_handler![
-            greet,
             parse_outline,
             read_workspace_tree,
             move_file_item,
@@ -895,7 +936,11 @@ pub fn run() {
                             }
                         }
                         "quit_tray" => {
-                            app_handle.exit(0);
+                            if let Some(window) = app_handle.get_webview_window("main") {
+                                let _ = window.emit("request-app-quit", ());
+                            } else {
+                                app_handle.exit(0);
+                            }
                         }
                         _ => {}
                     }

@@ -98,6 +98,13 @@ Hier werden die 33 Konsonanten beschrieben.
     let sub_tree_after_remove = db::read_workspace_tree_db(&conn, sub_dir.to_str().unwrap(), "name-asc").unwrap();
     assert_eq!(sub_tree_after_remove.len(), 1, "Expected 1 entry after removing and sync_directory");
 
+    // Verify .gitignore in .zentauri
+    assert!(temp_dir.join(".zentauri").join(".gitignore").exists(), ".zentauri/.gitignore must be auto-generated");
+
+    // Test that LIKE wildcard '_' is escaped and does not match arbitrary characters
+    let search_wildcard = db::search_files_db(&conn, "Pan_ni", temp_dir.to_str().unwrap()).expect("Search failed");
+    assert_eq!(search_wildcard.len(), 0, "Pan_ni should not match panini.md when _ is escaped");
+
     println!("✓ SQLite Recursive Indexing & Metadata: PASS (Root: 4 items, Subfolder: 1 item, Badges ready)");
     println!("✓ Knowledge Graph Data: PASS (Nodes: {}, Edges: {})", graph.nodes.len(), graph.edges.len());
     println!("✓ Scoped Search & sync_directory: PASS");

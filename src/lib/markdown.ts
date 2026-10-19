@@ -39,8 +39,7 @@ const extensibleModule = extensiblePluginModule as unknown as ExtensibleModule;
 const extensiblePlugin = extensibleModule.default || extensibleModule;
 
 const URI_SCHEME_RE = /^[a-zA-Z][a-zA-Z\d+.-]*:/;
-const ALLOWED_RENDERED_URI_SCHEME_RE =
-  /^(?:https?|mailto|zen|zen-asset|blob):/i;
+const ALLOWED_RENDERED_URI_SCHEME_RE = /^(?:https?|mailto|blob):/i;
 const SAFE_DATA_IMAGE_URI_RE =
   /^data:image\/(?:png|jpeg|jpg|gif|webp|svg\+xml)(?:;charset=[^;]+)?;base64,[a-z0-9+/=]+$/i;
 
@@ -180,6 +179,7 @@ function sanitizeRenderedHtml(html: string): string {
       ALLOW_ARIA_ATTR: true,
       ADD_ATTR: ALLOWED_RENDERED_DATA_ATTRS,
       ADD_TAGS: MATHML_TAGS,
+      FORBID_TAGS: ["style", "form", "input", "button", "textarea", "select"],
     });
   } catch (e) {
     console.warn("DOMPurify sanitize failed:", e);

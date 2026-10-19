@@ -4,6 +4,17 @@ title: Release Notes
 
 # 🚀 Zentauri Release Notes
 
+### ZenTauri v1.3.3
+- **Workspace-Boundary & Sandbox-Schutz (Rust Backend):** Strikte Prüfung aller Dateioperationen (`move_file_item`, `duplicate_file_item`, `delete_file_item`) gegen die aktiven Projekt-Workspaces (`is_within_known_workspace`) zur Verhinderung von Path-Traversal. Sichere Fehlerbehandlung beim Verschieben über Partitionsgrenzen.
+- **SQL-Wildcard & Injection-Schutz:** Konsequentes Escaping von LIKE-Wildcards (`_` und `%`) in SQLite-Synchronisations- und Suchabfragen.
+- **XSS-Schutz & Phishing-Prävention:** Explizites Verbot von `<style>`, `<form>`, `<input>`, `<button>`, `<textarea>` und `<select>` via DOMPurify zur Verhinderung von UI-Spoofing. Bereinigung veralteter Protokolle aus der CSP.
+- **Typst PDF-Export (Relative Bildpfade):** Übergabe des Basisverzeichnisses des aktiven Dokuments zur sauberen Auflösung relativer Bildpfade im Typst-Markup.
+- **Graceful Shutdown & Datenintegrität:** Kontrolliertes Beenden über das Tray-Menü (`request-app-quit`) mit automatischem Flush ungespeicherter Auto-Save-Puffer und robustem Speichern aller offenen Tabs.
+- **Dateibaum-Validierung:** Pfadtrennzeichen- und Kollisionsprüfung beim Umbenennen von Dateien und Ordnern zum Schutz vor unbeabsichtigtem Überschreiben.
+- **CI/CD Quality Gate:** Vorgeschalteter `check`-Job in der GitHub Actions Release-Pipeline zur automatischen Validierung von Linter, Typen, Frontend- und Backend-Tests vor dem Release-Build.
+
+---
+
 ### ZenTauri v1.3.2
 - **Rendering-Engine Upgrade:** Aktualisierung auf `markdown-it-extensible` v1.3.2 und `markdown-it-container` v4.0.0 via npm-Registry für robuste CI/CD- und Cross-Platform-Builds.
 - **XSS-Sanitization & Token-Streaming:** Automatisches HTML-Escaping für Container-Titel (`::: box [Titel]`) und vollständiges Markdown-It Token-Streaming für Sanskrit-Klammern (`《...》` / `⟪...⟫`), wodurch rohe HTML-Injektionen bereits auf AST-Ebene ausgeschlossen werden.

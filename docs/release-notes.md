@@ -4,6 +4,17 @@ title: Release Notes
 
 # 🚀 Zentauri Release Notes
 
+### ZenTauri v1.3.3
+- **Workspace-Boundary & Sandbox Protection (Rust Backend):** Strict workspace boundary verification (`is_within_known_workspace`) for move, duplicate, and delete operations preventing path traversal outside mounted workspaces. Atomic cross-device move with proper error propagation.
+- **SQL Wildcard & Query Escaping:** Escaped LIKE query wildcards (`_` and `%`) in directory sync and search queries to prevent unintended pattern matching.
+- **XSS & Content Security Sanitization:** Explicitly prohibited `<style>`, `<form>`, `<input>`, `<button>`, `<textarea>`, and `<select>` in DOMPurify configuration to prevent UI spoofing and phishing. Cleaned obsolete custom protocols from CSP.
+- **Typst PDF Export (Relative Image Resolution):** Resolved relative image paths against the active document's base directory, fixing broken image embeds in exported Typst PDFs.
+- **Graceful Shutdown & Data Integrity:** Controlled application shutdown via system tray (`request-app-quit`), flushing active auto-save debounces and persisting dirty tabs before process exit.
+- **File Tree Validation:** Path separator and collision validation for file renaming operations, preventing unintentional file overwrites.
+- **CI/CD Quality Gate:** Integrated automated pre-release quality gate (`check`-Job) validating linter, typecheck, unit tests, and backend tests before building release binaries.
+
+---
+
 ### ZenTauri v1.3.2
 - **Markdown Rendering Engine Upgrade:** Upgraded `markdown-it-extensible` to 1.3.2 and `markdown-it-container` to 4.0.0 from npm registry for robust builds and cross-platform compatibility.
 - **XSS Sanitization & Token Streaming:** Automatic HTML-escaping for container titles (`::: box [Title]`) and full Markdown-It token-streaming for Sanskrit brackets (`《...》` / `⟪...⟫`), eliminating raw HTML injection vectors.

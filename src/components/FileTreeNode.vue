@@ -422,9 +422,34 @@ async function handleChildRenameConfirm(payload: {
   path: string;
   newName: string;
 }) {
-  const parentDir = payload.path.substring(0, payload.path.lastIndexOf("/"));
-  const newPath = `${parentDir}/${payload.newName}`;
+  const cleanName = payload.newName.trim();
+  if (
+    cleanName.includes("/") ||
+    cleanName.includes("\\") ||
+    cleanName === ".." ||
+    cleanName === "." ||
+    cleanName === ""
+  ) {
+    alert("Invalid name: cannot contain path separators or '.'/'..'");
+    return;
+  }
+
+  const lastSlashIndex = Math.max(
+    payload.path.lastIndexOf("/"),
+    payload.path.lastIndexOf("\\"),
+  );
+  const parentDir =
+    lastSlashIndex !== -1 ? payload.path.substring(0, lastSlashIndex) : "";
+  const sep = payload.path.includes("\\") ? "\\" : "/";
+  const newPath = parentDir ? `${parentDir}${sep}${cleanName}` : cleanName;
+
   try {
+    if (newPath !== payload.path && (await exists(newPath))) {
+      alert(
+        `An item named "${cleanName}" already exists in the target destination.`,
+      );
+      return;
+    }
     await rename(payload.path, newPath);
     await refresh();
   } catch (err) {

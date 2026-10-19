@@ -197,6 +197,16 @@ Ausseres Fazit
     expect(maliciousHtml).toContain("data:image/png;base64");
   });
 
+  it("strips style, form, input, button tags to prevent UI spoofing and phishing", () => {
+    const html = renderMarkdown(
+      '<style>body { display: none; }</style><form action="https://evil.com"><input type="text"><button type="submit">Click</button></form>',
+    );
+    expect(html).not.toContain("<style");
+    expect(html).not.toContain("<form");
+    expect(html).not.toContain("<input");
+    expect(html).not.toContain("<button");
+  });
+
   it("injects data-source-line attributes on block elements when sourceLines option is true", () => {
     const md =
       "# Title\n\nFirst paragraph\n\n## Subheading\n\n```js\nconst x = 1;\n```";

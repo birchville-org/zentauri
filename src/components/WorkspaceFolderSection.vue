@@ -282,6 +282,12 @@ async function handleRootRenameConfirm(payload: {
   const sep = getPathSeparator(payload.path);
   const newPath = parentDir ? `${parentDir}${sep}${cleanName}` : cleanName;
   try {
+    if (newPath !== payload.path && (await exists(newPath))) {
+      alert(
+        `An item named "${cleanName}" already exists in the target destination.`,
+      );
+      return;
+    }
     await rename(payload.path, newPath);
     activeRenamePath.value = null;
     await loadRoot();

@@ -1184,6 +1184,28 @@ onMounted(() => {
       .catch((err) => {
         console.error("Failed to setup Tauri menu event listener:", err);
       });
+
+    listen("request-app-quit", async () => {
+      if (autoSave) {
+        autoSave.flush();
+      }
+      if (autoSaveEnabled.value) {
+        await handleSaveAll();
+      }
+      saveTabsState();
+      try {
+        const { exit } = await import("@tauri-apps/plugin-process");
+        await exit(0);
+      } catch (err) {
+        console.error("Failed to exit cleanly:", err);
+      }
+    })
+      .then((unlisten) => {
+        unlistenFns.push(unlisten);
+      })
+      .catch((err) => {
+        console.error("Failed to setup request-app-quit listener:", err);
+      });
   }
 });
 
@@ -1194,7 +1216,7 @@ onBeforeUnmount(() => {
   window.removeEventListener("keydown", handleGlobalKeydown);
   window.removeEventListener("beforeunload", handleBeforeUnload);
   if (autoSave) {
-    autoSave.cancel();
+    autoSave.flush();
   }
   saveTabsState();
   for (const fn of unlistenFns) {
@@ -1276,6 +1298,9 @@ async function saveTabToFile(tab: Tab | null | undefined, runRepair = false) {
       saveTabsState();
     } catch (err) {
       console.error("Save failed for tab:", tab.path, err);
+      if (runRepair) {
+        alert(`Failed to save file "${tab.title}": ${err}`);
+      }
     } finally {
       setTimeout(() => {
         isSaving.value = false;
@@ -1321,14 +1346,23 @@ async function forceSave(manual = true) {
 
 async function handleSaveAll() {
   isSaving.value = true;
+  const errors: string[] = [];
   try {
     for (const tab of tabs.value) {
       if (tab.path && !tab.path.startsWith("untitled://") && !tab.isWeb) {
-        await writeTextFile(tab.path, tab.content);
-        tab.isDirty = false;
+        try {
+          await writeTextFile(tab.path, tab.content);
+          tab.isDirty = false;
+        } catch (tabErr) {
+          console.error(`Failed to save tab "${tab.path}":`, tabErr);
+          errors.push(`${tab.title}: ${tabErr}`);
+        }
       }
     }
     saveTabsState();
+    if (errors.length > 0) {
+      console.warn("Some files could not be saved during Save All:", errors);
+    }
   } catch (err) {
     console.error("Save all failed", err);
   } finally {
@@ -1340,7 +1374,7 @@ async function handleSaveAll() {
 
 function handleBeforeUnload() {
   if (autoSave) {
-    autoSave.cancel();
+    autoSave.flush();
   }
   if (autoSaveEnabled.value) {
     handleSaveAll();
@@ -1468,7 +1502,11 @@ function openTab(title: string, path: string, content: string) {
 
 async function openExternalUrl(rawUrl: string) {
   let url = rawUrl.trim();
-  if (!url.startsWith("http://") && !url.startsWith("https://")) {
+  if (
+    !url.startsWith("http://") &&
+    !url.startsWith("https://") &&
+    !url.startsWith("mailto:")
+  ) {
     url = `https://${url}`;
   }
   try {
@@ -1677,7 +1715,10 @@ async function selectTab(index: number) {
 }
 
 async function handlePreviewOpenFile(linkPath: string) {
-  const cleanLink = linkPath.split(/[?#]/)[0].trim();
+  let cleanLink = linkPath.split(/[?#]/)[0].trim();
+  try {
+    cleanLink = decodeURIComponent(cleanLink);
+  } catch (e) {}
   if (!cleanLink) return;
 
   const activeTab = tabs.value[activeTabIndex.value];
@@ -1700,10 +1741,11 @@ async function handlePreviewOpenFile(linkPath: string) {
     }
   }
 
+  const lastSegment = fullPath.split(/[/\\]/).pop() || "";
   if (
     !fullPath.endsWith(".md") &&
     !fullPath.endsWith(".markdown") &&
-    !fullPath.includes(".")
+    !lastSegment.includes(".")
   ) {
     fullPath += ".md";
   }
@@ -1894,8 +1936,16 @@ async function handleExportPdf() {
 
     if (destPath) {
       isSaving.value = true;
+      const baseDir =
+        tab.path && !tab.path.startsWith("untitled://")
+          ? tab.path.substring(
+              0,
+              Math.max(tab.path.lastIndexOf("/"), tab.path.lastIndexOf("\\")),
+            )
+          : undefined;
       const typstMarkup = convertMarkdownToTypst(tab.content, {
         paper: pdfPaper.value,
+        baseDir,
       });
       await invoke("export_pdf", { typstMarkup, destinationPath: destPath });
       isPdfExported.value = true;
