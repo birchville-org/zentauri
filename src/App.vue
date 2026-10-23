@@ -11,6 +11,7 @@ import {
 import ActivityBar from "./components/ActivityBar.vue";
 import Cheatsheet from "./components/Cheatsheet.vue";
 import Editor, { type CursorInfo } from "./components/Editor.vue";
+import EditorRibbon from "./components/EditorRibbon.vue";
 import FileTree from "./components/FileTree.vue";
 import Preview from "./components/Preview.vue";
 import SearchPanel from "./components/SearchPanel.vue";
@@ -26,12 +27,17 @@ import QaReferencePane from "./components/QaReferencePane.vue";
 import { autoRepairMarkdown } from "./lib/auto-repair";
 import { extractHeadings, interpolateTargetLine } from "./lib/heading-sync";
 import {
+  copyHtmlToClipboard,
+  generateStandaloneHtml,
+} from "./lib/htmlExporter";
+import {
   type LanguageInfo,
   detectLanguageFromPath,
   detectWorkspaceLanguages,
   findCorrespondingFilePath,
 } from "./lib/language-detector";
-import CHEAT_SHEET, { type SyntaxItem } from "./lib/syntax-cheatsheet";
+import { renderMarkdown } from "./lib/markdown";
+import type { SyntaxItem } from "./lib/syntax-cheatsheet";
 import { convertMarkdownToTypst } from "./lib/typstConverter";
 
 import { invoke } from "@tauri-apps/api/core";
@@ -412,6 +418,11 @@ const vimMode = ref(false);
 const isSaving = ref(false);
 const isAutoRepaired = ref(false);
 const isPdfExported = ref(false);
+const isHtmlExported = ref(false);
+const isHtmlCopied = ref(false);
+let pdfExportTimer: ReturnType<typeof setTimeout> | null = null;
+let htmlExportTimer: ReturnType<typeof setTimeout> | null = null;
+let htmlCopyTimer: ReturnType<typeof setTimeout> | null = null;
 const autoSaveEnabled = ref(true);
 const pdfPaper = ref<"a4" | "us-letter">("a4");
 
@@ -802,6 +813,20 @@ function toggleVimMode() {
 }
 
 const saveStatus = computed(() => {
+  if (isHtmlCopied.value) {
+    return {
+      text: "HTML kopiert!",
+      dotClass: "w-2.5 h-2.5 bg-emerald-500 animate-pulse",
+      title: "Formatierter HTML-Code in die Zwischenablage kopiert",
+    };
+  }
+  if (isHtmlExported.value) {
+    return {
+      text: "HTML Exported",
+      dotClass: "w-2.5 h-2.5 bg-emerald-500 animate-pulse",
+      title: "HTML-Dokument erfolgreich exportiert",
+    };
+  }
   if (isPdfExported.value) {
     return {
       text: "PDF Exported",
@@ -844,90 +869,10 @@ const saveStatus = computed(() => {
   };
 });
 
-const quickSnippets = [
-  {
-    label: "::: grammar-box",
-    before: "\n::: grammar-box\n",
-    after: "\n:::",
-    desc: "Grammar",
-    colorClass: "text-amber-500",
-  },
-  {
-    label: "::: warning-box",
-    before: "\n::: warning-box\n",
-    after: "\n:::",
-    desc: "Warning",
-    colorClass: "text-orange-600",
-  },
-  {
-    label: "::: verse-box",
-    before: "\n::: verse-box\n",
-    after: "\n:::",
-    desc: "Verse",
-    colorClass: "text-emerald-600",
-  },
-  {
-    label: "::: important",
-    before: "\n::: important\n",
-    after: "\n:::",
-    desc: "Important",
-    colorClass: "text-purple-500",
-  },
-  {
-    label: "::: note-box",
-    before: "\n::: note-box\n",
-    after: "\n:::",
-    desc: "Note",
-    colorClass: "text-blue-500",
-  },
-  {
-    label: "《Sanskrit》",
-    before: "《",
-    after: "》",
-    desc: "Sanskrit",
-    colorClass: "text-red-500",
-  },
-  {
-    label: ":sig[Signal]",
-    before: ":sig[",
-    after: "]",
-    desc: "Signal",
-    colorClass: "text-red-600",
-  },
-  {
-    label: "$Math$",
-    before: "$",
-    after: "$",
-    desc: "Math",
-    colorClass: "text-emerald-500",
-  },
-  {
-    label: "|Table|",
-    before: "\n| Header 1 | Header 2 |\n|---|---|\n| Cell 1 | ",
-    after: " |\n",
-    desc: "Table",
-    colorClass: "text-app-text-muted",
-  },
-  {
-    label: "```mermaid",
-    before: "\n```mermaid\ngraph TD\n  A --> B\n",
-    after: "```\n",
-    desc: "Mermaid",
-    colorClass: "text-cyan-500",
-  },
-];
-
-function handleSelectSnippet(event: Event) {
-  const target = event.target as HTMLSelectElement;
-  if (target.value) {
-    try {
-      const item: SyntaxItem = JSON.parse(target.value);
-      handleInsertSnippet(item);
-    } catch (e) {
-      console.error("Failed to parse selected snippet:", e);
-    }
+function handleToggleTransliteration(scheme: "iast" | "hk") {
+  if (editorRef.value) {
+    editorRef.value.toggleTransliteration(scheme);
   }
-  target.value = "";
 }
 
 const activeActivityView = computed(() => {
@@ -972,6 +917,10 @@ function handleActivityAction(action: string) {
     handlePrint();
   } else if (action === "export-pdf") {
     handleExportPdf();
+  } else if (action === "export-html") {
+    handleExportHtml();
+  } else if (action === "copy-html") {
+    handleCopyHtml();
   }
 }
 
@@ -1227,6 +1176,9 @@ onBeforeUnmount(() => {
   if (editorSyncRaf !== null) cancelAnimationFrame(editorSyncRaf);
   if (previewSyncRaf !== null) cancelAnimationFrame(previewSyncRaf);
   if (syncResetTimer) clearTimeout(syncResetTimer);
+  if (pdfExportTimer) clearTimeout(pdfExportTimer);
+  if (htmlExportTimer) clearTimeout(htmlExportTimer);
+  if (htmlCopyTimer) clearTimeout(htmlCopyTimer);
   window.removeEventListener("keydown", handleGlobalKeydown);
   window.removeEventListener("beforeunload", handleBeforeUnload);
   if (autoSave) {
@@ -1250,6 +1202,22 @@ function handleGlobalKeydown(e: KeyboardEvent) {
     } else {
       handleExportPdf();
     }
+  } else if (
+    (e.metaKey || e.ctrlKey) &&
+    e.shiftKey &&
+    !e.altKey &&
+    e.key.toLowerCase() === "c"
+  ) {
+    e.preventDefault();
+    handleCopyHtml();
+  } else if (
+    (e.metaKey || e.ctrlKey) &&
+    e.shiftKey &&
+    !e.altKey &&
+    e.key.toLowerCase() === "h"
+  ) {
+    e.preventDefault();
+    handleExportHtml();
   } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "g") {
     e.preventDefault();
     handleJumpToLinePrompt();
@@ -1962,9 +1930,11 @@ async function handleExportPdf() {
         baseDir,
       });
       await invoke("export_pdf", { typstMarkup, destinationPath: destPath });
+      if (pdfExportTimer) clearTimeout(pdfExportTimer);
       isPdfExported.value = true;
-      setTimeout(() => {
+      pdfExportTimer = setTimeout(() => {
         isPdfExported.value = false;
+        pdfExportTimer = null;
       }, 2500);
     }
   } catch (err) {
@@ -1972,6 +1942,61 @@ async function handleExportPdf() {
     alert(`Failed to export PDF: ${err}`);
   } finally {
     isSaving.value = false;
+  }
+}
+
+async function handleExportHtml() {
+  const tab = tabs.value[activeTabIndex.value];
+  if (!tab || tab.isWeb) return;
+
+  try {
+    const destPath = await save({
+      filters: [{ name: "HTML Document", extensions: ["html", "htm"] }],
+      defaultPath: tab.title.replace(/\.md$/i, ".html"),
+    });
+
+    if (destPath) {
+      isSaving.value = true;
+      const isDark =
+        typeof document !== "undefined" &&
+        document.documentElement.classList.contains("dark");
+      const htmlContent = generateStandaloneHtml(tab.content, {
+        title: tab.title.replace(/\.md$/i, ""),
+        theme: isDark ? "dark" : "light",
+      });
+      await writeTextFile(destPath, htmlContent);
+      if (htmlExportTimer) clearTimeout(htmlExportTimer);
+      isHtmlExported.value = true;
+      htmlExportTimer = setTimeout(() => {
+        isHtmlExported.value = false;
+        htmlExportTimer = null;
+      }, 2500);
+    }
+  } catch (err) {
+    console.error("Export HTML failed:", err);
+    alert(`Failed to export HTML: ${err}`);
+  } finally {
+    isSaving.value = false;
+  }
+}
+
+async function handleCopyHtml() {
+  const tab = tabs.value[activeTabIndex.value];
+  if (!tab || tab.isWeb) return;
+
+  try {
+    const rendered = renderMarkdown(tab.content);
+    const success = await copyHtmlToClipboard(rendered);
+    if (success) {
+      if (htmlCopyTimer) clearTimeout(htmlCopyTimer);
+      isHtmlCopied.value = true;
+      htmlCopyTimer = setTimeout(() => {
+        isHtmlCopied.value = false;
+        htmlCopyTimer = null;
+      }, 2500);
+    }
+  } catch (err) {
+    console.error("Copy HTML failed:", err);
   }
 }
 </script>
@@ -2295,70 +2320,11 @@ async function handleExportPdf() {
 
           <!-- Editor Pane (Center/Left) -->
           <div class="flex-1 h-full min-w-0 flex flex-col border-r border-app-border print:hidden">
-            <!-- Quick Snippet Toolbar (Dynamic Dropdown populated directly from Syntax Reference CHEAT_SHEET) -->
-            <div class="flex-none flex items-center justify-between gap-2 px-3 py-1.5 bg-app-bg-secondary border-b border-app-border text-xs select-none">
-              <div class="flex items-center gap-2 min-w-0 flex-1 overflow-x-auto">
-                <span class="text-app-text-muted font-medium shrink-0">Snippets:</span>
-
-                <!-- Always Visible Dynamic Dropdown Select (All Syntax Reference Items grouped by category) -->
-                <div class="flex items-center shrink-0 min-w-[200px] max-w-[280px]">
-                  <select 
-                    @change="handleSelectSnippet" 
-                    class="w-full bg-app-bg text-app-text text-xs border border-app-border rounded px-2 py-1 focus:outline-none focus:border-blue-500 cursor-pointer font-mono shadow-xs"
-                  >
-                    <option value="" disabled selected>-- Select Syntax Snippet --</option>
-                    <optgroup v-for="cat in CHEAT_SHEET" :key="cat.id" :label="cat.title">
-                      <option 
-                        v-for="item in cat.items" 
-                        :key="item.label" 
-                        :value="JSON.stringify(item)"
-                      >
-                        {{ item.label }} ({{ item.desc }})
-                      </option>
-                    </optgroup>
-                  </select>
-                </div>
-
-                <!-- Extra Wide View: Inline Horizontal Quick Buttons -->
-                <div class="hidden xl:flex items-center gap-1.5 overflow-x-auto">
-                  <button 
-                    v-for="s in quickSnippets" 
-                    :key="s.label"
-                    @click="handleInsertSnippet({ label: s.label, before: s.before, after: s.after, desc: s.desc })" 
-                    class="px-2 py-0.5 rounded bg-app-bg hover:bg-app-bg-hover border border-app-border font-mono transition-colors whitespace-nowrap shrink-0"
-                    :class="s.colorClass"
-                  >
-                    {{ s.label }}
-                  </button>
-                </div>
-              </div>
-
-              <!-- Transliteration Toggle Buttons (IAST ⇄ Devanagari & HK ⇄ Devanagari) -->
-              <div class="flex items-center gap-1.5 shrink-0 ml-auto">
-                <button
-                  type="button"
-                  @click="editorRef?.toggleTransliteration('iast')"
-                  title="IAST ⇄ Devanagari Umschalter (Cmd+Alt+D / F4)"
-                  class="flex items-center gap-1 px-2 py-0.5 rounded bg-app-bg hover:bg-app-bg-hover border border-app-border text-xs font-mono transition-colors whitespace-nowrap cursor-pointer shadow-xs active:scale-95 text-app-text"
-                >
-                  <span class="text-blue-500 font-semibold">IAST</span>
-                  <span class="text-app-text-muted">⇄</span>
-                  <span class="text-[#b22222] font-bold">देव</span>
-                  <span class="hidden xl:inline text-[10px] text-app-text-muted opacity-80">(⌥⌘D)</span>
-                </button>
-                <button
-                  type="button"
-                  @click="editorRef?.toggleTransliteration('hk')"
-                  title="Harvard-Kyoto ⇄ Devanagari Umschalter (Cmd+Alt+H / Shift+F4)"
-                  class="flex items-center gap-1 px-2 py-0.5 rounded bg-app-bg hover:bg-app-bg-hover border border-app-border text-xs font-mono transition-colors whitespace-nowrap cursor-pointer shadow-xs active:scale-95 text-app-text"
-                >
-                  <span class="text-emerald-500 font-semibold">HK</span>
-                  <span class="text-app-text-muted">⇄</span>
-                  <span class="text-[#b22222] font-bold">देव</span>
-                  <span class="hidden xl:inline text-[10px] text-app-text-muted opacity-80">(⌥⌘H)</span>
-                </button>
-              </div>
-            </div>
+            <!-- Editor Formatting Ribbon -->
+            <EditorRibbon
+              @insert-snippet="handleInsertSnippet"
+              @toggle-transliteration="handleToggleTransliteration"
+            />
 
             <!-- CodeMirror Editor -->
             <div class="flex-1 h-full min-w-0 overflow-hidden">
@@ -2415,5 +2381,25 @@ async function handleExportPdf() {
       @action="handleTabContextMenuAction"
       @close="tabContextMenuTarget = null"
     />
+
+    <!-- Floating Toast Notification (e.g. for HTML Copied) -->
+    <transition
+      enter-active-class="transition duration-200 ease-out"
+      enter-from-class="transform translate-y-2 opacity-0"
+      enter-to-class="transform translate-y-0 opacity-100"
+      leave-active-class="transition duration-150 ease-in"
+      leave-from-class="transform translate-y-0 opacity-100"
+      leave-to-class="transform translate-y-2 opacity-0"
+    >
+      <div
+        v-if="isHtmlCopied"
+        class="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2 rounded-full bg-[#03192e] text-[#fcf9f2] dark:bg-[#fcf9f2] dark:text-[#03192e] shadow-xl text-xs font-medium border border-app-border pointer-events-none"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-500">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+        <span>HTML in Zwischenablage kopiert</span>
+      </div>
+    </transition>
   </main>
 </template>

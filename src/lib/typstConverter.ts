@@ -53,26 +53,312 @@ function escapeTypstString(str: string): string {
   return str.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 }
 
-function latexToTypstMath(latex: string): string {
-  return latex
-    .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, "($1)/($2)")
+export const TYPST_MATH_BUILTINS = new Set([
+  // Trigonometric & Hyperbolic functions
+  "sin",
+  "cos",
+  "tan",
+  "cot",
+  "sec",
+  "csc",
+  "arcsin",
+  "arccos",
+  "arctan",
+  "arccot",
+  "arcsec",
+  "arccsc",
+  "sinh",
+  "cosh",
+  "tanh",
+  "coth",
+  "sech",
+  "csch",
+  "arsinh",
+  "arcosh",
+  "artanh",
+  "arcoth",
+  "arsech",
+  "arcsch",
+
+  // Logarithmic, Exponential, Limits, Extrema
+  "ln",
+  "log",
+  "exp",
+  "lg",
+  "lb",
+  "min",
+  "max",
+  "inf",
+  "sup",
+  "lim",
+  "liminf",
+  "limsup",
+  "dim",
+  "ker",
+  "hom",
+  "det",
+  "gcd",
+  "lcm",
+  "deg",
+  "arg",
+  "mod",
+  "sgn",
+  "trace",
+  "tr",
+  "Pr",
+
+  // Typst Math built-in functions & layout
+  "sqrt",
+  "root",
+  "abs",
+  "norm",
+  "floor",
+  "ceil",
+  "round",
+  "bold",
+  "italic",
+  "upright",
+  "underline",
+  "overline",
+  "vec",
+  "mat",
+  "cases",
+  "attach",
+  "scripts",
+  "limits",
+  "display",
+  "inline",
+  "cancel",
+  "text",
+  "accent",
+
+  // Greek letters (lowercase and uppercase)
+  "alpha",
+  "beta",
+  "gamma",
+  "delta",
+  "epsilon",
+  "zeta",
+  "eta",
+  "theta",
+  "iota",
+  "kappa",
+  "lambda",
+  "mu",
+  "nu",
+  "xi",
+  "omicron",
+  "pi",
+  "rho",
+  "sigma",
+  "tau",
+  "upsilon",
+  "phi",
+  "chi",
+  "psi",
+  "omega",
+  "Alpha",
+  "Beta",
+  "Gamma",
+  "Delta",
+  "Epsilon",
+  "Zeta",
+  "Eta",
+  "Theta",
+  "Iota",
+  "Kappa",
+  "Lambda",
+  "Mu",
+  "Nu",
+  "Xi",
+  "Omicron",
+  "Pi",
+  "Rho",
+  "Sigma",
+  "Tau",
+  "Upsilon",
+  "Phi",
+  "Chi",
+  "Psi",
+  "Omega",
+  "varepsilon",
+  "vartheta",
+  "varpi",
+  "varrho",
+  "varsigma",
+  "varphi",
+  "digamma",
+
+  // Mathematical symbols & relations
+  "nabla",
+  "partial",
+  "infinity",
+  "oo",
+  "times",
+  "div",
+  "dot",
+  "dots",
+  "plus",
+  "minus",
+  "ast",
+  "star",
+  "circ",
+  "bullet",
+  "pm",
+  "mp",
+  "sum",
+  "product",
+  "prod",
+  "integral",
+  "int",
+  "equiv",
+  "approx",
+  "sim",
+  "simeq",
+  "cong",
+  "propto",
+  "prop",
+  "forall",
+  "exists",
+  "nexists",
+  "in",
+  "notin",
+  "subset",
+  "supset",
+  "subseteq",
+  "supseteq",
+  "union",
+  "sect",
+  "diff",
+  "cap",
+  "cup",
+  "le",
+  "ge",
+  "lt",
+  "gt",
+  "eq",
+  "neq",
+  "perp",
+  "parallel",
+  "angle",
+  "mid",
+  "nmid",
+  "arrow",
+  "arrows",
+  "leftarrow",
+  "rightarrow",
+  "leftrightarrow",
+  "Leftarrow",
+  "Rightarrow",
+  "Leftrightarrow",
+  "to",
+  "gets",
+  "iff",
+  "implies",
+  "impliedby",
+  "aleph",
+  "beth",
+  "gimel",
+  "daleth",
+  "top",
+  "bot",
+  "hbar",
+  "ell",
+  "Re",
+  "Im",
+]);
+
+export function latexToTypstMath(latex: string): string {
+  // 1. Remove \left. and \right. (empty delimiters) and \left / \right sizing prefixes
+  let res = latex
+    .trim()
+    .replace(/\\left\./g, "")
+    .replace(/\\right\./g, "")
+    .replace(/\\left\b/g, "")
+    .replace(/\\right\b/g, "");
+
+  // 2. LaTeX font / text commands -> Typst strings or formatting functions
+  // Processed before fractions and roots so inner curly braces are eliminated
+  res = res
+    .replace(
+      /\\(?:text|mathrm|operatorname|mbox|textnormal|mathsf|mathtt)\{([^}]+)\}/g,
+      '"$1"',
+    )
     .replace(/\\(?:mathbf|textbf)\{([^}]+)\}/g, 'bold("$1")')
-    .replace(/\\(?:mathit|textit)\{([^}]+)\}/g, 'italic("$1")')
-    .replace(/\\text\{([^}]+)\}/g, '"$1"')
+    .replace(/\\(?:mathit|textit)\{([^}]+)\}/g, 'italic("$1")');
+
+  // 3. Roots
+  res = res
+    .replace(/\\sqrt\[([^\]]+)\]\{([^}]+)\}/g, "root($1, $2)")
+    .replace(/\\sqrt\{([^}]+)\}/g, "sqrt($1)");
+
+  // 4. Fractions (iteratively resolve nested/composed fractions)
+  const fracRegex = /\\frac\{([^{}]+)\}\{([^{}]+)\}/g;
+  while (fracRegex.test(res)) {
+    res = res.replace(fracRegex, "($1)/($2)");
+  }
+
+  // 5. Common mathematical operators and symbols
+  res = res
     .replace(/\\cdot/g, " dot ")
     .replace(/\\times/g, " times ")
-    .replace(/\\le(?:q)?/g, " <= ")
-    .replace(/\\ge(?:q)?/g, " >= ")
-    .replace(/\\neq/g, " != ")
+    .replace(/\\div/g, " div ")
     .replace(/\\pm/g, " plus.minus ")
+    .replace(/\\mp/g, " minus.plus ")
+    .replace(/\\le(?:q)?\b/g, " <= ")
+    .replace(/\\ge(?:q)?\b/g, " >= ")
+    .replace(/\\ne(?:q)?\b/g, " != ")
+    .replace(/\\approx/g, " approx ")
+    .replace(/\\equiv/g, " equiv ")
+    .replace(/\\sim/g, " sim ")
     .replace(/\\infty/g, " infinity ")
     .replace(/\\sum/g, " sum ")
     .replace(/\\prod/g, " product ")
     .replace(/\\int/g, " integral ")
     .replace(/\\partial/g, " partial ")
-    .replace(/\\sqrt\{([^}]+)\}/g, "sqrt($1)")
-    .replace(/\\([a-zA-Z]+)/g, "$1")
-    .replace(/\{([^{}]+)\}/g, "($1)");
+    .replace(/\\nabla/g, " nabla ")
+    .replace(/\\to\b|\\rightarrow\b/g, " arrow.r ")
+    .replace(/\\gets\b|\\leftarrow\b/g, " arrow.l ")
+    .replace(/\\Rightarrow\b|\\implies\b/g, " => ")
+    .replace(/\\Leftarrow\b/g, " <= ")
+    .replace(/\\Leftrightarrow\b|\\iff\b/g, " <=> ")
+    .replace(/\\dots|\\ldots|\\cdots/g, " dots ")
+    .replace(/\\quad/g, ' " " ')
+    .replace(/\\qquad/g, ' "   " ')
+    .replace(/\\[,:;! ]/g, " ");
+
+  // 6. Escaped currency and percent symbols
+  res = res.replace(/\\(\$)/g, '"$"').replace(/\\(%)/g, '"%"');
+
+  // 7. Remaining LaTeX commands \command
+  res = res.replace(/\\([a-zA-Z]+)/g, (_m, cmd) => {
+    if (TYPST_MATH_BUILTINS.has(cmd)) {
+      return cmd;
+    }
+    // Unknown multi-letter LaTeX command: quote it as text literal
+    return `"${cmd}"`;
+  });
+
+  // 8. Replace curly braces {expression} with parentheses (expression)
+  res = res.replace(/\{([^{}]+)\}/g, "($1)");
+
+  // 9. Auto-quote unknown multi-letter identifiers outside of quotes
+  // In Typst math mode, any Latin word of length >= 2 (e.g. USD, EUR, CHF, Total, kg)
+  // that is not in TYPST_MATH_BUILTINS and not in quotes will trigger "unknown variable: ...".
+  // We split by double-quoted segments so we only transform unquoted regions.
+  const parts = res.split(/("[^"]*")/g);
+  for (let i = 0; i < parts.length; i += 2) {
+    // Even indices are outside quotes
+    parts[i] = parts[i].replace(/\b([a-zA-Z]{2,})\b/g, (match, word) => {
+      if (TYPST_MATH_BUILTINS.has(word)) {
+        return word;
+      }
+      return `"${word}"`;
+    });
+  }
+  res = parts.join("");
+
+  return res;
 }
 
 function processInlineScholarly(rawText: string): string {

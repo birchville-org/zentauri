@@ -73,7 +73,7 @@ defineEmits<{
     </div>
 
     <!-- Bottom Items -->
-    <div class="flex flex-col gap-4 w-full items-center">
+    <div class="flex flex-col gap-3 w-full items-center">
       <!-- Export PDF via Typst -->
       <button 
         @click="$emit('action', 'export-pdf')"
@@ -86,6 +86,33 @@ defineEmits<{
           <polyline points="14 2 14 8 20 8"/>
           <path d="M12 18v-6"/>
           <path d="m9 15 3 3 3-3"/>
+        </svg>
+      </button>
+
+      <!-- Export Standalone HTML -->
+      <button 
+        @click="$emit('action', 'export-html')"
+        class="p-2 rounded-lg text-app-text-muted hover:text-app-text transition-colors flex items-center justify-center w-10 h-10"
+        title="HTML-Dokument exportieren (Cmd/Ctrl+Shift+H)"
+        aria-label="Export Standalone HTML"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="16 18 22 12 16 6"/>
+          <polyline points="8 6 2 12 8 18"/>
+          <line x1="12" y1="2" x2="12" y2="22" stroke-dasharray="2 2" opacity="0.4"/>
+        </svg>
+      </button>
+
+      <!-- Copy Rendered HTML to Clipboard -->
+      <button 
+        @click="$emit('action', 'copy-html')"
+        class="p-2 rounded-lg text-app-text-muted hover:text-app-text transition-colors flex items-center justify-center w-10 h-10"
+        title="HTML in Zwischenablage kopieren (Cmd/Ctrl+Shift+C)"
+        aria-label="Copy HTML to Clipboard"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/>
+          <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
         </svg>
       </button>
 

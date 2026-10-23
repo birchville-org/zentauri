@@ -4,6 +4,17 @@ title: Release Notes
 
 # 🚀 Zentauri Release Notes
 
+### ZenTauri v1.5.0
+- **Dedicated Editor Formatting Ribbon:** Added an interactive editor ribbon (`EditorRibbon.vue`) providing direct tool groups for headings (H1-H3), typography (bold, italic, strike, inline code), structure (lists, tables, quotes), scholarly callouts (`grammar-box`, `warning-box`, `verse-box`, `note-box`), Sanskrit citation markers (`《...》`), signal highlights, and KaTeX math.
+- **Syntax Catalog Dropdown & Transliteration Toggles:** Integrated categorized dropdown select for full cheatsheet access alongside quick-toggle buttons for IAST and Harvard-Kyoto transliteration.
+- **Standalone HTML Export (`Cmd/Ctrl+Shift+H`):** Generates self-contained, offline-ready HTML5 documents with embedded Birchville Scholarly Synthesis styles and KaTeX CSS.
+- **HTML Multi-MIME Clipboard Copy (`Cmd/Ctrl+Shift+C`):** Copies rendered HTML as rich formatted text (`text/html`) and source (`text/plain`) with graceful fallback and floating toast feedback.
+- **Typst PDF Export Math Hardening:** Implemented `TYPST_MATH_BUILTINS` whitelist and automatic text-quoting for multi-letter currency and unit identifiers (`USD`, `EUR`, `CHF`), resolving fatal `unknown variable` compilation errors.
+- **LaTeX Macro Normalization:** Resolves `\text`, `\mathrm`, `\operatorname`, and `\sqrt` before fraction parsing, resolving nested brace collisions in `\frac`.
+- **Top Header Streamlining:** Removed export controls from the top header to dedicate it strictly to presentation and layout options (Source, Split, 2-Col QA, 3-Col QA, Scroll-Sync, SWAP, Vim Mode).
+
+---
+
 ### ZenTauri v1.4.0
 - **Didactic v2 Standard & New Containers:** Full integration of the minimal v2 container set from `markdown-it-extensible` v1.4.0 featuring `::: warning-box` (didactic guidance, pitfalls; Birchville Scholarly Terracotta `#ea580c`) and `::: verse-box` (Ślokas, Mantras, metrical texts).
 - **Graceful Aliasing for Legacy Containers:** Seamless backward compatibility with automatic aliasing for existing documents (`important` → `.warning-box`, `compact` → `.verse-box`, `literatur-box` / `literatur` → `.note-box`).

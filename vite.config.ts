@@ -22,6 +22,7 @@ const host = process.env.TAURI_DEV_HOST;
 export default defineConfig(async () => ({
   test: {
     environment: "jsdom",
+    css: true,
   },
   plugins: [vue(), tailwindcss()],
   define: {

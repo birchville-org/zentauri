@@ -1,3 +1,31 @@
+# Release Notes — ZenTauri v1.5.0
+
+ZenTauri v1.5.0 is a feature-rich minor release introducing a comprehensive formatting ribbon above the editor (`EditorRibbon.vue`), offline-ready standalone HTML export with embedded Birchville Scholarly Synthesis styles, multi-MIME HTML clipboard copy, Typst PDF export hardening for math variables and currencies, and a clean separation between view controls and export workflows.
+
+## Fixes & Enhancements (v1.5.0)
+
+### 🎀 Dedicated Editor Formatting Ribbon
+* **Structured Tool Groups:** Added an interactive editor ribbon providing one-click insertion for headings (`H1`-`H3`), typography (bold, italic, strikethrough, inline code), structure (blockquotes, bullet lists, numbered lists, task lists, tables), scholarly didactic boxes (`grammar-box`, `warning-box`, `verse-box`, `note-box`), Sanskrit citation chevrons (`《...》`), signal highlights (`:sig[...]`), and KaTeX inline math (`$...$`).
+* **Complete Syntax Reference Dropdown:** Integrated categorized dropdown select providing instant access to all containers and directives from `markdown-it-extensible`.
+* **Transliteration Toggles:** Quick-action ribbon triggers for IAST ⇄ Devanāgarī (`Cmd+Alt+D` / `F4`) and Harvard-Kyoto ⇄ Devanāgarī (`Cmd+Alt+H` / `Shift+F4`).
+
+### 🌐 Standalone HTML Export & Multi-MIME Clipboard Copy
+* **Offline-Ready Standalone HTML Export (`Cmd/Ctrl+Shift+H`):** Generates self-contained HTML5 documents with embedded Birchville Scholarly Synthesis CSS and KaTeX stylesheets (`generateStandaloneHtml`) for portable offline viewing and archiving.
+* **HTML to Clipboard (`Cmd/Ctrl+Shift+C`):** Multi-MIME clipboard support (`copyHtmlToClipboard`) writing both `text/html` (for rich-text pasting into Word, Mail, or CMSs) and `text/plain` (raw source) with automatic fallback and floating toast feedback.
+* **Activity Bar Actions:** Dedicated bottom action buttons for HTML export and clipboard copying.
+
+### 📄 Typst Native PDF Export (Math & Currency Hardening)
+* **Typst Math Built-in Whitelist:** Comprehensive catalog of Typst functions, operators, relations, and Greek letters (`TYPST_MATH_BUILTINS`).
+* **Automatic Identifier Quoting:** Auto-quotes multi-letter units and currencies (`USD`, `EUR`, `CHF`, `Total`, `kg`) outside quotes in math mode, completely eliminating fatal Typst `unknown variable: <ID>` errors.
+* **LaTeX Text & Font Macro Normalization:** Resolves `\text`, `\mathrm`, `\operatorname`, `\mbox`, `\textbf`, and `\textit` before fraction expansion, preventing nested curly brace collision in `\frac`.
+* **Delimiter & Fraction Cleanup:** Automatically removes obsolete `\left` and `\right` delimiter prefixes (handled natively by Typst) and iteratively resolves nested fractions.
+
+### 🧹 UI Streamlining & Cheatsheet Alignment
+* **Focused View Mode Header:** Removed export controls from the top header toolbar, keeping it strictly dedicated to view and presentation options (Source, Split, 2-Col QA, 3-Col QA, Scroll-Sync, SWAP, Vim Mode).
+* **Cheatsheet & Snippet Alignment:** Synchronized cheatsheet catalog and snippets with `markdown-it-extensible` v1.4.0, removing obsolete legacy containers and aligning callout names with VitePress defaults.
+
+---
+
 # Release Notes — ZenTauri v1.4.0
 
 ZenTauri v1.4.0 introduces the didactic v2 standard and core containers from `markdown-it-extensible` v1.4.0, including `warning-box` (scholarly terracotta) and `verse-box` (metrical texts/Ślokas), seamless graceful aliasing for legacy containers, a single-source-of-truth container architecture, and robust Typst PDF export enhancements.

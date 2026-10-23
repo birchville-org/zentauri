@@ -136,6 +136,10 @@ $ e^(i pi) + 1 = 0 $
 
 $ sum_(k=1)^n k = (n(n+1)) / 2 $
 
+$ 100 "USD" $
+
+$ "Total"_("USD") = 100 $
+
 == 3. Tabular Overview
 #table(
   columns: (auto, auto, 1fr),

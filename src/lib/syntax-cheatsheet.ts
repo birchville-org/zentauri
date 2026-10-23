@@ -124,132 +124,146 @@ const CHEAT_SHEET: SyntaxCategory[] = [
     ],
   },
 
-  // ── Extensions (markdown-it / remark) ──────────────────────
+  // ── Extensions (markdown-it-extensible) ───────────────────
   {
     id: "ext",
-    title: "Extensions",
+    title: "Extensions & Scholarly Directives",
     items: [
       {
-        label: ":br",
-        before: ":br",
-        after: "",
-        desc: "Line break (intra-cell)",
-      },
-      {
-        label: ":indent",
-        before: ":indent",
-        after: "",
-        desc: "Indent (intra-cell)",
-      },
-      {
-        label: ":sig[signalrot]",
+        label: ":sig[Signalrot]",
         before: ":sig[",
         after: "]",
-        desc: "Signal red highlight",
+        desc: "Signalrot hervorheben (strong.signalrot)",
       },
       {
-        label: ":mark[marker]",
+        label: ":mark[Marker]",
         before: ":mark[",
         after: "]",
-        desc: "Yellow marker highlight",
+        desc: "Gelber Textmarker (mark.marker-yellow)",
       },
       {
         label: "《Sanskrit》",
         before: "《",
         after: "》",
-        desc: "Sanskrit (red)",
+        desc: "Sanskrit Devanāgarī Auszeichnung",
+      },
+      {
+        label: "《Sanskrit ||》",
+        before: "《",
+        after: " ||》",
+        desc: "Sanskrit mit automatischer Doppeldanda (॥)",
+      },
+      {
+        label: ":br",
+        before: ":br",
+        after: "",
+        desc: "Zeilenumbruch innerhalb von Tabellenzellen",
+      },
+      {
+        label: ":indent",
+        before: ":indent",
+        after: "",
+        desc: "Einrückung innerhalb von Tabellenzellen",
       },
     ],
   },
 
-  // ── Container Blocks ───────────────────────────────────────
+  // ── Scholarly Containers (Payer v2 Minimal-Set) ─────────────
   {
     id: "cnt",
-    title: "Container Blocks",
+    title: "Scholarly Containers (Payer v2)",
     items: [
       {
         label: "::: grammar-box",
         before: "\n::: grammar-box\n",
         after: "\n:::",
-        desc: "Grammar (yellow)",
+        desc: "Normative Grammatik & Paradigmen (Gold)",
       },
       {
         label: "::: warning-box",
         before: "\n::: warning-box\n",
         after: "\n:::",
-        desc: "Warning (terracotta)",
+        desc: "Didaktische Warnung & Stolperfallen (Terracotta)",
       },
       {
         label: "::: verse-box",
         before: "\n::: verse-box\n",
         after: "\n:::",
-        desc: "Verse / Sloka",
-      },
-      {
-        label: "::: grammar-box2",
-        before: "\n::: grammar-box2\n",
-        after: "\n:::",
-        desc: "Grammar (orange)",
-      },
-      {
-        label: "::: important",
-        before: "\n::: important\n",
-        after: "\n:::",
-        desc: "Important (violet)",
+        desc: "Ślokas, Mantras, Verse & Metrik",
       },
       {
         label: "::: note-box",
         before: "\n::: note-box\n",
         after: "\n:::",
-        desc: "Note (gray)",
+        desc: "Philologischer Apparat, Realien & Quellen",
       },
       {
         label: "::: indent",
         before: "\n::: indent\n",
         after: "\n:::",
-        desc: "Indented",
-      },
-      {
-        label: "::: center",
-        before: "\n::: center\n",
-        after: "\n:::",
-        desc: "Centered",
+        desc: "Eingerückte Belege & Formenreihen",
       },
       {
         label: "::: media",
         before: "\n::: media\n",
         after: "\n:::",
-        desc: "Image block",
-      },
-      {
-        label: "::: deleteme-box",
-        before: "\n::: deleteme-box\n",
-        after: "\n:::",
-        desc: "Invisible",
+        desc: "Zentrierte Abbildung mit Bildlegende",
       },
       {
         label: "::: no-header",
         before: "\n::: no-header\n",
         after: "\n:::",
-        desc: "Table no header",
+        desc: "Tabelle ohne Kopfzeile (versteckt thead)",
       },
       {
-        label: "::: compact",
-        before: "\n::: compact\n",
+        label: "::: center",
+        before: "\n::: center\n",
         after: "\n:::",
-        desc: "Compact table",
+        desc: "Zentrierter Textblock (Legacy)",
       },
       {
-        label: "::: laut-table",
-        before: "\n::: laut-table\n",
+        label: "::: deleteme-box",
+        before: "\n::: deleteme-box\n",
         after: "\n:::",
-        desc: "Sound table",
+        desc: "Redaktionelle Notizen (im Druck verborgen)",
+      },
+    ],
+  },
+
+  // ── VitePress Callouts ─────────────────────────────────────
+  {
+    id: "vitepress",
+    title: "VitePress Callouts",
+    items: [
+      {
+        label: "::: tip [Titel]",
+        before: "\n::: tip\n",
+        after: "\n:::",
+        desc: "Tipp-Hinweis (Grün)",
       },
       {
-        label: "::: metrik-schema",
-        before: "\n::: metrik-schema\n",
+        label: "::: info [Titel]",
+        before: "\n::: info\n",
         after: "\n:::",
-        desc: "Metrics",
+        desc: "Informations-Hinweis (Blau)",
+      },
+      {
+        label: "::: warning [Titel]",
+        before: "\n::: warning\n",
+        after: "\n:::",
+        desc: "Warnung (Gelb)",
+      },
+      {
+        label: "::: danger [Titel]",
+        before: "\n::: danger\n",
+        after: "\n:::",
+        desc: "Gefahren-Hinweis (Rot)",
+      },
+      {
+        label: "::: details [Titel]",
+        before: "\n::: details Details\n",
+        after: "\n:::",
+        desc: "Aufklappbarer Details-Bereich",
       },
     ],
   },
@@ -291,4 +305,5 @@ export function getCategoryTitle(cat: SyntaxCategory, _locale: string): string {
   return cat.title;
 }
 
+export { CHEAT_SHEET };
 export default CHEAT_SHEET;

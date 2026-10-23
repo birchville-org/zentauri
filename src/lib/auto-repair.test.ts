@@ -91,8 +91,8 @@ Text
 Grammar 1
 :::
 Middle text
-::: grammar-box2
-Grammar 2
+::: warning-box
+Warning 2
 :::
 Ending
 :::`;
@@ -103,8 +103,8 @@ Text
 Grammar 1
 :::
 Middle text
-::: grammar-box2
-Grammar 2
+::: warning-box
+Warning 2
 :::
 Ending
 ::::`;

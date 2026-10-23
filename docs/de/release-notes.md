@@ -4,6 +4,17 @@ title: Release Notes
 
 # 🚀 Zentauri Release Notes
 
+### ZenTauri v1.5.0
+- **Editor-Formatierungsband (Editor Ribbon):** Neues interaktives Ribbon (`EditorRibbon.vue`) oberhalb des Editors mit organisierten Werkzeuggruppen für Überschriften (H1-H3), Typografie (Fett, Kursiv, Durchgestrichen, Inline-Code), Struktur (Zitate, Listen, Tabellen), didaktische Callout-Boxen (`grammar-box`, `warning-box`, `verse-box`, `note-box`), Sanskrit-Zitate (`《...》`), Signalrot (`:sig[...]`) und KaTeX-Formeln (`$...$`).
+- **Syntax-Katalog-Dropdown & Transliteration:** Integriertes Dropdown-Menü für die vollständige Syntax-Referenz sowie direkte Umschalt-Schaltflächen für IAST ⇄ Devanāgarī (Cmd+Alt+D / F4) und Harvard-Kyoto ⇄ Devanāgarī (Cmd+Alt+H / Shift+F4).
+- **Standalone-HTML-Export (`Cmd/Ctrl+Shift+H`):** Exportiert das aktive Dokument als autarkes, offline-lesbares HTML5-Dokument mit eingebetteten Birchville „Scholarly Synthesis“-Stylesheets und KaTeX-CSS.
+- **Multi-MIME HTML-Zwischenablage (`Cmd/Ctrl+Shift+C`):** Kopiert gerenderten HTML-Code gleichzeitig als formatierten Rich-Text (`text/html`) und Quelltext (`text/plain`) mit automatischer Toast-Rückmeldung.
+- **Typst PDF-Export (Mathematik- und Währungs-Härtung):** Umfassende Typst-Math-Whitelist (`TYPST_MATH_BUILTINS`) und automatisches Quoting mehrbuchstabiger Einheiten/Währungen (`USD`, `EUR`, `CHF`), wodurch Typst-Kompilierungsfehler (`unknown variable`) zuverlässig verhindert werden.
+- **LaTeX-Makro-Normalisierung:** Auflösung von `\text`, `\mathrm`, `\operatorname` und `\sqrt` vor der Bruch-Auflösung (`\frac`), wodurch geschachtelte Klammer-Kollisionen behoben werden.
+- **Entschlackung der Titelleiste:** Bereinigung der oberen Menüleiste von Exportfunktionen zur ausschließlichen Fokussierung auf Ansichts- und Layout-Optionen (Source, Split, 2-Col QA, 3-Col QA, Scroll-Sync, SWAP, Vim-Modus).
+
+---
+
 ### ZenTauri v1.4.0
 - **Didaktischer v2-Standard & Neue Container:** Volle Integration des didaktischen v2-Minimalsets aus `markdown-it-extensible` v1.4.0 mit `::: warning-box` (didaktische Führung, Stolperfallen; Birchville Scholarly Terracotta `#ea580c`) und `::: verse-box` (Ślokas, Mantras, metrische Texte).
 - **Graceful Aliasing für Alt-Container:** Vollständige Abwärtskompatibilität durch automatisches Aliasing bestehender Dokumente (`important` → `.warning-box`, `compact` → `.verse-box`, `literatur-box` / `literatur` → `.note-box`).
