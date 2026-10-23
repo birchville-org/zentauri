@@ -21,37 +21,7 @@ export interface ContainerNestingOptions {
   closeUnclosed?: boolean;
 }
 
-export const DEFAULT_CONTAINER_NAMES: ReadonlySet<string> = new Set([
-  "grammar-box2",
-  "grammarbox2",
-  "grammar-box",
-  "grammarbox",
-  "deleteme-box",
-  "deletemebox",
-  "metrik-schema",
-  "metrikschema",
-  "note-box",
-  "notebox",
-  "laut-table",
-  "lauttable",
-  "media",
-  "center",
-  "important",
-  "indent",
-  "compact",
-  "no-header",
-  "noheader",
-  "info",
-  "tip",
-  "warning",
-  "danger",
-  "details",
-  "custom1",
-  "custom2",
-  "custom3",
-  "custom4",
-  "custom5",
-]);
+export { REGISTERED_CONTAINER_NAMES as DEFAULT_CONTAINER_NAMES } from "./containers";
 
 const OPEN_RE = /^([ \t]*)(:{3,})([ \t]*)([a-zA-Z0-9_-]+)(.*)$/;
 const CLOSE_RE = /^([ \t]*)(:{3,})[ \t]*$/;

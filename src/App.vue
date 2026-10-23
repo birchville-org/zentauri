@@ -853,6 +853,20 @@ const quickSnippets = [
     colorClass: "text-amber-500",
   },
   {
+    label: "::: warning-box",
+    before: "\n::: warning-box\n",
+    after: "\n:::",
+    desc: "Warning",
+    colorClass: "text-orange-600",
+  },
+  {
+    label: "::: verse-box",
+    before: "\n::: verse-box\n",
+    after: "\n:::",
+    desc: "Verse",
+    colorClass: "text-emerald-600",
+  },
+  {
     label: "::: important",
     before: "\n::: important\n",
     after: "\n:::",

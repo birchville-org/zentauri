@@ -174,6 +174,18 @@ const CHEAT_SHEET: SyntaxCategory[] = [
         desc: "Grammar (yellow)",
       },
       {
+        label: "::: warning-box",
+        before: "\n::: warning-box\n",
+        after: "\n:::",
+        desc: "Warning (terracotta)",
+      },
+      {
+        label: "::: verse-box",
+        before: "\n::: verse-box\n",
+        after: "\n:::",
+        desc: "Verse / Sloka",
+      },
+      {
         label: "::: grammar-box2",
         before: "\n::: grammar-box2\n",
         after: "\n:::",

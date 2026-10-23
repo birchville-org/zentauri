@@ -2,6 +2,7 @@ import MarkdownIt from "markdown-it";
 import container from "markdown-it-container";
 // @ts-ignore
 import multimdTable from "markdown-it-multimd-table";
+import { BLOCK_CONTAINERS } from "./containers";
 import { katexMathPlugin, normalizeMarkdownSource } from "./markdown";
 
 // Initialize a clean markdown-it instance specifically for Typst AST generation
@@ -15,45 +16,18 @@ const mdTypst = new MarkdownIt({ html: false })
   })
   .use(katexMathPlugin);
 
-const CONTAINERS = [
-  "grammar-box",
-  "grammarbox",
-  "grammar-box2",
-  "grammarbox2",
-  "media",
-  "center",
-  "metrik-schema",
-  "metrikschema",
-  "important",
-  "deleteme-box",
-  "deletemebox",
-  "literatur-box",
-  "literatur",
-  "note-box",
-  "notebox",
-  "laut-table",
-  "lauttable",
-  "indent",
-  "compact",
-  "no-header",
-  "noheader",
-  "gaga-box",
-  "info",
-  "tip",
-  "warning",
-  "danger",
-  "details",
-  "custom1",
-  "custom2",
-  "custom3",
-  "custom4",
-  "custom5",
-];
+const TYPST_CONTAINERS = Array.from(
+  new Set(BLOCK_CONTAINERS.map((c) => c.name)),
+).sort((a, b) => b.length - a.length);
 
-for (const name of CONTAINERS) {
+for (const name of TYPST_CONTAINERS) {
+  const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const containerRe = new RegExp(
+    `^\\s*${escapedName}(?:\\s+(.*)|(?=\\[)(.*))?$`,
+    "i",
+  );
   mdTypst.use(container, name, {
-    validate: (params: string) =>
-      params.trim().match(new RegExp(`^${name}(?:\\s+(.*))?$`, "i")),
+    validate: (params: string) => params.match(containerRe),
   });
 }
 
@@ -204,11 +178,12 @@ export function convertMarkdownToTypst(
       if (token.type.endsWith("_open")) {
         // Container open
         let title = "";
-        const m = token.info
+        const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const titleMatch = token.info
           .trim()
-          .match(new RegExp(`^${name}\\s*\\[(.*?)\\]`, "i"));
-        if (m?.[1]?.trim()) {
-          title = `*${escapeTypst(m[1].trim())}*\n\n`;
+          .match(new RegExp(`^${escapedName}\\s*\\[([^\\]]+)\\]`, "i"));
+        if (titleMatch?.[1]?.trim()) {
+          title = `*${escapeTypst(titleMatch[1].trim())}*\n\n`;
         }
 
         let color = 'rgb("f8f9fa")'; // default gray
@@ -217,9 +192,16 @@ export function convertMarkdownToTypst(
         if (name.includes("grammar")) {
           color = 'rgb("fffbeb")'; // yellow/amber
           strokeColor = 'rgb("f59e0b")';
-        } else if (name === "important" || name.includes("danger")) {
-          color = 'rgb("fef2f2")'; // red
-          strokeColor = 'rgb("ef4444")';
+        } else if (
+          name.includes("warning") ||
+          name === "important" ||
+          name.includes("danger")
+        ) {
+          color = 'rgb("fff7ed")'; // warm peach / terracotta
+          strokeColor = 'rgb("ea580c")';
+        } else if (name.includes("verse") || name === "compact") {
+          color = 'rgb("fcfbf9")';
+          strokeColor = 'rgb("cbd5e1")';
         } else if (name === "info" || name.includes("custom1")) {
           color = 'rgb("f0fdfa")'; // teal
           strokeColor = 'rgb("14b8a6")';

@@ -84,15 +84,33 @@ describe("renderMarkdown", () => {
       "::: grammar-box [Mein Titel]\nInhalt\n:::",
     );
     expect(typstWithTitle).toContain("*Mein Titel*");
+
+    const typstNoSpaceTitle = convertMarkdownToTypst(
+      "::: grammar-box[Titel Ohne Leerzeichen]\nInhalt\n:::",
+    );
+    expect(typstNoSpaceTitle).toContain("*Titel Ohne Leerzeichen*");
+
+    const typstWarningBox = convertMarkdownToTypst(
+      "::: warning-box [Warnhinweis]\nAchtung\n:::",
+    );
+    expect(typstWarningBox).toContain("*Warnhinweis*");
+    expect(typstWarningBox).toContain('fill: rgb("fff7ed")');
+
+    const typstVerseBox = convertMarkdownToTypst(
+      "::: verse-box\nŚloka Text\n:::",
+    );
+    expect(typstVerseBox).toContain('fill: rgb("fcfbf9")');
+    expect(typstVerseBox).toContain("Śloka Text");
   });
 
-  it("renders other boxes (note-box, metrik-schema, tip, deleteme-box) without empty title lines", () => {
+  it("renders other boxes (note-box, metrik-schema, tip, deleteme-box, warning-box, verse-box) without empty title lines", () => {
     const boxes = [
       "note-box",
       "metrik-schema",
       "tip",
       "deleteme-box",
-      "important",
+      "warning-box",
+      "verse-box",
     ];
     for (const box of boxes) {
       const htmlNoTitle = renderMarkdown(`::: ${box}\nInhalt\n:::`);
@@ -105,6 +123,21 @@ describe("renderMarkdown", () => {
       expect(htmlEmptyBrackets).not.toContain("<p></p>");
       expect(htmlEmptyBrackets).toContain(box);
     }
+  });
+
+  it("maps legacy container aliases to v2 standard (important -> warning-box, compact -> verse-box)", () => {
+    const importantHtml = renderMarkdown(
+      "::: important\nWichtiger Hinweis\n:::",
+    );
+    expect(importantHtml).toContain("warning-box custom-block");
+
+    const compactHtml = renderMarkdown("::: compact\nKompakter Vers\n:::");
+    expect(compactHtml).toContain("verse-box custom-block");
+
+    const literaturHtml = renderMarkdown(
+      "::: literatur-box\nQuellenangabe\n:::",
+    );
+    expect(literaturHtml).toContain("note-box custom-block");
   });
 
   it("renders nested containers with auto-elevated colons correctly in HTML", () => {

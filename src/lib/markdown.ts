@@ -410,74 +410,16 @@ function createBaseMarkdownIt(): MarkdownIt {
   return instance;
 }
 
+import { BLOCK_CONTAINERS, REGISTERED_CONTAINER_NAMES } from "./containers";
+export { BLOCK_CONTAINERS, REGISTERED_CONTAINER_NAMES } from "./containers";
+
 const mdBasic = createBaseMarkdownIt();
 const mdExtended = createBaseMarkdownIt().use(extensiblePlugin, {
   injectStyles: false,
   configFile: false,
-  blockContainers: [
-    { name: "grammar-box2", className: "grammar-box2" },
-    { name: "grammarbox2", className: "grammar-box2" },
-    { name: "grammar-box", className: "grammar-box" },
-    { name: "grammarbox", className: "grammar-box" },
-    { name: "deleteme-box", className: "deleteme-box" },
-    { name: "deletemebox", className: "deleteme-box" },
-    { name: "metrik-schema", className: "metrik-schema" },
-    { name: "metrikschema", className: "metrik-schema" },
-    { name: "note-box", className: "note-box" },
-    { name: "notebox", className: "note-box" },
-    { name: "laut-table", className: "laut-table" },
-    { name: "lauttable", className: "laut-table" },
-    { name: "media", className: "media" },
-    { name: "center", className: "center" },
-    { name: "important", className: "important" },
-    { name: "indent", className: "indent" },
-    { name: "compact", className: "compact" },
-    { name: "no-header", className: "no-header" },
-    { name: "noheader", className: "no-header" },
-    { name: "info", className: "info custom-block" },
-    { name: "tip", className: "tip custom-block" },
-    { name: "warning", className: "warning custom-block" },
-    { name: "danger", className: "danger custom-block" },
-    { name: "details", className: "details custom-block" },
-    { name: "custom1", className: "custom1" },
-    { name: "custom2", className: "custom2" },
-    { name: "custom3", className: "custom3" },
-    { name: "custom4", className: "custom4" },
-    { name: "custom5", className: "custom5" },
-  ],
+  autoNesting: false,
+  blockContainers: BLOCK_CONTAINERS,
 });
-
-export const REGISTERED_CONTAINER_NAMES = new Set([
-  "grammar-box2",
-  "grammarbox2",
-  "grammar-box",
-  "grammarbox",
-  "deleteme-box",
-  "deletemebox",
-  "metrik-schema",
-  "metrikschema",
-  "note-box",
-  "notebox",
-  "laut-table",
-  "lauttable",
-  "media",
-  "center",
-  "important",
-  "indent",
-  "compact",
-  "no-header",
-  "noheader",
-  "info",
-  "tip",
-  "warning",
-  "danger",
-  "details",
-  "custom1",
-  "custom2",
-  "custom3",
-  "custom4",
-  "custom5",
-]);
 
 export function normalizeMarkdownSource(
   src: string,

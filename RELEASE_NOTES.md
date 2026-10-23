@@ -1,3 +1,30 @@
+# Release Notes — ZenTauri v1.4.0
+
+ZenTauri v1.4.0 introduces the didactic v2 standard and core containers from `markdown-it-extensible` v1.4.0, including `warning-box` (scholarly terracotta) and `verse-box` (metrical texts/Ślokas), seamless graceful aliasing for legacy containers, a single-source-of-truth container architecture, and robust Typst PDF export enhancements.
+
+## Fixes & Enhancements (v1.4.0)
+
+### 🎨 Didactic v2 Standard & Scholarly Containers
+* **`::: warning-box` Container:** Added official didactic warning callout for traps and guidance styled in Birchville Scholarly Terracotta (`#ea580c` border, `#fff7ed` warm peach / `#361e04` dark).
+* **`::: verse-box` Container:** Added specialized container for Ślokas, Mantras, reading texts, and metrical schemas with centered text flow and preserved line breaks (`white-space: pre-line`).
+* **Graceful Aliasing:** Transparent backward compatibility for existing documents: `important` renders as `.warning-box`, `compact` renders as `.verse-box`, and `literatur-box` / `literatur` renders as `.note-box`.
+* **Theme Styling:** Full Light Mode, Candlelit Dark Mode, Solarized Dark, Dracula, and TokyoNight styling in `src/payer-theme.css`.
+
+### 🏗️ Architecture & Single Source of Truth
+* **Central Container Registry (`containers.ts`):** Created `src/lib/containers.ts` as the single source of truth for all container definitions, eliminating quadruple redundancy across parser, auto-repair, and Typst converter.
+* **Dead Code Cleanup:** Cleaned up unused legacy containers (`gaga-box`) across the entire codebase.
+
+### 📄 Typst Native PDF Export
+* **Flexible Container Bracket Parsing:** Added robust matching for containers with and without spaces before bracket titles (`::: box [Title]` and `::: box[Title]`).
+* **Length-based Sorting:** Sorted container matchers descending by name length to prevent prefix shadowing (`grammar-box` shadowing `grammar-box2`).
+* **Visual Palette Alignment:** Matched Typst background and stroke colors to Birchville palette for `warning-box` and `verse-box`.
+
+### ⚡ Performance & Editor UI
+* **Rendering Pipeline Optimization:** Disabled redundant container nesting passes in `extensiblePlugin` (`autoNesting: false`), leveraging the pre-render auto-repair pass and render cache.
+* **Quick-Insert Toolbar & Cheatsheet:** Added `::: warning-box` and `::: verse-box` directly to the quick-insert toolbar in `App.vue` and the syntax cheatsheet modal.
+
+---
+
 # Release Notes — ZenTauri v1.3.4
 
 ZenTauri v1.3.4 is a reliability and error-recovery patch release introducing a dual-track download mechanism with resilient manual fallback links, updater error-state recovery, Settings version binding fixes, repository URL alignment, and CI/CD pre-flight asset verification.

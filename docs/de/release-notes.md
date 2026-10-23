@@ -4,6 +4,16 @@ title: Release Notes
 
 # 🚀 Zentauri Release Notes
 
+### ZenTauri v1.4.0
+- **Didaktischer v2-Standard & Neue Container:** Volle Integration des didaktischen v2-Minimalsets aus `markdown-it-extensible` v1.4.0 mit `::: warning-box` (didaktische Führung, Stolperfallen; Birchville Scholarly Terracotta `#ea580c`) und `::: verse-box` (Ślokas, Mantras, metrische Texte).
+- **Graceful Aliasing für Alt-Container:** Vollständige Abwärtskompatibilität durch automatisches Aliasing bestehender Dokumente (`important` → `.warning-box`, `compact` → `.verse-box`, `literatur-box` / `literatur` → `.note-box`).
+- **Single Source of Truth (`containers.ts`):** Konsolidierung aller Block-Container in ein zentrales Architektur-Modul (`src/lib/containers.ts`), wodurch vierfache Listen-Redundanzen im Codebase vollständig eliminiert wurden.
+- **Typst Native PDF Export:** Robuste Erkennung von Containern mit und ohne Trennleerzeichen vor Titeln (`::: box [Titel]` und `::: box[Titel]`), automatische Längensortierung zur Vermeidung von Präfix-Kollisionen und typografische Farbabstimmung für `warning-box` (Terracotta) und `verse-box`.
+- **Performance & Rendering:** Deaktivierung redundanter doppelter Container-Nesting-Durchläufe in der Render-Pipeline für spürbar schnellere Preview-Updates.
+- **Editor UI & Quick-Snippets:** `::: warning-box` und `::: verse-box` direkt in die Quick-Snippet-Leiste (`App.vue`) und das Syntax-Cheatsheet integriert.
+
+---
+
 ### ZenTauri v1.3.4
 - **Zwei-Wege-Update & Manueller Download-Fallback:** Direkte Browser-Download-Buttons zu den GitHub Releases sowohl in `UpdateNotification.vue` als auch in `Settings.vue`. Sollte der In-App-Updater fehlschlagen oder an Sandbox-/Berechtigungsfehlern scheitern, kann der Benutzer das Update jederzeit mit einem Klick manuell herunterladen.
 - **Fehlerbehandlung mit Recovery-Button:** Bei Fehlern während der Update-Prüfung oder Installation wird ein prominenter Recovery-Button ("Im Browser herunterladen ↗") angezeigt, sodass der Downloadpfad niemals blockiert ist.

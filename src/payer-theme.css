@@ -352,6 +352,61 @@ html[dir="rtl"] .vp-doc em {
   color: #fef08a !important; /* Soft Yellow Text */
 }
 
+/* Custom Block: Warning-Box (Birchville Scholarly Terracotta) */
+.custom-block.warning-box,
+.vp-doc .custom-block.warning-box,
+.warning-box,
+.vp-doc .warning-box,
+.custom-block.warningbox,
+.vp-doc .custom-block.warningbox,
+.warningbox,
+.vp-doc .warningbox {
+  background-color: #fff7ed !important; /* Warm peach */
+  border: none !important;
+  border-left: 5px solid #ea580c !important; /* Scholarly Terracotta */
+  margin: 1.5rem 0;
+  padding: 1.25rem;
+  border-radius: 0 8px 8px 0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  font-size: 1.1rem !important;
+  color: var(--vp-c-text-1) !important;
+}
+
+/* Dark Mode Warning Box (Terracotta) */
+.dark .warning-box,
+.dark .warningbox,
+.dark .custom-block.warning-box,
+.dark .custom-block.warningbox,
+.dark .vp-doc .custom-block.warning-box,
+.dark .vp-doc .custom-block.warningbox,
+:root[data-theme="dark"] .warning-box,
+:root[data-theme="dark"] .warningbox,
+:root[data-theme="dark"] .custom-block.warning-box,
+:root[data-theme="dark"] .custom-block.warningbox,
+:root[data-theme="solarized-dark"] .warning-box,
+:root[data-theme="solarized-dark"] .warningbox,
+:root[data-theme="dracula"] .warning-box,
+:root[data-theme="dracula"] .warningbox,
+:root[data-theme="tokyonight"] .warning-box,
+:root[data-theme="tokyonight"] .warningbox,
+:root[data-theme="payer-night"] .warning-box,
+:root[data-theme="payer-night"] .warningbox,
+:root[data-theme="payer-night"] .custom-block.warning-box,
+:root[data-theme="payer-night"] .custom-block.warningbox {
+  background-color: #361e04 !important;
+  border-left-color: #ea580c !important;
+  color: #ffedd5 !important;
+}
+
+.custom-block.warning-box .custom-block-title,
+.vp-doc .custom-block.warning-box .custom-block-title,
+.warning-box .custom-block-title,
+.custom-block.warningbox .custom-block-title,
+.vp-doc .custom-block.warningbox .custom-block-title,
+.warningbox .custom-block-title {
+  display: none !important;
+}
+
 /* Custom Block: Grammar-Box 2 (Orange background, bold styling) */
 .custom-block.grammar-box2,
 .vp-doc .custom-block.grammar-box2,
@@ -585,6 +640,44 @@ div.grammarbox2 {
   font-size: 0.95rem !important;
   color: var(--vp-c-text-2) !important;
   font-style: normal !important;
+}
+
+/* Verse Box (for Ślokas, Mantras, Prayers, Reading Texts, Metrik) */
+:where(.vp-doc, body) .verse-box,
+:where(.vp-doc, body) .custom-block.verse-box,
+.verse-box,
+.custom-block.verse-box,
+:where(.vp-doc, body) .versebox,
+:where(.vp-doc, body) .custom-block.versebox,
+.versebox,
+.custom-block.versebox {
+  width: 100% !important;
+  text-align: center !important;
+  margin: 2rem 0 !important;
+  display: block !important;
+}
+
+:where(.vp-doc, body) .verse-box p,
+:where(.vp-doc, body) .custom-block.verse-box p,
+.verse-box p,
+.custom-block.verse-box p,
+:where(.vp-doc, body) .versebox p,
+:where(.vp-doc, body) .custom-block.versebox p,
+.versebox p,
+.custom-block.versebox p {
+  text-align: center !important;
+  white-space: pre-line !important;
+  display: block !important;
+  width: 100% !important;
+  margin: 0 auto 1.25rem auto !important;
+  line-height: 1.55 !important;
+}
+
+.custom-block.verse-box .custom-block-title,
+:where(.vp-doc, body) .custom-block.verse-box .custom-block-title,
+.custom-block.versebox .custom-block-title,
+:where(.vp-doc, body) .custom-block.versebox .custom-block-title {
+  display: none !important;
 }
 
 /* Center Container (for Prayers, etc.) */

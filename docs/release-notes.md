@@ -4,6 +4,16 @@ title: Release Notes
 
 # 🚀 Zentauri Release Notes
 
+### ZenTauri v1.4.0
+- **Didactic v2 Standard & New Containers:** Full integration of the minimal v2 container set from `markdown-it-extensible` v1.4.0 featuring `::: warning-box` (didactic guidance, pitfalls; Birchville Scholarly Terracotta `#ea580c`) and `::: verse-box` (Ślokas, Mantras, metrical texts).
+- **Graceful Aliasing for Legacy Containers:** Seamless backward compatibility with automatic aliasing for existing documents (`important` → `.warning-box`, `compact` → `.verse-box`, `literatur-box` / `literatur` → `.note-box`).
+- **Single Source of Truth (`containers.ts`):** Consolidated all block container definitions into a central architecture module (`src/lib/containers.ts`), completely eliminating 4-way redundancy across parser, auto-repair, and Typst converter.
+- **Typst Native PDF Export:** Robust matching for containers with and without spacing before bracket titles (`::: box [Title]` and `::: box[Title]`), automatic descending length sorting preventing prefix shadowing, and typographical color matching for `warning-box` (Terracotta) and `verse-box`.
+- **Performance & Rendering:** Eliminated duplicate container nesting passes in the rendering pipeline for noticeably faster live preview updates.
+- **Editor UI & Quick-Snippets:** Added `::: warning-box` and `::: verse-box` directly to the quick-snippet toolbar (`App.vue`) and syntax cheatsheet.
+
+---
+
 ### ZenTauri v1.3.4
 - **Dual-Track Download & Manual Fallback:** Added resilient direct browser download buttons linking directly to GitHub Releases in both `UpdateNotification.vue` and `Settings.vue`. If the in-app updater fails or encounters permission/sandbox issues, users can immediately download the installer/DMG with one click.
 - **Updater Error State Recovery:** Prominent recovery button ("Im Browser herunterladen ↗") rendered whenever update checks or installations encounter errors, preventing users from being locked out.
