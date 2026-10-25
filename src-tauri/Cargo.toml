@@ -1,6 +1,6 @@
 [package]
 name = "ZenTauri"
-version = "1.5.0"
+version = "1.6.0"
 description = "A Tauri App"
 
 authors = ["you"]
@@ -38,5 +38,9 @@ rusqlite = { version = "0.40.2", features = ["bundled"] }
 serde_yaml = "0.9.34"
 regex = "1.13.1"
 notify = "6.1"
+hayro-syntax = "0.8.0"
+hayro-svg = "0.8.0"
+hayro-interpret = "0.8.0"
+vidyut-lipi = "0.2.0"
 
 

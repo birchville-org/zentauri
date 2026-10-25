@@ -4,6 +4,16 @@ title: Release Notes
 
 # 🚀 Zentauri Release Notes
 
+### ZenTauri v1.6.0
+- **Dual PDF QA Modus (Modus 3):** Integrierte synchrone Vektor-PDF-Vergleichs- und Proofing-Suite (`PdfDualViewer.vue`) auf Basis von `hayro_svg` mit Prozent- und Seiten-Lockstep-Scroll-Synchronisation, kontinuierlicher Scroll- vs. Einzelseitenansicht, Zoom-Skalierung und Dokumententausch (SWAP).
+- **„Open PDFs“-Sektion im File-Explorer:** Spezielle Verwaltung geladener Vergleichs-Slots (`[1] Ref`, `[2] Comp`) im Explorer mit Direktanzeige im Finder, Entladefunktion und automatischer Modus-Aktivierung beim Öffnen von `.pdf`-Dateien.
+- **Konsistente Dateinamen-Darstellung:** Entfernung der H1-Überschriften-Ersetzung im Dateibaum zugunsten des realen Dateinamens (`node.name`), wodurch Explorer und Tabs exakt übereinstimmen.
+- **Echtzeit-Synchronisation bei Umbenennungen & Löschungen:** Umbenennungen im Explorer aktualisieren geöffnete Tabs sofort; das Löschen von Dateien entkoppelt den Tab sicher in einen ungespeicherten Puffer, ohne Text zu verlieren.
+- **Fokussierung auf die 3 Kern-Work-Modes:** Verschlankte Toolbar mit `Source`, `Split` und `Dual PDF QA`; Archivierung des reinen Text-QA-Vergleichs in den Backlog.
+- **Typensicherheit & Portabilitäts-Härtung:** Korrektur der Auto-Repair-Mutation, typsichere HTML-Export-Optionen, Entkopplung globaler Tastatur-Listener und Beseitigung lokaler Maschinenpfade.
+
+---
+
 ### ZenTauri v1.5.0
 - **Editor-Formatierungsband (Editor Ribbon):** Neues interaktives Ribbon (`EditorRibbon.vue`) oberhalb des Editors mit organisierten Werkzeuggruppen für Überschriften (H1-H3), Typografie (Fett, Kursiv, Durchgestrichen, Inline-Code), Struktur (Zitate, Listen, Tabellen), didaktische Callout-Boxen (`grammar-box`, `warning-box`, `verse-box`, `note-box`), Sanskrit-Zitate (`《...》`), Signalrot (`:sig[...]`) und KaTeX-Formeln (`$...$`).
 - **Syntax-Katalog-Dropdown & Transliteration:** Integriertes Dropdown-Menü für die vollständige Syntax-Referenz sowie direkte Umschalt-Schaltflächen für IAST ⇄ Devanāgarī (Cmd+Alt+D / F4) und Harvard-Kyoto ⇄ Devanāgarī (Cmd+Alt+H / Shift+F4).

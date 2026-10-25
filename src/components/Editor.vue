@@ -143,12 +143,13 @@ function wrapSelection(before: string, after: string) {
   view.focus();
 }
 
-function toggleTransliteration(scheme: TransliterationScheme = "iast") {
+async function toggleTransliteration(scheme: TransliterationScheme = "iast") {
   if (!view) return;
   const state = view.state;
   const docText = state.doc.toString();
+  const rangesToUpdate: { from: number; to: number; text: string }[] = [];
 
-  const tr = state.changeByRange((range) => {
+  for (const range of state.selection.ranges) {
     let from = range.from;
     let to = range.to;
 
@@ -160,26 +161,24 @@ function toggleTransliteration(scheme: TransliterationScheme = "iast") {
       }
     }
 
-    if (from === to) {
-      return { range };
+    if (from !== to) {
+      rangesToUpdate.push({ from, to, text: state.sliceDoc(from, to) });
     }
-
-    const text = state.sliceDoc(from, to);
-    const transformed = toggleSchemeTransliteration(text, scheme);
-
-    if (transformed === text) {
-      return { range };
-    }
-
-    return {
-      changes: { from, to, insert: transformed },
-      range: EditorSelection.range(from, from + transformed.length),
-    };
-  });
-
-  if (!tr.changes.empty) {
-    view.dispatch(tr);
   }
+
+  if (rangesToUpdate.length === 0) return;
+
+  const changes = await Promise.all(
+    rangesToUpdate.map(async ({ from, to, text }) => {
+      const transformed = await toggleSchemeTransliteration(text, scheme);
+      return { from, to, insert: transformed };
+    }),
+  );
+
+  view.dispatch({
+    changes,
+    userEvent: "input.transliterate",
+  });
   view.focus();
 }
 

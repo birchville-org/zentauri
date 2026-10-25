@@ -15,6 +15,8 @@
     "dialog:default",
     "updater:default",
     "process:allow-restart",
+    "process:allow-exit",
+    "process:default",
     "fs:read-all",
     "fs:write-all"
   ]

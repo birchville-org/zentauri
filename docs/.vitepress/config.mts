@@ -10,16 +10,25 @@ export default defineConfig({
       "link",
       { rel: "icon", type: "image/png", href: "/zentauri/birchville_logo.png" },
     ],
-    [
-      "link",
-      { rel: "apple-touch-icon", href: "/zentauri/og-icon.png" },
-    ],
+    ["link", { rel: "apple-touch-icon", href: "/zentauri/og-icon.png" }],
     ["meta", { property: "og:type", content: "website" }],
-    ["meta", { property: "og:image", content: "https://birchville-org.github.io/zentauri/og-icon.png" }],
+    [
+      "meta",
+      {
+        property: "og:image",
+        content: "https://birchville-org.github.io/zentauri/og-icon.png",
+      },
+    ],
     ["meta", { property: "og:image:width", content: "128" }],
     ["meta", { property: "og:image:height", content: "128" }],
     ["meta", { name: "twitter:card", content: "summary" }],
-    ["meta", { name: "twitter:image", content: "https://birchville-org.github.io/zentauri/og-icon.png" }],
+    [
+      "meta",
+      {
+        name: "twitter:image",
+        content: "https://birchville-org.github.io/zentauri/og-icon.png",
+      },
+    ],
     ["meta", { name: "theme-color", content: "#03192e" }],
   ],
   markdown: {

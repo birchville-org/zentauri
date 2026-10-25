@@ -94,7 +94,7 @@ describe("StatusBar Component", () => {
       },
     });
 
-    const vimIndicator = wrapper.find("span[title='Vim-Modus aktiv']");
+    const vimIndicator = wrapper.find("span[title='Vim mode active']");
     expect(vimIndicator.exists()).toBe(true);
     expect(vimIndicator.text()).toBe("VIM");
 

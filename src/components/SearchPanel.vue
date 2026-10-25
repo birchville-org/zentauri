@@ -74,14 +74,14 @@ function handleMatchClick(lineNum: number) {
         v-model="searchQuery"
         type="text"
         placeholder="Search..."
-        class="w-full px-3 py-1.5 bg-app-bg border border-app-border rounded-md text-app-text focus:outline-none focus:ring-1 focus:ring-blue-500"
+        class="w-full px-3 py-1.5 bg-app-bg border border-app-border rounded-md text-app-text focus:outline-none focus:ring-1 focus:ring-amber-500 focus:border-amber-500"
       />
       <div class="flex items-center gap-2">
         <input 
           id="caseSensitive"
           type="checkbox" 
           v-model="caseSensitive"
-          class="w-4 h-4 text-blue-600 bg-app-bg border-app-border rounded cursor-pointer focus:ring-blue-500"
+          class="w-4 h-4 text-amber-600 bg-app-bg border-app-border rounded cursor-pointer focus:ring-amber-500"
         />
         <label for="caseSensitive" class="text-xs text-app-text-muted select-none cursor-pointer">Case Sensitive</label>
       </div>
@@ -111,7 +111,7 @@ function handleMatchClick(lineNum: number) {
           </div>
           <p class="text-xs break-all font-mono line-clamp-2 text-app-text">
             <span>{{ match.beforeMatch }}</span>
-            <mark class="bg-blue-500/25 text-app-text rounded px-0.5">{{ match.matchText }}</mark>
+            <mark class="bg-amber-500/30 text-amber-900 dark:text-amber-200 rounded px-0.5">{{ match.matchText }}</mark>
             <span>{{ match.afterMatch }}</span>
           </p>
         </li>

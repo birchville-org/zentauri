@@ -140,7 +140,7 @@ describe("FileTree Component", () => {
     await new Promise((resolve) => setTimeout(resolve, 50));
 
     expect(wrapper.text()).toContain("MY-PROJECT");
-    expect(wrapper.text()).toContain("Notes Title");
+    expect(wrapper.text()).toContain("01_Notes.md");
     expect(wrapper.text()).toContain("02_Draft.md");
     expect(wrapper.text()).toContain("SubFolder");
 
@@ -193,6 +193,121 @@ describe("FileTree Component", () => {
     expect(longTabElement.classes()).toContain("whitespace-nowrap");
     expect(longTabElement.classes()).toContain("w-max");
     expect(longTabElement.text()).toContain(longFileName);
+
+    Object.defineProperty(window, "__TAURI_INTERNALS__", {
+      value: undefined,
+      configurable: true,
+      writable: true,
+    });
+  });
+
+  it("renders Open PDFs section, handles selection, unload, and reveal actions", async () => {
+    const { invoke } = await import("@tauri-apps/api/core");
+    const openPdfs = [
+      {
+        slot: "left" as const,
+        slotLabel: "[1] Ref",
+        name: "scan_source.pdf",
+        path: "/Users/test/my-project/scans/scan_source.pdf",
+      },
+      {
+        slot: "right" as const,
+        slotLabel: "[2] Comp",
+        name: "typeset_target.pdf",
+        path: "/Users/test/my-project/output/typeset_target.pdf",
+      },
+    ];
+
+    const wrapper = mount(FileTree, {
+      props: {
+        rootPath: "/Users/test/my-project",
+        rootPaths: ["/Users/test/my-project"],
+        openTabs: [],
+        openPdfs,
+      },
+      global: {
+        stubs: {
+          ContextMenu: true,
+        },
+      },
+    });
+
+    expect(wrapper.text()).toContain("Open PDFs");
+    expect(wrapper.text()).toContain("(2)");
+    expect(wrapper.text()).toContain("[1] Ref");
+    expect(wrapper.text()).toContain("scan_source.pdf");
+    expect(wrapper.text()).toContain("[2] Comp");
+    expect(wrapper.text()).toContain("typeset_target.pdf");
+
+    // Click first PDF item emits select-pdf
+    const pdfItems = wrapper.findAll(".group\\/pdf");
+    expect(pdfItems.length).toBe(2);
+    await pdfItems[0].trigger("click");
+    expect(wrapper.emitted("select-pdf")?.[0]).toEqual([openPdfs[0]]);
+
+    // Click Unload on second item emits close-pdf with slot 'right'
+    const unloadBtns = wrapper.findAll('button[title="Unload PDF"]');
+    expect(unloadBtns.length).toBe(2);
+    await unloadBtns[1].trigger("click");
+    expect(wrapper.emitted("close-pdf")?.[0]).toEqual(["right"]);
+
+    // Click Reveal in System Finder calls invoke("reveal_in_explorer")
+    const revealBtns = wrapper.findAll(
+      'button[title="Reveal in System Finder"]',
+    );
+    expect(revealBtns.length).toBe(2);
+    await revealBtns[0].trigger("click");
+    expect(invoke).toHaveBeenCalledWith("reveal_in_explorer", {
+      path: "/Users/test/my-project/scans/scan_source.pdf",
+    });
+  });
+
+  it("bubbles file-renamed and file-deleted events from WorkspaceFolderSection", async () => {
+    Object.defineProperty(window, "__TAURI_INTERNALS__", {
+      value: {},
+      configurable: true,
+      writable: true,
+    });
+
+    const wrapper = mount(FileTree, {
+      props: {
+        rootPath: "/Users/test/my-project",
+        rootPaths: ["/Users/test/my-project"],
+        openTabs: [],
+      },
+      global: {
+        stubs: {
+          ContextMenu: true,
+        },
+      },
+    });
+
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    const folderSection = wrapper.findComponent({
+      name: "WorkspaceFolderSection",
+    });
+    expect(folderSection.exists()).toBe(true);
+
+    folderSection.vm.$emit("file-renamed", {
+      oldPath: "/Users/test/my-project/01_Notes.md",
+      newPath: "/Users/test/my-project/01_Notes_Renamed.md",
+    });
+    expect(wrapper.emitted("file-renamed")?.[0]).toEqual([
+      {
+        oldPath: "/Users/test/my-project/01_Notes.md",
+        newPath: "/Users/test/my-project/01_Notes_Renamed.md",
+      },
+    ]);
+
+    folderSection.vm.$emit("file-deleted", {
+      path: "/Users/test/my-project/01_Notes.md",
+    });
+    expect(wrapper.emitted("file-deleted")?.[0]).toEqual([
+      {
+        path: "/Users/test/my-project/01_Notes.md",
+      },
+    ]);
 
     Object.defineProperty(window, "__TAURI_INTERNALS__", {
       value: undefined,

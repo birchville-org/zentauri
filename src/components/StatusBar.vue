@@ -131,15 +131,15 @@ const cursorDisplay = computed(() => {
       <!-- Vim Mode Indicator (Display only) -->
       <span
         v-if="vimMode"
-        class="px-1.5 py-0.5 rounded font-mono font-semibold text-[10px] bg-blue-500/15 text-blue-500 dark:text-blue-400 select-none cursor-default"
-        title="Vim-Modus aktiv"
+        class="px-1.5 py-0.5 rounded font-mono font-semibold text-[10px] bg-amber-500/15 text-amber-600 dark:text-amber-400 select-none cursor-default"
+        title="Vim mode active"
       >
         VIM
       </span>
 
-      <!-- Sync Scroll Indicator (in Split or QA mode, display only) -->
+      <!-- Sync Scroll Indicator (in Split mode, display only) -->
       <span
-        v-if="viewMode === 'split' || viewMode === 'qa-2col' || viewMode === 'qa-3col'"
+        v-if="viewMode === 'split'"
         class="px-1.5 py-0.5 rounded flex items-center gap-1 cursor-default select-none"
         :class="syncMode !== 'off' ? 'text-amber-500 dark:text-amber-400 font-medium' : 'text-app-text-muted/60'"
         :title="syncScroll && syncMode !== 'off' ? 'Scroll Synchronization: Active' : 'Scroll Synchronization: Paused'"

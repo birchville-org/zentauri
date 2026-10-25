@@ -31,7 +31,7 @@ describe("EditorRibbon", () => {
       label: "H1",
       before: "# ",
       after: "",
-      desc: "Überschrift 1",
+      desc: "Heading 1 (#)",
     });
 
     // Click Bold
@@ -45,7 +45,7 @@ describe("EditorRibbon", () => {
       label: "B",
       before: "**",
       after: "**",
-      desc: "Fett (Bold)",
+      desc: "Bold (**)",
     });
   });
 

@@ -23,21 +23,15 @@ const HelpSystem = defineAsyncComponent(
   () => import("./components/HelpSystem.vue"),
 );
 import ContextMenu from "./components/ContextMenu.vue";
-import QaReferencePane from "./components/QaReferencePane.vue";
+import PdfDualViewer, { type OpenPdfDoc } from "./components/PdfDualViewer.vue";
 import { autoRepairMarkdown } from "./lib/auto-repair";
-import { extractHeadings, interpolateTargetLine } from "./lib/heading-sync";
 import {
   copyHtmlToClipboard,
   generateStandaloneHtml,
 } from "./lib/htmlExporter";
-import {
-  type LanguageInfo,
-  detectLanguageFromPath,
-  detectWorkspaceLanguages,
-  findCorrespondingFilePath,
-} from "./lib/language-detector";
 import { renderMarkdown } from "./lib/markdown";
 import type { SyntaxItem } from "./lib/syntax-cheatsheet";
+import { applyTheme, isDarkTheme } from "./lib/theme";
 import { convertMarkdownToTypst } from "./lib/typstConverter";
 
 import { invoke } from "@tauri-apps/api/core";
@@ -120,6 +114,21 @@ const markdownSource = ref("");
 const editorRef = ref<InstanceType<typeof Editor> | null>(null);
 const previewRef = ref<InstanceType<typeof Preview> | null>(null);
 const fileTreeRef = ref<InstanceType<typeof FileTree> | null>(null);
+const pdfDualViewerRef = ref<InstanceType<typeof PdfDualViewer> | null>(null);
+const openPdfList = ref<OpenPdfDoc[]>([]);
+
+function handlePdfDocsUpdate(docs: OpenPdfDoc[]) {
+  openPdfList.value = docs;
+}
+
+function handleSelectOpenPdf(_item: OpenPdfDoc) {
+  setViewMode("pdf-qa");
+  showExplorerView();
+}
+
+function handleCloseOpenPdf(slot: "left" | "right") {
+  pdfDualViewerRef.value?.unloadPdf(slot);
+}
 
 const cursorInfo = ref<CursorInfo>({
   line: 1,
@@ -373,12 +382,10 @@ function startSidebarResize(e: MouseEvent) {
   window.addEventListener("mouseup", onMouseUp);
 }
 
-type ViewMode = "source" | "split" | "live" | "qa-2col" | "qa-3col";
+type ViewMode = "source" | "split" | "live" | "pdf-qa";
 const rawStoredMode = localStorage.getItem("zentauri-view-mode");
 const viewMode = ref<ViewMode>(
-  ["source", "split", "live", "qa-2col", "qa-3col"].includes(
-    rawStoredMode as any,
-  )
+  ["source", "split", "live", "pdf-qa"].includes(rawStoredMode as any)
     ? (rawStoredMode as ViewMode)
     : "split",
 );
@@ -386,33 +393,18 @@ const viewMode = ref<ViewMode>(
 function setViewMode(mode: ViewMode) {
   viewMode.value = mode;
   localStorage.setItem("zentauri-view-mode", mode);
-  if (isQaMode.value) {
-    autoLoadReferenceForActiveTab();
-  }
 }
 
-const isQaMode = computed(
-  () => viewMode.value === "qa-2col" || viewMode.value === "qa-3col",
-);
-const showQaReference = computed(() => isQaMode.value);
-const showPreview = computed(
-  () => viewMode.value === "split" || viewMode.value === "qa-3col",
-);
+const showPreview = computed(() => viewMode.value === "split");
 const isLivePreview = computed(() => viewMode.value === "live");
-
-// QA Reference Document State & Multi-Language Navigation
-const qaReferenceRef = ref<InstanceType<typeof QaReferencePane> | null>(null);
-const qaReferencePath = ref<string | null>(null);
-const qaReferenceContent = ref<string>("");
-const qaReferenceTitle = ref<string>("Referenzdokument");
-const qaReferenceLang = ref<string>("de");
-const availableLanguages = ref<LanguageInfo[]>([]);
-const knownWorkspaceFilePaths = ref<string[]>([]);
 
 const showCheatsheet = ref(false);
 const showSearch = ref(false);
 const showExplorer = ref(true);
 const showSettings = ref(false);
+const updateNotificationRef = ref<InstanceType<
+  typeof UpdateNotification
+> | null>(null);
 const showHelpSystem = ref(false);
 const vimMode = ref(false);
 const isSaving = ref(false);
@@ -436,6 +428,9 @@ type SyncMode = "header" | "percentage" | "off";
 const syncMode = ref<SyncMode>("header");
 const syncScroll = computed(() => syncMode.value !== "off");
 
+const currentTheme = ref<string>("system");
+const isDark = ref<boolean>(false);
+
 const initialSettingsStr = localStorage.getItem("zentauri-settings");
 if (initialSettingsStr) {
   try {
@@ -448,7 +443,48 @@ if (initialSettingsStr) {
     if (parsedSettings.vimMode !== undefined) {
       vimMode.value = parsedSettings.vimMode;
     }
-  } catch {}
+    if (parsedSettings.theme) {
+      currentTheme.value = parsedSettings.theme;
+      isDark.value = isDarkTheme(parsedSettings.theme);
+    } else {
+      isDark.value = isDarkTheme("system");
+    }
+  } catch {
+    isDark.value = isDarkTheme("system");
+  }
+} else {
+  isDark.value = isDarkTheme("system");
+}
+
+function toggleTheme() {
+  const willBeDark = !isDarkTheme(currentTheme.value);
+  let nextTheme: string;
+  if (currentTheme.value === "payer-day") {
+    nextTheme = "payer-night";
+  } else if (currentTheme.value === "payer-night") {
+    nextTheme = "payer-day";
+  } else if (currentTheme.value === "solarized") {
+    nextTheme = "solarized-dark";
+  } else if (currentTheme.value === "solarized-dark") {
+    nextTheme = "solarized";
+  } else if (willBeDark) {
+    nextTheme = "dark";
+  } else {
+    nextTheme = "light";
+  }
+  currentTheme.value = nextTheme;
+  isDark.value = isDarkTheme(nextTheme);
+
+  const currentSettings = localStorage.getItem("zentauri-settings");
+  let s: Record<string, unknown> = {};
+  if (currentSettings) {
+    try {
+      s = JSON.parse(currentSettings);
+    } catch {}
+  }
+  s.theme = nextTheme;
+  localStorage.setItem("zentauri-settings", JSON.stringify(s));
+  applyTheme(nextTheme, s.fontSize as number | undefined);
 }
 
 function saveSyncSettings() {
@@ -489,169 +525,11 @@ function toggleSyncScroll() {
   cycleSyncMode();
 }
 
-async function scanWorkspaceForLanguages() {
-  if (!workspaceRoot.value) {
-    const tabPaths = tabs.value
-      .map((t) => t.path)
-      .filter((p) => p && !p.startsWith("untitled://"));
-    knownWorkspaceFilePaths.value = tabPaths;
-    availableLanguages.value = detectWorkspaceLanguages(tabPaths);
-    return;
-  }
-
-  if (isTauri) {
-    try {
-      const nodes: any = await invoke("search_workspace", {
-        path: workspaceRoot.value,
-        query: ".md",
-      });
-      if (Array.isArray(nodes) && nodes.length > 0) {
-        const paths = nodes.map((n: any) => n.path).filter(Boolean);
-        knownWorkspaceFilePaths.value = paths;
-        availableLanguages.value = detectWorkspaceLanguages(paths);
-        return;
-      }
-    } catch (err) {
-      console.warn("Failed to search workspace files for languages:", err);
-    }
-  }
-
-  const tabPaths = tabs.value
-    .map((t) => t.path)
-    .filter((p) => p && !p.startsWith("untitled://"));
-  knownWorkspaceFilePaths.value = tabPaths;
-  availableLanguages.value = detectWorkspaceLanguages(tabPaths);
-}
-
-async function loadReferenceFile(path: string) {
-  qaReferencePath.value = path;
-  const filename = path.replace(/\\/g, "/").split("/").pop() || "Referenz";
-  qaReferenceTitle.value = filename;
-
-  const langInfo = detectLanguageFromPath(path);
-  if (langInfo) {
-    qaReferenceLang.value = langInfo.langCode;
-  }
-
-  const openTab = tabs.value.find((t) => t.path === path);
-  if (openTab) {
-    qaReferenceContent.value = openTab.content;
-    return;
-  }
-
-  if (isTauri) {
-    try {
-      const content = await readTextFile(path);
-      qaReferenceContent.value = content;
-    } catch (err) {
-      console.warn("Failed to read reference file:", err);
-    }
-  }
-}
-
-async function autoLoadReferenceForActiveTab() {
-  const currentPath = activeTab.value?.path;
-  await scanWorkspaceForLanguages();
-
-  if (!currentPath || currentPath.startsWith("untitled://")) {
-    if (!qaReferenceContent.value) {
-      qaReferenceTitle.value = "Referenz (Wählen...)";
-      qaReferenceContent.value =
-        "# Referenzdokument\n\nWählen Sie eine Referenzdatei oder Sprache zur Gegenüberstellung.";
-    }
-    return;
-  }
-
-  const targetRef = findCorrespondingFilePath(
-    currentPath,
-    qaReferenceLang.value,
-    knownWorkspaceFilePaths.value,
-  );
-
-  if (targetRef) {
-    await loadReferenceFile(targetRef);
-  } else if (!qaReferenceContent.value) {
-    qaReferenceTitle.value = "Referenz (Wählen...)";
-    qaReferenceContent.value = `# Keine korrespondierende ${qaReferenceLang.value.toUpperCase()}-Datei gefunden\n\nFür \`${activeTab.value?.title}\` wurde im Pfad \`${qaReferenceLang.value}/\` kein automatisches Gegenstück gefunden. Bitte wählen Sie eine Referenzdatei über "Wählen...".`;
-  }
-}
-
-async function handleChooseReferenceFile() {
-  if (isTauri) {
-    try {
-      const selected = await open({
-        multiple: false,
-        directory: false,
-        filters: [{ name: "Markdown", extensions: ["md", "markdown"] }],
-      });
-      if (selected && typeof selected === "string") {
-        await loadReferenceFile(selected);
-      }
-    } catch (err) {
-      console.error("Choose reference file failed:", err);
-    }
-  } else {
-    const otherTabs = tabs.value.filter(
-      (_, idx) => idx !== activeTabIndex.value,
-    );
-    if (otherTabs.length > 0) {
-      const chosen = otherTabs[0];
-      qaReferencePath.value = chosen.path;
-      qaReferenceTitle.value = chosen.title;
-      qaReferenceContent.value = chosen.content;
-    }
-  }
-}
-
-async function handleChangeReferenceLanguage(langCode: string) {
-  qaReferenceLang.value = langCode;
-  const currentPath = activeTab.value?.path;
-  if (currentPath && !currentPath.startsWith("untitled://")) {
-    const targetRef = findCorrespondingFilePath(
-      currentPath,
-      langCode,
-      knownWorkspaceFilePaths.value,
-    );
-    if (targetRef) {
-      await loadReferenceFile(targetRef);
-    }
-  }
-}
-
-function handleSwapDocuments() {
-  if (!qaReferenceContent.value) return;
-
-  const oldEditorPath = activeTab.value?.path || `untitled://${Date.now()}`;
-  const oldEditorTitle = activeTab.value?.title || "Dokument";
-  const oldEditorContent = markdownSource.value;
-
-  const newEditorPath = qaReferencePath.value || `untitled://${Date.now()}`;
-  const newEditorTitle = qaReferenceTitle.value || "Dokument";
-  const newEditorContent = qaReferenceContent.value;
-
-  qaReferencePath.value = oldEditorPath;
-  qaReferenceTitle.value = oldEditorTitle;
-  qaReferenceContent.value = oldEditorContent;
-  const refLang = detectLanguageFromPath(oldEditorPath);
-  if (refLang) {
-    qaReferenceLang.value = refLang.langCode;
-  }
-
-  if (activeTab.value) {
-    activeTab.value.path = newEditorPath;
-    activeTab.value.title = newEditorTitle;
-    activeTab.value.content = newEditorContent;
-  }
-  markdownSource.value = newEditorContent;
-  saveTabsState();
-}
-
-let activeScroller: "editor" | "preview" | "reference" | null = null;
-let syncSource: "editor" | "preview" | "reference" | null = null;
+let activeScroller: "editor" | "preview" | null = null;
+let syncSource: "editor" | "preview" | null = null;
 let syncResetTimer: ReturnType<typeof setTimeout> | null = null;
 let editorSyncRaf: number | null = null;
 let previewSyncRaf: number | null = null;
-let refSyncRaf: number | null = null;
 
 function onEditorUserInteraction() {
   activeScroller = "editor";
@@ -661,17 +539,13 @@ function onPreviewUserInteraction() {
   activeScroller = "preview";
 }
 
-function onReferenceUserInteraction() {
-  activeScroller = "reference";
-}
-
 function onEditorScroll(info: {
   fractionalLine: number;
   ratio: number;
   totalLines: number;
 }) {
   if (syncMode.value === "off") return;
-  if (syncSource === "preview" || syncSource === "reference") return;
+  if (syncSource === "preview") return;
 
   activeScroller = "editor";
   syncSource = "editor";
@@ -683,34 +557,7 @@ function onEditorScroll(info: {
   editorSyncRaf = requestAnimationFrame(() => {
     editorSyncRaf = null;
 
-    // 1. Sync Reference Pane (if QA mode active)
-    if (
-      showQaReference.value &&
-      qaReferenceRef.value &&
-      qaReferenceContent.value
-    ) {
-      if (syncMode.value === "header") {
-        const editorHeadings = extractHeadings(markdownSource.value);
-        const refHeadings = extractHeadings(qaReferenceContent.value);
-        const totalRefLines = qaReferenceContent.value.split("\n").length;
-        const targetRefLine = interpolateTargetLine(
-          info.fractionalLine,
-          editorHeadings,
-          refHeadings,
-          info.totalLines,
-          totalRefLines,
-        );
-        qaReferenceRef.value.scrollToFractionalLine(
-          targetRefLine,
-          info.ratio,
-          totalRefLines,
-        );
-      } else {
-        qaReferenceRef.value.scrollToRatio(info.ratio);
-      }
-    }
-
-    // 2. Sync Preview Pane (if present)
+    // Sync Preview Pane (if present)
     if (showPreview.value && previewRef.value) {
       previewRef.value.scrollToFractionalLine(
         info.fractionalLine,
@@ -731,7 +578,7 @@ function onPreviewScroll(info: {
   ratio: number;
 }) {
   if (syncMode.value === "off" || !showPreview.value) return;
-  if (syncSource === "editor" || syncSource === "reference") return;
+  if (syncSource === "editor") return;
 
   activeScroller = "preview";
   syncSource = "preview";
@@ -745,51 +592,6 @@ function onPreviewScroll(info: {
     if (editorRef.value) {
       editorRef.value.scrollToFractionalLine(info.fractionalLine, info.ratio);
     }
-    if (syncResetTimer) clearTimeout(syncResetTimer);
-    syncResetTimer = setTimeout(() => {
-      syncSource = null;
-    }, 60);
-  });
-}
-
-function onReferenceScroll(info: {
-  fractionalLine: number;
-  ratio: number;
-  totalLines: number;
-}) {
-  if (syncMode.value === "off" || !showQaReference.value) return;
-  if (syncSource === "editor" || syncSource === "preview") return;
-
-  activeScroller = "reference";
-  syncSource = "reference";
-
-  if (refSyncRaf !== null) {
-    cancelAnimationFrame(refSyncRaf);
-  }
-
-  refSyncRaf = requestAnimationFrame(() => {
-    refSyncRaf = null;
-
-    if (editorRef.value) {
-      if (syncMode.value === "header" && qaReferenceContent.value) {
-        const refHeadings = extractHeadings(qaReferenceContent.value);
-        const editorHeadings = extractHeadings(markdownSource.value);
-        const totalEditorLines = (markdownSource.value || "").split(
-          "\n",
-        ).length;
-        const targetEditorLine = interpolateTargetLine(
-          info.fractionalLine,
-          refHeadings,
-          editorHeadings,
-          info.totalLines,
-          totalEditorLines,
-        );
-        editorRef.value.scrollToFractionalLine(targetEditorLine, info.ratio);
-      } else {
-        editorRef.value.scrollToRatio(info.ratio);
-      }
-    }
-
     if (syncResetTimer) clearTimeout(syncResetTimer);
     syncResetTimer = setTimeout(() => {
       syncSource = null;
@@ -815,22 +617,22 @@ function toggleVimMode() {
 const saveStatus = computed(() => {
   if (isHtmlCopied.value) {
     return {
-      text: "HTML kopiert!",
+      text: "HTML Copied!",
       dotClass: "w-2.5 h-2.5 bg-emerald-500 animate-pulse",
-      title: "Formatierter HTML-Code in die Zwischenablage kopiert",
+      title: "Rich HTML copied to clipboard",
     };
   }
   if (isHtmlExported.value) {
     return {
       text: "HTML Exported",
       dotClass: "w-2.5 h-2.5 bg-emerald-500 animate-pulse",
-      title: "HTML-Dokument erfolgreich exportiert",
+      title: "HTML document successfully exported",
     };
   }
   if (isPdfExported.value) {
     return {
       text: "PDF Exported",
-      dotClass: "w-2.5 h-2.5 bg-blue-500 animate-pulse",
+      dotClass: "w-2.5 h-2.5 bg-amber-500 animate-pulse",
       title: "PDF successfully exported",
     };
   }
@@ -921,6 +723,8 @@ function handleActivityAction(action: string) {
     handleExportHtml();
   } else if (action === "copy-html") {
     handleCopyHtml();
+  } else if (action === "pdf-qa") {
+    setViewMode(viewMode.value === "pdf-qa" ? "split" : "pdf-qa");
   }
 }
 
@@ -956,16 +760,62 @@ onMounted(() => {
     try {
       const savedData = JSON.parse(savedTabsStr);
       if (savedData.tabs && savedData.tabs.length > 0) {
-        tabs.value = savedData.tabs.map((t: Tab) => ({
-          ...t,
-          isDirty: t.isDirty ?? false,
-        }));
+        const cleanedTabs: Tab[] = [];
+        let hadCorruptedTab = false;
+
+        for (const t of savedData.tabs as Tab[]) {
+          const isCorrupted =
+            t.title?.includes("Referenz") ||
+            t.title?.includes("Reference (Choose...)") ||
+            t.content?.startsWith("# Keine korrespondierende") ||
+            t.content?.startsWith("# No Corresponding");
+
+          if (isCorrupted) {
+            hadCorruptedTab = true;
+            continue;
+          }
+          const realFileName =
+            t.path &&
+            !t.path.startsWith("untitled://") &&
+            !t.path.startsWith("browser://")
+              ? t.path.split(/[/\\]/).pop()
+              : null;
+
+          cleanedTabs.push({
+            ...t,
+            title: realFileName || t.title,
+            isDirty: t.isDirty ?? false,
+          });
+        }
+
+        // If USER_INTRO.md was corrupted/lost, restore it
+        if (
+          hadCorruptedTab &&
+          !cleanedTabs.some((t) => t.title === "USER_INTRO.md")
+        ) {
+          cleanedTabs.unshift({
+            id: Date.now().toString(),
+            path: "untitled://user-intro",
+            title: "USER_INTRO.md",
+            content: defaultContent,
+            isWeb: false,
+            isDirty: false,
+          });
+        }
+
+        tabs.value = cleanedTabs;
         activeTabIndex.value =
-          typeof savedData.activeIndex === "number" ? savedData.activeIndex : 0;
+          typeof savedData.activeIndex === "number"
+            ? Math.min(
+                savedData.activeIndex,
+                Math.max(0, tabs.value.length - 1),
+              )
+            : 0;
         if (activeTabIndex.value >= tabs.value.length) {
           activeTabIndex.value = 0;
         }
         markdownSource.value = tabs.value[activeTabIndex.value]?.content || "";
+        saveTabsState();
       }
     } catch (e) {}
   }
@@ -1139,6 +989,70 @@ onMounted(() => {
         case "print":
           handlePrint();
           break;
+        case "export_pdf":
+          handleExportPdf();
+          break;
+        case "export_html":
+          handleExportHtml();
+          break;
+        case "copy_html":
+          handleCopyHtml();
+          break;
+        case "transliterate_devanagari":
+          handleToggleTransliteration("iast");
+          break;
+        case "transliterate_hk":
+          handleToggleTransliteration("hk");
+          break;
+        case "auto_repair": {
+          const tab = tabs.value[activeTabIndex.value];
+          if (tab && !tab.isWeb) {
+            const repairResult = autoRepairMarkdown(tab.content);
+            if (repairResult.didRepair) {
+              tab.content = repairResult.repaired;
+              markdownSource.value = repairResult.repaired;
+              tab.isDirty = true;
+              isAutoRepaired.value = true;
+              setTimeout(() => {
+                isAutoRepaired.value = false;
+              }, 1500);
+            }
+          }
+          break;
+        }
+        case "view_source":
+          setViewMode("source");
+          break;
+        case "view_split":
+          setViewMode("split");
+          break;
+        case "view_pdf_qa":
+          setViewMode("pdf-qa");
+          break;
+        case "toggle_sync_scroll":
+          cycleSyncMode();
+          break;
+        case "toggle_theme":
+          toggleTheme();
+          break;
+        case "toggle_vim":
+          toggleVimMode();
+          break;
+        case "toggle_explorer":
+          handleActivityToggle("explorer");
+          break;
+        case "toggle_search":
+          handleActivityToggle("search");
+          break;
+        case "toggle_cheatsheet":
+          handleActivityToggle("cheatsheet");
+          break;
+        case "open_settings":
+          showSettings.value = true;
+          break;
+        case "check_updates":
+          updateNotificationRef.value?.openCheck(true);
+          break;
       }
     })
       .then((unlisten) => {
@@ -1149,18 +1063,27 @@ onMounted(() => {
       });
 
     listen("request-app-quit", async () => {
-      if (autoSave) {
-        autoSave.flush();
-      }
-      if (autoSaveEnabled.value) {
-        await handleSaveAll();
-      }
-      saveTabsState();
       try {
-        const { exit } = await import("@tauri-apps/plugin-process");
-        await exit(0);
+        if (autoSave) {
+          autoSave.flush();
+        }
+        if (autoSaveEnabled.value) {
+          await handleSaveAll();
+        }
+        saveTabsState();
       } catch (err) {
-        console.error("Failed to exit cleanly:", err);
+        console.error("Error saving on quit:", err);
+      } finally {
+        try {
+          await invoke("exit_app");
+        } catch {
+          try {
+            const { exit } = await import("@tauri-apps/plugin-process");
+            await exit(0);
+          } catch (err) {
+            console.error("Failed to exit cleanly:", err);
+          }
+        }
       }
     })
       .then((unlisten) => {
@@ -1195,7 +1118,18 @@ function handleGlobalKeydown(e: KeyboardEvent) {
   if ((e.metaKey || e.ctrlKey) && e.key === "s") {
     e.preventDefault();
     forceSave();
-  } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "p") {
+  } else if (
+    (e.metaKey || e.ctrlKey) &&
+    e.altKey &&
+    (e.code === "KeyP" || e.key.toLowerCase() === "p")
+  ) {
+    e.preventDefault();
+    setViewMode(viewMode.value === "pdf-qa" ? "split" : "pdf-qa");
+  } else if (
+    (e.metaKey || e.ctrlKey) &&
+    !e.altKey &&
+    e.key.toLowerCase() === "p"
+  ) {
     e.preventDefault();
     if (e.shiftKey) {
       handlePrint();
@@ -1368,9 +1302,15 @@ async function handleSaveAs() {
   const tab = tabs.value[activeTabIndex.value];
   if (!tab || tab.isWeb) return;
 
+  const defaultName = tab.title || "Untitled.md";
+
   const newPath = await save({
+    defaultPath: defaultName,
     filters: [
       { name: "Markdown", extensions: ["md", "markdown"] },
+      { name: "Typst Source", extensions: ["typ"] },
+      { name: "Standalone HTML5", extensions: ["html", "htm"] },
+      { name: "Master-JSON", extensions: ["json"] },
       { name: "All Files", extensions: ["*"] },
     ],
   });
@@ -1378,11 +1318,32 @@ async function handleSaveAs() {
   if (newPath) {
     isSaving.value = true;
     try {
-      await writeTextFile(newPath, tab.content);
-      tab.path = newPath;
-      tab.title = newPath.split(/[/\\]/).pop() || "Unknown";
-      tab.isDirty = false;
-      saveTabsState();
+      const lower = newPath.toLowerCase();
+      let contentToWrite = tab.content;
+      if (lower.endsWith(".html") || lower.endsWith(".htm")) {
+        const isDocDark =
+          typeof document !== "undefined" &&
+          document.documentElement.classList.contains("dark");
+        contentToWrite = generateStandaloneHtml(tab.content, {
+          title: tab.title.replace(/\.md$/i, ""),
+          theme: isDocDark ? "dark" : "light",
+        });
+      } else if (lower.endsWith(".typ")) {
+        contentToWrite = convertMarkdownToTypst(tab.content);
+      }
+
+      await writeTextFile(newPath, contentToWrite);
+
+      if (
+        lower.endsWith(".md") ||
+        lower.endsWith(".markdown") ||
+        lower.endsWith(".json")
+      ) {
+        tab.path = newPath;
+        tab.title = newPath.split(/[/\\]/).pop() || "Unknown";
+        tab.isDirty = false;
+        saveTabsState();
+      }
     } catch (err) {
       console.error("Save As failed", err);
       alert(`Failed to save: ${err}`);
@@ -1436,6 +1397,11 @@ function scrollToActiveTab() {
 }
 
 function openTab(title: string, path: string, content: string) {
+  const realTitle =
+    path && !path.startsWith("untitled://") && !path.startsWith("browser://")
+      ? path.split(/[/\\]/).pop() || title
+      : title;
+
   const existingIndex = tabs.value.findIndex(
     (t) => t.path === path && !t.isWeb,
   );
@@ -1456,7 +1422,7 @@ function openTab(title: string, path: string, content: string) {
         {
           id: Date.now().toString(),
           path,
-          title,
+          title: realTitle,
           content,
           isWeb: false,
           isDirty: false,
@@ -1468,7 +1434,7 @@ function openTab(title: string, path: string, content: string) {
       tabs.value.push({
         id: Date.now().toString(),
         path,
-        title,
+        title: realTitle,
         content,
         isWeb: false,
         isDirty: false,
@@ -1691,9 +1657,6 @@ async function selectTab(index: number) {
   }
   saveTabsState();
   scrollToActiveTab();
-  if (isQaMode.value) {
-    autoLoadReferenceForActiveTab();
-  }
 }
 
 async function handlePreviewOpenFile(linkPath: string) {
@@ -1818,6 +1781,15 @@ async function handleOpenFolder() {
 }
 
 async function loadFile(path: string) {
+  if (path.toLowerCase().endsWith(".pdf")) {
+    setViewMode("pdf-qa");
+    showExplorerView();
+    nextTick(() => {
+      pdfDualViewerRef.value?.loadPdfFromExternal(path);
+    });
+    return;
+  }
+
   const existingIndex = tabs.value.findIndex(
     (t) => t.path === path || t.id === path,
   );
@@ -1842,6 +1814,37 @@ async function loadFile(path: string) {
   }
 }
 
+function handleFileRenamed(payload: { oldPath: string; newPath: string }) {
+  const newTitle = payload.newPath.split(/[/\\]/).pop() || "Untitled";
+  let modified = false;
+  for (const tab of tabs.value) {
+    if (tab.path === payload.oldPath) {
+      tab.path = payload.newPath;
+      tab.title = newTitle;
+      modified = true;
+    }
+  }
+  if (modified) {
+    saveTabsState();
+  }
+}
+
+function handleFileDeleted(payload: { path: string }) {
+  let modified = false;
+  for (const tab of tabs.value) {
+    if (tab.path === payload.path) {
+      // Detach from deleted file path so content stays safe in editor as an unsaved untitled buffer
+      tab.path = `untitled://${Date.now()}`;
+      tab.title = "Untitled.md";
+      tab.isDirty = true;
+      modified = true;
+    }
+  }
+  if (modified) {
+    saveTabsState();
+  }
+}
+
 async function handleNewFile() {
   if (workspaceRoot.value && fileTreeRef.value) {
     showExplorerView();
@@ -1863,6 +1866,10 @@ async function handleNewFolder() {
 }
 
 function handleSettingsUpdate(settings: any) {
+  if (settings.theme !== undefined) {
+    currentTheme.value = settings.theme;
+    isDark.value = isDarkTheme(settings.theme);
+  }
   if (settings.autoSave !== undefined)
     autoSaveEnabled.value = settings.autoSave;
   if (settings.vimMode !== undefined) vimMode.value = settings.vimMode;
@@ -1882,6 +1889,11 @@ function handleSettingsUpdate(settings: any) {
 
 function handleSettingsClose() {
   showSettings.value = false;
+}
+
+function handleCheckUpdatesFromSettings() {
+  showSettings.value = false;
+  updateNotificationRef.value?.openCheck(true);
 }
 
 function handleInsertFromCheatsheet(text: string) {
@@ -2003,9 +2015,9 @@ async function handleCopyHtml() {
 
 <template>
   <main class="flex flex-col h-screen w-screen overflow-hidden bg-app-bg text-app-text print:h-auto print:w-auto print:overflow-visible print:bg-white print:text-black">
-    <Settings class="print:hidden" :isOpen="showSettings" @close="handleSettingsClose" @update="handleSettingsUpdate" />
+    <Settings class="print:hidden" :isOpen="showSettings" @close="handleSettingsClose" @update="handleSettingsUpdate" @check-updates="handleCheckUpdatesFromSettings" />
     <HelpSystem class="print:hidden" :isOpen="showHelpSystem" @close="showHelpSystem = false" @open-url="openExternalUrl" />
-    <UpdateNotification class="print:hidden" />
+    <UpdateNotification ref="updateNotificationRef" class="print:hidden" />
     
     <!-- Toolbar -->
     <header class="flex-none flex items-center px-4 py-2 border-b border-app-border bg-app-bg-secondary select-none print:hidden relative z-30" data-tauri-drag-region>
@@ -2016,118 +2028,98 @@ async function handleCopyHtml() {
       </div>
       
       <!-- Unified View Mode & Representation Action Toolbar -->
-      <div class="flex items-center bg-app-bg p-0.5 rounded-md border border-app-border shadow-xs z-10 relative ml-auto gap-0.5">
+      <div class="flex items-center bg-app-bg p-1 rounded-md border border-app-border shadow-xs z-10 relative ml-auto">
 
-        <!-- Source Mode Button -->
-        <div class="relative group/tooltip inline-flex items-center">
-          <button 
-            @click="setViewMode('source')" 
-            class="w-7 h-7 flex items-center justify-center rounded transition-colors cursor-pointer bg-app-bg"
-            :class="viewMode === 'source' ? 'text-blue-500 dark:text-blue-400 font-semibold shadow-xs ring-1 ring-blue-500/30' : 'text-app-text-muted hover:text-app-text hover:bg-app-bg-hover'"
-            title="Source Code Editor"
-            aria-label="Source Mode"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="16 18 22 12 16 6"/>
-              <polyline points="8 6 2 12 8 18"/>
-            </svg>
-          </button>
+        <!-- Group 1: View Modes (Segmented: Source | Split | Dual PDF QA) -->
+        <div class="flex items-center gap-0.5">
+          <!-- Source Mode Button -->
+          <div class="relative group/tooltip inline-flex items-center">
+            <button 
+              @click="setViewMode('source')" 
+              class="w-7 h-7 flex items-center justify-center rounded transition-colors cursor-pointer bg-app-bg"
+              :class="viewMode === 'source' ? 'text-amber-600 dark:text-amber-400 font-semibold shadow-xs ring-1 ring-amber-500/30' : 'text-app-text-muted hover:text-app-text hover:bg-app-bg-hover'"
+              title="Source Code Editor"
+              aria-label="Source Mode"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="16 18 22 12 16 6"/>
+                <polyline points="8 6 2 12 8 18"/>
+              </svg>
+            </button>
 
-          <!-- Balloon Tooltip -->
-          <div class="pointer-events-none absolute top-full mt-2 left-1/2 -translate-x-1/2 opacity-0 group-hover/tooltip:opacity-100 translate-y-1 group-hover/tooltip:translate-y-0 transition-all duration-150 delay-0 group-hover/tooltip:delay-150 z-50 flex flex-col items-center whitespace-nowrap">
-            <div class="w-2 h-2 -mb-1 rotate-45 bg-[#18181b] dark:bg-[#0f1e35] border-t border-l border-slate-700/60 dark:border-slate-600/60"></div>
-            <div class="px-2 py-1 text-[11px] font-medium rounded shadow-xl bg-[#18181b] text-slate-100 dark:bg-[#0f1e35] dark:text-[#e8e0d3] border border-slate-700/60 dark:border-slate-600/60 leading-tight">
-              Source Mode
+            <!-- Balloon Tooltip -->
+            <div class="pointer-events-none absolute top-full mt-2 left-1/2 -translate-x-1/2 opacity-0 group-hover/tooltip:opacity-100 translate-y-1 group-hover/tooltip:translate-y-0 transition-all duration-150 delay-0 group-hover/tooltip:delay-150 z-50 flex flex-col items-center whitespace-nowrap">
+              <div class="w-2 h-2 -mb-1 rotate-45 bg-[#18181b] dark:bg-[#0f1e35] border-t border-l border-slate-700/60 dark:border-slate-600/60"></div>
+              <div class="px-2 py-1 text-[11px] font-medium rounded shadow-xl bg-[#18181b] text-slate-100 dark:bg-[#0f1e35] dark:text-[#e8e0d3] border border-slate-700/60 dark:border-slate-600/60 leading-tight">
+                Source Mode
+              </div>
+            </div>
+          </div>
+
+          <!-- Split Mode Button -->
+          <div class="relative group/tooltip inline-flex items-center">
+            <button 
+              @click="setViewMode('split')" 
+              class="w-7 h-7 flex items-center justify-center rounded transition-colors cursor-pointer bg-app-bg"
+              :class="viewMode === 'split' ? 'text-amber-600 dark:text-amber-400 font-semibold shadow-xs ring-1 ring-amber-500/30' : 'text-app-text-muted hover:text-app-text hover:bg-app-bg-hover'"
+              title="Split Mode (Editor + Preview)"
+              aria-label="Split Mode"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="18" height="18" x="3" y="3" rx="2"/>
+                <path d="M12 3v18"/>
+              </svg>
+            </button>
+
+            <!-- Balloon Tooltip -->
+            <div class="pointer-events-none absolute top-full mt-2 left-1/2 -translate-x-1/2 opacity-0 group-hover/tooltip:opacity-100 translate-y-1 group-hover/tooltip:translate-y-0 transition-all duration-150 delay-0 group-hover/tooltip:delay-150 z-50 flex flex-col items-center whitespace-nowrap">
+              <div class="w-2 h-2 -mb-1 rotate-45 bg-[#18181b] dark:bg-[#0f1e35] border-t border-l border-slate-700/60 dark:border-slate-600/60"></div>
+              <div class="px-2 py-1 text-[11px] font-medium rounded shadow-xl bg-[#18181b] text-slate-100 dark:bg-[#0f1e35] dark:text-[#e8e0d3] border border-slate-700/60 dark:border-slate-600/60 leading-tight">
+                Split Mode (Editor + Preview)
+              </div>
+            </div>
+          </div>
+
+          <!-- Dual PDF QA Mode Button -->
+          <div class="relative group/tooltip inline-flex items-center">
+            <button 
+              @click="setViewMode('pdf-qa')" 
+              class="w-7 h-7 flex items-center justify-center rounded transition-colors cursor-pointer bg-app-bg"
+              :class="viewMode === 'pdf-qa' ? 'text-amber-600 dark:text-amber-400 font-semibold shadow-xs ring-1 ring-amber-500/30' : 'text-app-text-muted hover:text-app-text hover:bg-app-bg-hover'"
+              title="Dual PDF QA Comparison (Cmd/Ctrl+3)"
+              aria-label="Dual PDF QA Mode"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="9" y1="13" x2="15" y2="13"/>
+                <line x1="9" y1="17" x2="15" y2="17"/>
+              </svg>
+            </button>
+
+            <!-- Balloon Tooltip -->
+            <div class="pointer-events-none absolute top-full mt-2 left-1/2 -translate-x-1/2 opacity-0 group-hover/tooltip:opacity-100 translate-y-1 group-hover/tooltip:translate-y-0 transition-all duration-150 delay-0 group-hover/tooltip:delay-150 z-50 flex flex-col items-center whitespace-nowrap">
+              <div class="w-2 h-2 -mb-1 rotate-45 bg-[#18181b] dark:bg-[#0f1e35] border-t border-l border-slate-700/60 dark:border-slate-600/60"></div>
+              <div class="px-2 py-1 text-[11px] font-medium rounded shadow-xl bg-[#18181b] text-slate-100 dark:bg-[#0f1e35] dark:text-[#e8e0d3] border border-slate-700/60 dark:border-slate-600/60 leading-tight">
+                Dual PDF QA Comparison (Cmd/Ctrl+3)
+              </div>
             </div>
           </div>
         </div>
 
-        <!-- Split Mode Button -->
-        <div class="relative group/tooltip inline-flex items-center">
-          <button 
-            @click="setViewMode('split')" 
-            class="w-7 h-7 flex items-center justify-center rounded transition-colors cursor-pointer bg-app-bg"
-            :class="viewMode === 'split' ? 'text-blue-500 dark:text-blue-400 font-semibold shadow-xs ring-1 ring-blue-500/30' : 'text-app-text-muted hover:text-app-text hover:bg-app-bg-hover'"
-            title="Split Mode (Editor + Preview)"
-            aria-label="Split Mode"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect width="18" height="18" x="3" y="3" rx="2"/>
-              <path d="M12 3v18"/>
-            </svg>
-          </button>
+        <!-- Distinct Group Separator 1 -->
+        <div v-if="viewMode === 'split'" class="w-px h-4 bg-app-border mx-1.5 shrink-0 self-center"></div>
 
-          <!-- Balloon Tooltip -->
-          <div class="pointer-events-none absolute top-full mt-2 left-1/2 -translate-x-1/2 opacity-0 group-hover/tooltip:opacity-100 translate-y-1 group-hover/tooltip:translate-y-0 transition-all duration-150 delay-0 group-hover/tooltip:delay-150 z-50 flex flex-col items-center whitespace-nowrap">
-            <div class="w-2 h-2 -mb-1 rotate-45 bg-[#18181b] dark:bg-[#0f1e35] border-t border-l border-slate-700/60 dark:border-slate-600/60"></div>
-            <div class="px-2 py-1 text-[11px] font-medium rounded shadow-xl bg-[#18181b] text-slate-100 dark:bg-[#0f1e35] dark:text-[#e8e0d3] border border-slate-700/60 dark:border-slate-600/60 leading-tight">
-              Split Mode (Editor + Preview)
-            </div>
-          </div>
-        </div>
-
-        <!-- 2-Col QA Comparison Button -->
-        <div class="relative group/tooltip inline-flex items-center">
-          <button 
-            @click="setViewMode('qa-2col')" 
-            class="w-7 h-7 flex items-center justify-center rounded transition-colors cursor-pointer bg-app-bg"
-            :class="viewMode === 'qa-2col' ? 'text-blue-500 dark:text-blue-400 font-semibold shadow-xs ring-1 ring-blue-500/30' : 'text-app-text-muted hover:text-app-text hover:bg-app-bg-hover'"
-            title="2-Col QA Vergleich (Referenz + Editor)"
-            aria-label="2-Col QA Mode"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect width="18" height="18" x="3" y="3" rx="2"/>
-              <path d="M12 3v18"/>
-              <path d="m8 10 2 2-2 2"/>
-              <path d="m16 10-2 2 2 2"/>
-            </svg>
-          </button>
-
-          <!-- Balloon Tooltip -->
-          <div class="pointer-events-none absolute top-full mt-2 left-1/2 -translate-x-1/2 opacity-0 group-hover/tooltip:opacity-100 translate-y-1 group-hover/tooltip:translate-y-0 transition-all duration-150 delay-0 group-hover/tooltip:delay-150 z-50 flex flex-col items-center whitespace-nowrap">
-            <div class="w-2 h-2 -mb-1 rotate-45 bg-[#18181b] dark:bg-[#0f1e35] border-t border-l border-slate-700/60 dark:border-slate-600/60"></div>
-            <div class="px-2 py-1 text-[11px] font-medium rounded shadow-xl bg-[#18181b] text-slate-100 dark:bg-[#0f1e35] dark:text-[#e8e0d3] border border-slate-700/60 dark:border-slate-600/60 leading-tight">
-              2-Col QA Vergleich
-            </div>
-          </div>
-        </div>
-
-        <!-- 3-Col QA Comparison Button -->
-        <div class="relative group/tooltip inline-flex items-center">
-          <button 
-            @click="setViewMode('qa-3col')" 
-            class="w-7 h-7 flex items-center justify-center rounded transition-colors cursor-pointer bg-app-bg"
-            :class="viewMode === 'qa-3col' ? 'text-blue-500 dark:text-blue-400 font-semibold shadow-xs ring-1 ring-blue-500/30' : 'text-app-text-muted hover:text-app-text hover:bg-app-bg-hover'"
-            title="3-Col QA Vergleich (Referenz + Editor + Vorschau)"
-            aria-label="3-Col QA Mode"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect width="18" height="18" x="3" y="3" rx="2"/>
-              <path d="M9 3v18"/>
-              <path d="M15 3v18"/>
-            </svg>
-          </button>
-
-          <!-- Balloon Tooltip -->
-          <div class="pointer-events-none absolute top-full mt-2 left-1/2 -translate-x-1/2 opacity-0 group-hover/tooltip:opacity-100 translate-y-1 group-hover/tooltip:translate-y-0 transition-all duration-150 delay-0 group-hover/tooltip:delay-150 z-50 flex flex-col items-center whitespace-nowrap">
-            <div class="w-2 h-2 -mb-1 rotate-45 bg-[#18181b] dark:bg-[#0f1e35] border-t border-l border-slate-700/60 dark:border-slate-600/60"></div>
-            <div class="px-2 py-1 text-[11px] font-medium rounded shadow-xl bg-[#18181b] text-slate-100 dark:bg-[#0f1e35] dark:text-[#e8e0d3] border border-slate-700/60 dark:border-slate-600/60 leading-tight">
-              3-Col QA (Ref + Edit + Prev)
-            </div>
-          </div>
-        </div>
-
-        <!-- Sync Scroll Mode Button (visible in Split, QA 2-Col or QA 3-Col) -->
-        <template v-if="viewMode === 'split' || isQaMode">
-          <div class="w-[1px] h-3.5 bg-app-border mx-0.5"></div>
-
+        <!-- Group 2: Document Flow & Scroll Sync (visible in Split mode) -->
+        <div v-if="viewMode === 'split'" class="flex items-center gap-0.5">
+          <!-- Sync Scroll Mode Button -->
           <div class="relative group/tooltip inline-flex items-center">
             <button
               @click="cycleSyncMode"
               class="h-7 px-1.5 flex items-center justify-center gap-1 rounded transition-colors cursor-pointer bg-app-bg"
-              :class="syncMode !== 'off' ? 'text-amber-500 dark:text-amber-400 font-semibold shadow-xs ring-1 ring-amber-500/30' : 'text-app-text-muted hover:text-app-text hover:bg-app-bg-hover'"
-              :title="`Scroll-Sync: ${syncMode === 'header' ? 'Header Matching' : syncMode === 'percentage' ? 'Percentage' : 'Aus'}`"
-              aria-label="Scroll-Synchronisation"
+              :class="syncMode !== 'off' ? 'text-amber-600 dark:text-amber-400 font-semibold shadow-xs ring-1 ring-amber-500/30' : 'text-app-text-muted hover:text-app-text hover:bg-app-bg-hover'"
+              :title="`Scroll-Sync: ${syncMode === 'header' ? 'Header Matching' : syncMode === 'percentage' ? 'Percentage' : 'Off'}`"
+              aria-label="Scroll Synchronization"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
@@ -2142,61 +2134,70 @@ async function handleCopyHtml() {
             <div class="pointer-events-none absolute top-full mt-2 left-1/2 -translate-x-1/2 opacity-0 group-hover/tooltip:opacity-100 translate-y-1 group-hover/tooltip:translate-y-0 transition-all duration-150 delay-0 group-hover/tooltip:delay-150 z-50 flex flex-col items-center whitespace-nowrap">
               <div class="w-2 h-2 -mb-1 rotate-45 bg-[#18181b] dark:bg-[#0f1e35] border-t border-l border-slate-700/60 dark:border-slate-600/60"></div>
               <div class="px-2 py-1 text-[11px] font-medium rounded shadow-xl bg-[#18181b] text-slate-100 dark:bg-[#0f1e35] dark:text-[#e8e0d3] border border-slate-700/60 dark:border-slate-600/60 leading-tight">
-                {{ syncMode === 'header' ? 'Sync: Header-Matching' : syncMode === 'percentage' ? 'Sync: Prozentual' : 'Sync: Deaktiviert' }} (Klicken zum Umschalten)
+                {{ syncMode === 'header' ? 'Sync: Header Matching' : syncMode === 'percentage' ? 'Sync: Percentage' : 'Sync: Disabled' }} (Click to toggle)
               </div>
             </div>
           </div>
-        </template>
+        </div>
 
-        <!-- SWAP Button (visible in QA mode) -->
-        <template v-if="isQaMode">
-          <div class="w-[1px] h-3.5 bg-app-border mx-0.5"></div>
+        <!-- Distinct Group Separator 2 -->
+        <div class="w-px h-4 bg-app-border mx-1.5 shrink-0 self-center"></div>
 
+        <!-- Group 3: Tools & Preferences (Vim | Theme) -->
+        <div class="flex items-center gap-0.5">
+          <!-- Vim Mode Toggle Button -->
           <div class="relative group/tooltip inline-flex items-center">
             <button
-              @click="handleSwapDocuments"
-              class="w-7 h-7 flex items-center justify-center rounded transition-colors cursor-pointer bg-app-bg text-amber-500 hover:text-amber-400 hover:bg-app-bg-hover active:scale-95"
-              title="Dokumente tauschen: Referenz ⇄ Editor (SWAP)"
-              aria-label="Dokumente tauschen"
+              @click="toggleVimMode"
+              class="w-7 h-7 flex items-center justify-center rounded transition-colors cursor-pointer bg-app-bg"
+              :class="vimMode ? 'text-amber-600 dark:text-amber-400 font-bold shadow-xs ring-1 ring-amber-500/30' : 'text-app-text-muted hover:text-app-text hover:bg-app-bg-hover'"
+              :title="vimMode ? 'Vim Mode: Active' : 'Vim Mode: Inactive'"
+              aria-label="Vim Mode"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="16 3 21 8 16 13"/>
-                <line x1="21" y1="8" x2="9" y2="8"/>
-                <polyline points="8 21 3 16 8 11"/>
-                <line x1="3" y1="16" x2="15" y2="16"/>
+              <span class="font-mono font-bold text-xs select-none leading-none">V</span>
+            </button>
+
+            <!-- Balloon Tooltip -->
+            <div class="pointer-events-none absolute top-full mt-2 right-0 opacity-0 group-hover/tooltip:opacity-100 translate-y-1 group-hover/tooltip:translate-y-0 transition-all duration-150 delay-0 group-hover/tooltip:delay-150 z-50 flex flex-col items-end whitespace-nowrap">
+              <div class="w-2 h-2 -mb-1 mr-2.5 rotate-45 bg-[#18181b] dark:bg-[#0f1e35] border-t border-l border-slate-700/60 dark:border-slate-600/60"></div>
+              <div class="px-2 py-1 text-[11px] font-medium rounded shadow-xl bg-[#18181b] text-slate-100 dark:bg-[#0f1e35] dark:text-[#e8e0d3] border border-slate-700/60 dark:border-slate-600/60 leading-tight">
+                {{ vimMode ? 'Vim Mode: Active' : 'Vim Mode: Inactive' }}
+              </div>
+            </div>
+          </div>
+
+          <!-- Dark / Light Theme Toggle Button -->
+          <div class="relative group/tooltip inline-flex items-center">
+            <button
+              @click="toggleTheme"
+              class="w-7 h-7 flex items-center justify-center rounded transition-colors cursor-pointer bg-app-bg text-app-text-muted hover:text-amber-500 hover:bg-app-bg-hover active:scale-95"
+              :title="isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'"
+              :aria-label="isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'"
+            >
+              <!-- Sun icon when isDark is true -->
+              <svg v-if="isDark" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-amber-400">
+                <circle cx="12" cy="12" r="4"/>
+                <path d="M12 2v2"/>
+                <path d="M12 20v2"/>
+                <path d="m4.93 4.93 1.41 1.41"/>
+                <path d="m17.66 17.66 1.41 1.41"/>
+                <path d="M2 12h2"/>
+                <path d="M20 12h2"/>
+                <path d="m6.34 17.66-1.41 1.41"/>
+                <path d="m19.07 4.93-1.41 1.41"/>
+              </svg>
+              <!-- Moon icon when isDark is false -->
+              <svg v-else xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-slate-600 dark:text-slate-300">
+                <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
               </svg>
             </button>
 
             <!-- Balloon Tooltip -->
-            <div class="pointer-events-none absolute top-full mt-2 left-1/2 -translate-x-1/2 opacity-0 group-hover/tooltip:opacity-100 translate-y-1 group-hover/tooltip:translate-y-0 transition-all duration-150 delay-0 group-hover/tooltip:delay-150 z-50 flex flex-col items-center whitespace-nowrap">
-              <div class="w-2 h-2 -mb-1 rotate-45 bg-[#18181b] dark:bg-[#0f1e35] border-t border-l border-slate-700/60 dark:border-slate-600/60"></div>
+            <div class="pointer-events-none absolute top-full mt-2 right-0 opacity-0 group-hover/tooltip:opacity-100 translate-y-1 group-hover/tooltip:translate-y-0 transition-all duration-150 delay-0 group-hover/tooltip:delay-150 z-50 flex flex-col items-end whitespace-nowrap">
+              <div class="w-2 h-2 -mb-1 mr-2.5 rotate-45 bg-[#18181b] dark:bg-[#0f1e35] border-t border-l border-slate-700/60 dark:border-slate-600/60"></div>
               <div class="px-2 py-1 text-[11px] font-medium rounded shadow-xl bg-[#18181b] text-slate-100 dark:bg-[#0f1e35] dark:text-[#e8e0d3] border border-slate-700/60 dark:border-slate-600/60 leading-tight">
-                Seiten tauschen: Referenz ⇄ Editor (SWAP)
+                {{ isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode' }}
               </div>
-            </div>
-          </div>
-        </template>
-
-        <!-- Divider -->
-        <div class="w-[1px] h-3.5 bg-app-border mx-0.5"></div>
-
-        <!-- Vim Mode Toggle Button -->
-        <div class="relative group/tooltip inline-flex items-center">
-          <button
-            @click="toggleVimMode"
-            class="w-7 h-7 flex items-center justify-center rounded transition-colors cursor-pointer bg-app-bg"
-            :class="vimMode ? 'text-blue-500 dark:text-blue-400 font-bold shadow-xs ring-1 ring-blue-500/30' : 'text-app-text-muted hover:text-app-text hover:bg-app-bg-hover'"
-            :title="vimMode ? 'Vim-Modus: Aktiv' : 'Vim-Modus: Inaktiv'"
-            aria-label="Vim Mode"
-          >
-            <span class="font-mono font-bold text-xs select-none leading-none">V</span>
-          </button>
-
-          <!-- Balloon Tooltip -->
-          <div class="pointer-events-none absolute top-full mt-2 right-0 opacity-0 group-hover/tooltip:opacity-100 translate-y-1 group-hover/tooltip:translate-y-0 transition-all duration-150 delay-0 group-hover/tooltip:delay-150 z-50 flex flex-col items-end whitespace-nowrap">
-            <div class="w-2 h-2 -mb-1 mr-2.5 rotate-45 bg-[#18181b] dark:bg-[#0f1e35] border-t border-l border-slate-700/60 dark:border-slate-600/60"></div>
-            <div class="px-2 py-1 text-[11px] font-medium rounded shadow-xl bg-[#18181b] text-slate-100 dark:bg-[#0f1e35] dark:text-[#e8e0d3] border border-slate-700/60 dark:border-slate-600/60 leading-tight">
-              {{ vimMode ? 'Vim-Modus: Aktiv' : 'Vim-Modus: Inaktiv' }}
             </div>
           </div>
         </div>
@@ -2224,12 +2225,17 @@ async function handleCopyHtml() {
           :rootPaths="workspaceRoots"
           :activePath="tabs[activeTabIndex]?.path" 
           :openTabs="tabs"
+          :openPdfs="openPdfList"
           @select="loadFile" 
+          @select-pdf="handleSelectOpenPdf"
+          @close-pdf="handleCloseOpenPdf"
           @open-folder="handleOpenFolder"
           @open-file="handleOpenFile"
           @remove-folder="removeWorkspaceFolder"
           @close-tab="closeTab"
           @save-all="handleSaveAll"
+          @file-renamed="handleFileRenamed"
+          @file-deleted="handleFileDeleted"
         />
       </div>
 
@@ -2260,7 +2266,7 @@ async function handleCopyHtml() {
         v-if="showExplorer || showCheatsheet || showSearch"
         @mousedown="startSidebarResize"
         @dblclick="sidebarWidth = 256"
-        class="w-1.5 -ml-1.5 flex-none bg-transparent hover:bg-blue-500/50 active:bg-blue-600 cursor-col-resize select-none transition-colors h-full z-30"
+        class="w-1.5 -ml-1.5 flex-none bg-transparent hover:bg-amber-500/50 active:bg-amber-600 cursor-col-resize select-none transition-colors h-full z-30"
         title="Drag to resize sidebar (Double-click to reset)"
       ></div>
 
@@ -2276,7 +2282,7 @@ async function handleCopyHtml() {
             class="flex items-center gap-2 px-4 py-2 text-sm cursor-pointer border-r border-app-border transition-colors whitespace-nowrap"
             :class="[
               activeTabIndex === index 
-                ? 'bg-app-bg text-app-text border-t-2 border-t-blue-500 tab-item-active' 
+                ? 'bg-app-bg text-app-text border-t-2 border-t-amber-600 dark:border-t-amber-500 tab-item-active' 
                 : 'bg-app-bg-secondary text-app-text-muted hover:bg-app-bg border-t-2 border-t-transparent'
             ]"
           >
@@ -2297,61 +2303,50 @@ async function handleCopyHtml() {
         
         <!-- Editor/Preview/QA Split Container -->
         <div class="flex-1 flex overflow-hidden print:block print:overflow-visible print:h-auto">
-          <!-- QA Reference Pane (Left, visible in QA Mode) -->
-          <div v-if="showQaReference" class="flex-1 h-full min-w-0 print:hidden">
-            <QaReferencePane
-              ref="qaReferenceRef"
-              :title="qaReferenceTitle"
-              :filePath="qaReferencePath"
-              :content="qaReferenceContent"
-              :langCode="qaReferenceLang"
-              :availableLanguages="availableLanguages"
-              :syncMode="syncMode"
-              @scroll="onReferenceScroll"
-              @user-interaction="onReferenceUserInteraction"
-              @change-language="handleChangeReferenceLanguage"
-              @choose-file="handleChooseReferenceFile"
-              @swap="handleSwapDocuments"
-              @close="setViewMode('split')"
-              @open-url="openExternalUrl"
-              @set-sync-mode="setSyncMode"
-            />
-          </div>
+          <!-- Dual PDF QA Viewer Pane -->
+          <PdfDualViewer
+            v-show="viewMode === 'pdf-qa'"
+            ref="pdfDualViewerRef"
+            @close="setViewMode('split')"
+            @update-docs="handlePdfDocsUpdate"
+          />
 
-          <!-- Editor Pane (Center/Left) -->
-          <div class="flex-1 h-full min-w-0 flex flex-col border-r border-app-border print:hidden">
-            <!-- Editor Formatting Ribbon -->
-            <EditorRibbon
-              @insert-snippet="handleInsertSnippet"
-              @toggle-transliteration="handleToggleTransliteration"
-            />
+          <!-- Standard Markdown Editor & Preview Panes -->
+          <template v-if="viewMode !== 'pdf-qa'">
+            <!-- Editor Pane (Center/Left) -->
+            <div class="flex-1 h-full min-w-0 flex flex-col border-r border-app-border print:hidden">
+              <!-- Editor Formatting Ribbon -->
+              <EditorRibbon
+                @insert-snippet="handleInsertSnippet"
+                @toggle-transliteration="handleToggleTransliteration"
+              />
 
-            <!-- CodeMirror Editor -->
-            <div class="flex-1 h-full min-w-0 overflow-hidden">
-              <Editor
-                ref="editorRef"
-                v-model="markdownSource"
-                :vimMode="vimMode"
-                :livePreview="isLivePreview"
-                @scroll="onEditorScroll"
-                @user-interaction="onEditorUserInteraction"
-                @cursor-change="onCursorChange"
+              <!-- CodeMirror Editor -->
+              <div class="flex-1 h-full min-w-0 overflow-hidden">
+                <Editor
+                  ref="editorRef"
+                  v-model="markdownSource"
+                  :vimMode="vimMode"
+                  :livePreview="isLivePreview"
+                  @scroll="onEditorScroll"
+                  @user-interaction="onEditorUserInteraction"
+                  @cursor-change="onCursorChange"
+                />
+              </div>
+            </div>
+
+            <!-- Preview Pane (Right) -->
+            <div v-show="showPreview" class="flex-1 h-full bg-app-bg min-w-0 print:!block print:w-full print:h-auto print:overflow-visible print:bg-white">
+              <Preview
+                ref="previewRef"
+                :source="markdownSource"
+                @scroll="onPreviewScroll"
+                @user-interaction="onPreviewUserInteraction"
+                @open-url="openExternalUrl"
+                @open-file="handlePreviewOpenFile"
               />
             </div>
-          </div>
-
-
-          <!-- Preview Pane (Right) -->
-          <div v-show="showPreview" class="flex-1 h-full bg-app-bg min-w-0 print:!block print:w-full print:h-auto print:overflow-visible print:bg-white">
-            <Preview
-              ref="previewRef"
-              :source="markdownSource"
-              @scroll="onPreviewScroll"
-              @user-interaction="onPreviewUserInteraction"
-              @open-url="openExternalUrl"
-              @open-file="handlePreviewOpenFile"
-            />
-          </div>
+          </template>
         </div>
 
       </div>
@@ -2398,7 +2393,7 @@ async function handleCopyHtml() {
         <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-500">
           <polyline points="20 6 9 17 4 12"/>
         </svg>
-        <span>HTML in Zwischenablage kopiert</span>
+        <span>HTML copied to clipboard</span>
       </div>
     </transition>
   </main>

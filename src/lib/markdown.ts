@@ -62,6 +62,13 @@ const ALLOWED_RENDERED_DATA_ATTRS = [
   "lang",
   "rowspan",
   "colspan",
+  "tabindex",
+  "loading",
+  "decoding",
+  "role",
+  "aria-label",
+  "aria-hidden",
+  "scope",
 ];
 
 let sanitizerHooksInstalled = false;
@@ -358,16 +365,37 @@ function setupFenceRule(mdInstance: MarkdownIt) {
         : "";
     if (info === "mermaid") {
       const code = token.content.trim();
-      return `<pre class="mermaid"${lineAttr} data-mermaid-source="${mdInstance.utils.escapeHtml(code)}">${mdInstance.utils.escapeHtml(code)}</pre>`;
+      return `<pre class="mermaid"${lineAttr} tabindex="0" role="region" aria-label="Mermaid Diagram" data-mermaid-source="${mdInstance.utils.escapeHtml(code)}">${mdInstance.utils.escapeHtml(code)}</pre>`;
     }
     if (info === "math" || info === "katex") {
       try {
-        return `<div class="katex-block my-4 flex justify-center"${lineAttr}>${katex.renderToString(token.content.trim(), { displayMode: true, throwOnError: false })}</div>`;
+        return `<div class="katex-block my-4 flex justify-center"${lineAttr} role="region" aria-label="Math Formula">${katex.renderToString(token.content.trim(), { displayMode: true, throwOnError: false })}</div>`;
       } catch (_err) {
-        return `<pre class="text-red-500 font-mono"${lineAttr}>${mdInstance.utils.escapeHtml(token.content)}</pre>`;
+        return `<pre class="text-red-500 font-mono"${lineAttr} tabindex="0">${mdInstance.utils.escapeHtml(token.content)}</pre>`;
       }
     }
-    return defaultFence ? defaultFence(tokens, idx, options, env, self) : "";
+    const rendered = defaultFence
+      ? defaultFence(tokens, idx, options, env, self)
+      : "";
+    return rendered.replace(/^<pre(?:\s|>)/, '<pre tabindex="0" ');
+  };
+}
+
+function setupImageRule(mdInstance: MarkdownIt) {
+  const defaultImage =
+    mdInstance.renderer.rules.image ||
+    ((tokens, idx, options, _env, self) =>
+      self.renderToken(tokens, idx, options));
+
+  mdInstance.renderer.rules.image = (tokens, idx, options, env, self) => {
+    const token = tokens[idx];
+    if (!token.attrGet("loading")) {
+      token.attrSet("loading", "lazy");
+    }
+    if (!token.attrGet("decoding")) {
+      token.attrSet("decoding", "async");
+    }
+    return defaultImage(tokens, idx, options, env, self);
   };
 }
 
@@ -406,6 +434,7 @@ function createBaseMarkdownIt(): MarkdownIt {
     .use(katexMathPlugin);
 
   setupFenceRule(instance);
+  setupImageRule(instance);
   setupSourceLines(instance);
   return instance;
 }

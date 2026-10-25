@@ -1,24 +1,20 @@
 <script setup lang="ts">
 import { getVersion } from "@tauri-apps/api/app";
-import { relaunch } from "@tauri-apps/plugin-process";
-import type { Update } from "@tauri-apps/plugin-updater";
-import { computed, onMounted, ref, shallowRef, toRaw, watch } from "vue";
-import { renderMarkdown } from "../lib/markdown";
+import { onMounted, onUnmounted, ref, watch } from "vue";
 import { THEME_OPTIONS, applyTheme } from "../lib/theme";
-import {
-  GITHUB_RELEASES_URL,
-  checkForUpdates,
-  installAppUpdate,
-  openReleasePage,
-} from "../lib/updater";
+import { GITHUB_RELEASES_URL, openReleasePage } from "../lib/updater";
 
-defineProps<{
+declare const __APP_VERSION__: string;
+declare const __BUILD_NUMBER__: string;
+
+const props = defineProps<{
   isOpen: boolean;
 }>();
 
 const emit = defineEmits<{
   (e: "close"): void;
   (e: "update", settings: Record<string, unknown>): void;
+  (e: "check-updates"): void;
 }>();
 
 const currentTheme = ref("system");
@@ -29,13 +25,20 @@ const syncScroll = ref(true);
 const pdfPaper = ref<"a4" | "us-letter">("a4");
 
 const appVersion = ref(
-  typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "1.1.10",
+  typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "1.5.0",
 );
 const buildNumber = ref(
   typeof __BUILD_NUMBER__ !== "undefined" ? __BUILD_NUMBER__ : "dev",
 );
 
+function handleKeydown(e: KeyboardEvent) {
+  if (e.key === "Escape" && props.isOpen) {
+    emit("close");
+  }
+}
+
 onMounted(async () => {
+  window.addEventListener("keydown", handleKeydown);
   const settingsStr = localStorage.getItem("zentauri-settings");
   if (settingsStr) {
     try {
@@ -54,6 +57,10 @@ onMounted(async () => {
     const v = await getVersion();
     if (v) appVersion.value = v;
   } catch (e) {}
+});
+
+onUnmounted(() => {
+  window.removeEventListener("keydown", handleKeydown);
 });
 
 watch([currentTheme, fontSize, autoSave, vimMode, syncScroll, pdfPaper], () => {
@@ -83,93 +90,38 @@ function applySettings() {
   emit("update", s);
 }
 
-const updateState = ref<
-  "idle" | "checking" | "available" | "up-to-date" | "downloading" | "error"
->("idle");
-const updateMessage = ref("");
-const updateVersion = ref("");
-const updateBody = ref("");
-const showSettingsNotes = ref(false);
-const activeUpdate = shallowRef<Update | null>(null);
-const installProgress = ref(0);
-
-const renderedSettingsNotes = computed(() => {
-  if (!updateBody.value) return "";
-  return renderMarkdown(updateBody.value, { markdownExtensionsEnabled: false });
-});
-
-async function checkUpdates() {
-  updateState.value = "checking";
-  updateMessage.value = "Checking for updates...";
-  activeUpdate.value = null;
-  updateVersion.value = "";
-  updateBody.value = "";
-  installProgress.value = 0;
-
-  const result = await checkForUpdates();
-  if (result.error) {
-    updateState.value = "error";
-    updateMessage.value = `Update check failed: ${result.error}`;
-  } else if (result.available && result.update) {
-    updateState.value = "available";
-    activeUpdate.value = result.update;
-    updateVersion.value = result.version || "";
-    updateBody.value = result.body || "";
-    updateMessage.value = `New version v${result.version} is available!`;
-  } else {
-    updateState.value = "up-to-date";
-    updateMessage.value = "ZenTauri is up to date.";
-  }
-}
-
 function handleManualDownload() {
-  const url = updateVersion.value
-    ? `https://github.com/birchville-org/zentauri/releases/tag/v${updateVersion.value}`
-    : GITHUB_RELEASES_URL;
-  openReleasePage(url);
-}
-
-async function installUpdate() {
-  if (!activeUpdate.value) return;
-  updateState.value = "downloading";
-  updateMessage.value = "Downloading update...";
-  installProgress.value = 0;
-  try {
-    const rawUpdate = toRaw(activeUpdate.value);
-    await installAppUpdate(rawUpdate, (downloaded, total) => {
-      if (total && total > 0) {
-        installProgress.value = Math.min(
-          100,
-          Math.round((downloaded / total) * 100),
-        );
-        updateMessage.value = `Downloading update... ${installProgress.value}%`;
-      }
-    });
-    updateMessage.value = "Update installed! Restarting app...";
-    await relaunch();
-  } catch (err: unknown) {
-    updateState.value = "error";
-    updateMessage.value = `Installation failed: ${err instanceof Error ? err.message : String(err)}`;
-  }
+  openReleasePage(GITHUB_RELEASES_URL);
 }
 </script>
 
 <template>
-  <div v-if="isOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" @click.self="$emit('close')">
-    <div class="bg-app-bg border border-app-border rounded-xl shadow-2xl w-[440px] overflow-hidden flex flex-col">
-      <div class="px-4 py-3 border-b border-app-border flex justify-between items-center bg-app-bg-secondary">
-        <h2 class="font-semibold text-app-text">Settings</h2>
-        <button @click="$emit('close')" class="text-app-text-muted hover:text-app-text text-xl leading-none">&times;</button>
+  <div v-if="isOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" @click.self="$emit('close')">
+    <div class="bg-app-bg border border-app-border rounded-xl shadow-2xl w-[460px] max-w-[calc(100vw-2rem)] overflow-hidden flex flex-col text-app-text">
+      <!-- Modal Header -->
+      <div class="px-5 py-3.5 border-b border-app-border flex justify-between items-center bg-app-bg-secondary/70">
+        <h2 class="font-semibold text-sm text-app-text">Settings</h2>
+        <button 
+          @click="$emit('close')" 
+          class="text-app-text-muted hover:text-app-text p-1 rounded-md transition-colors cursor-pointer"
+          title="Close"
+          aria-label="Close"
+        >
+          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
       </div>
       
+      <!-- Modal Body -->
       <div class="p-6 flex flex-col gap-6 max-h-[80vh] overflow-y-auto">
         <!-- Theme -->
         <div class="flex flex-col gap-2">
-          <label class="text-sm font-medium text-app-text">Theme</label>
+          <label for="theme" class="text-sm font-medium text-app-text">Theme</label>
           <select 
             id="theme" 
             v-model="currentTheme"
-            class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-app-border bg-app-bg text-app-text focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+            class="mt-1 block w-full pl-3 pr-10 py-2 text-sm border-app-border bg-app-bg text-app-text focus:outline-none focus:ring-1 focus:ring-amber-500 focus:border-amber-500 rounded-md shadow-xs cursor-pointer"
           >
             <option v-for="t in THEME_OPTIONS" :key="t.id" :value="t.id">
               {{ t.label }}
@@ -179,134 +131,90 @@ async function installUpdate() {
         
         <!-- Font Size -->
         <div class="flex flex-col gap-2">
-          <label class="text-sm font-medium text-app-text flex justify-between">
-            <span>Font Size</span>
-            <span>{{ fontSize }}px</span>
-          </label>
-          <input type="range" v-model="fontSize" min="12" max="24" step="1" class="w-full h-2 bg-app-bg-secondary rounded-lg appearance-none cursor-pointer">
+          <div class="flex justify-between items-center">
+            <label class="text-sm font-medium text-app-text">Editor Font Size</label>
+            <span class="text-sm text-app-text-muted font-mono font-semibold">{{ fontSize }}px</span>
+          </div>
+          <input 
+            type="range" 
+            v-model.number="fontSize" 
+            min="12" 
+            max="32" 
+            step="1"
+            class="w-full accent-amber-600 dark:accent-amber-500 bg-app-bg-secondary cursor-pointer"
+          />
         </div>
 
-        <!-- Auto-Save -->
+        <!-- Auto Save -->
         <div class="flex items-center justify-between">
-          <label class="text-sm font-medium text-app-text">Auto-Save</label>
-          <input type="checkbox" v-model="autoSave" class="w-5 h-5 text-blue-600 bg-app-bg border-app-border rounded cursor-pointer focus:ring-blue-500">
+          <div>
+            <label class="text-sm font-medium text-app-text block">Auto Save</label>
+            <span class="text-xs text-app-text-muted">Automatically save changes while typing</span>
+          </div>
+          <input 
+            type="checkbox" 
+            v-model="autoSave"
+            class="h-4 w-4 rounded border-app-border text-amber-600 focus:ring-amber-500 bg-app-bg cursor-pointer"
+          />
+        </div>
+
+        <!-- PDF Export Paper Size -->
+        <div class="flex items-center justify-between">
+          <div>
+            <label class="text-sm font-medium text-app-text block">PDF Paper Format</label>
+            <span class="text-xs text-app-text-muted">Standard format for Typst PDF export</span>
+          </div>
+          <select 
+            id="pdfPaper" 
+            v-model="pdfPaper"
+            class="pl-2 pr-7 py-1 text-sm border-app-border bg-app-bg text-app-text rounded focus:outline-none focus:ring-1 focus:ring-amber-500 focus:border-amber-500 cursor-pointer"
+          >
+            <option value="a4">A4 (ISO 216)</option>
+            <option value="us-letter">US-Letter</option>
+          </select>
+        </div>
+
+        <!-- Sync Scroll -->
+        <div class="flex items-center justify-between">
+          <div>
+            <label class="text-sm font-medium text-app-text block">Sync Scroll</label>
+            <span class="text-xs text-app-text-muted">Synchronize scroll position between editor and preview</span>
+          </div>
+          <input 
+            type="checkbox" 
+            v-model="syncScroll"
+            class="h-4 w-4 rounded border-app-border text-amber-600 focus:ring-amber-500 bg-app-bg cursor-pointer"
+          />
         </div>
 
         <!-- Vim Mode -->
         <div class="flex items-center justify-between">
-          <label class="text-sm font-medium text-app-text">Vim Mode</label>
-          <input type="checkbox" v-model="vimMode" class="w-5 h-5 text-blue-600 bg-app-bg border-app-border rounded cursor-pointer focus:ring-blue-500">
+          <div>
+            <label class="text-sm font-medium text-app-text block">Vim Keybindings</label>
+            <span class="text-xs text-app-text-muted">Enable Vim modal editing in the editor</span>
+          </div>
+          <input 
+            type="checkbox" 
+            v-model="vimMode"
+            class="h-4 w-4 rounded border-app-border text-amber-600 focus:ring-amber-500 bg-app-bg cursor-pointer"
+          />
         </div>
 
-        <!-- Synchronized Scrolling -->
-        <div class="flex items-center justify-between">
-          <label class="text-sm font-medium text-app-text">Synchronized Scrolling</label>
-          <input type="checkbox" v-model="syncScroll" class="w-5 h-5 text-blue-600 bg-app-bg border-app-border rounded cursor-pointer focus:ring-blue-500">
-        </div>
-
-        <!-- PDF Paper Format -->
-        <div class="flex items-center justify-between">
-          <label class="text-sm font-medium text-app-text">PDF Paper Format</label>
-          <select v-model="pdfPaper" class="bg-app-bg text-app-text text-sm border border-app-border rounded-md px-3 py-1 focus:outline-none focus:border-blue-500 cursor-pointer">
-            <option value="a4">DIN A4</option>
-            <option value="us-letter">US Letter</option>
-          </select>
-        </div>
-
-        <!-- About ZenTauri & Software Updates -->
-        <div class="pt-5 border-t border-app-border flex flex-col gap-4">
+        <!-- About & Update Action -->
+        <div class="flex flex-col gap-3 pt-4 border-t border-app-border">
           <div class="flex items-center justify-between">
-            <div class="flex items-center gap-3">
-              <div class="w-10 h-10 rounded-lg bg-blue-600/10 border border-blue-500/20 flex items-center justify-center text-blue-500 font-bold text-lg shadow-sm">
-                Z
-              </div>
-              <div class="flex flex-col">
-                <span class="text-sm font-semibold text-app-text">ZenTauri</span>
-                <span class="text-xs text-app-text-muted">
-                  Version {{ appVersion }} <span class="font-mono text-[11px] opacity-75">(Build {{ buildNumber }})</span>
-                </span>
-              </div>
-            </div>
-            
-            <button 
-              @click="checkUpdates" 
-              :disabled="updateState === 'checking' || updateState === 'downloading'"
-              class="px-3 py-1.5 bg-app-bg-secondary hover:bg-app-border border border-app-border text-app-text text-xs font-medium rounded-md transition-colors disabled:opacity-50"
-            >
-              {{ updateState === 'checking' ? 'Checking...' : updateState === 'downloading' ? 'Downloading...' : 'Check for Updates' }}
-            </button>
+            <h3 class="text-xs font-semibold text-app-text-muted uppercase tracking-wider">About</h3>
+            <span class="text-xs font-mono text-app-text-muted font-medium">v{{ appVersion }} (Build {{ buildNumber }})</span>
           </div>
 
-          <div v-if="updateMessage" :class="['text-xs p-2.5 rounded-md', updateState === 'available' ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20' : updateState === 'error' ? 'bg-red-500/10 text-red-500 border border-red-500/20' : 'bg-app-bg-secondary text-app-text-muted border border-app-border']">
-            {{ updateMessage }}
-          </div>
-
-          <!-- Download & Install button (Prominent, above release notes) -->
-          <button
-            v-if="updateState === 'available' && activeUpdate"
-            @click="installUpdate"
-            class="w-full py-2 bg-amber-500 hover:bg-amber-600 text-black text-xs font-semibold rounded-md transition-colors shadow-sm cursor-pointer flex items-center justify-center gap-1.5"
-          >
-            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-            </svg>
-            Download & Install Update
-          </button>
-
-          <!-- Fallback manual download when update is available -->
-          <button
-            v-if="updateState === 'available'"
-            type="button"
-            @click="handleManualDownload"
-            class="w-full py-1.5 bg-app-bg-secondary hover:bg-app-border border border-app-border text-app-text text-xs font-medium rounded-md transition-colors cursor-pointer flex items-center justify-center gap-1.5"
-          >
-            <svg class="h-3.5 w-3.5 text-app-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-            </svg>
-            Manuell im Browser herunterladen (GitHub Releases)
-          </button>
-
-          <!-- Fallback manual download when update check or install fails -->
-          <button
-            v-if="updateState === 'error'"
-            type="button"
-            @click="handleManualDownload"
-            class="w-full py-2 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-700 dark:text-amber-400 text-xs font-semibold rounded-md transition-colors cursor-pointer flex items-center justify-center gap-1.5"
-          >
-            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-            </svg>
-            Im Browser herunterladen (GitHub Releases) ↗
-          </button>
-
-          <!-- Downloading progress bar -->
-          <div v-if="updateState === 'downloading'" class="flex flex-col gap-1">
-            <div class="w-full bg-app-bg-secondary h-2 rounded-full overflow-hidden border border-app-border">
-              <div
-                class="bg-amber-500 h-full transition-all duration-200"
-                :style="{ width: `${installProgress}%` }"
-              ></div>
-            </div>
-          </div>
-
-          <!-- Release Notes in Settings -->
-          <div
-            v-if="updateState === 'available' && updateBody && updateBody.trim()"
-            class="flex flex-col gap-1.5"
-          >
+          <div class="flex items-center justify-between">
+            <span class="text-xs text-app-text">ZenTauri Markdown &amp; Philological Editor</span>
             <button
-              type="button"
-              @click="showSettingsNotes = !showSettingsNotes"
-              class="text-xs font-medium text-amber-700 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-300 flex items-center justify-between cursor-pointer transition-colors"
+              @click="$emit('check-updates')" 
+              class="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white dark:bg-amber-500 dark:hover:bg-amber-600 dark:text-slate-950 text-xs font-semibold rounded-lg transition-colors cursor-pointer shrink-0 ml-3 shadow-xs"
             >
-              <span>Release Notes{{ updateVersion ? ` (v${updateVersion})` : '' }}</span>
-              <span class="text-[11px] opacity-80">{{ showSettingsNotes ? 'Ausblenden' : 'Anzeigen' }}</span>
+              Check for Updates...
             </button>
-            <div
-              v-if="showSettingsNotes"
-              class="max-h-40 overflow-y-auto p-2.5 rounded-md bg-app-bg-secondary border border-app-border text-xs text-app-text leading-relaxed select-text release-notes-content"
-              v-html="renderedSettingsNotes"
-            ></div>
           </div>
 
           <div class="flex items-center justify-between text-[11px] text-app-text-muted leading-relaxed">
@@ -314,7 +222,7 @@ async function installUpdate() {
             <button
               type="button"
               @click="handleManualDownload"
-              class="text-amber-700 dark:text-amber-400 hover:underline shrink-0 ml-2 cursor-pointer"
+              class="text-amber-700 dark:text-amber-400 hover:underline shrink-0 ml-2 cursor-pointer font-medium"
               title="GitHub Releases"
             >
               Downloads ↗
@@ -323,55 +231,15 @@ async function installUpdate() {
         </div>
       </div>
       
-      <div class="px-4 py-3 border-t border-app-border bg-app-bg-secondary text-right">
-        <button @click="$emit('close')" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors">Close</button>
+      <!-- Modal Footer -->
+      <div class="px-5 py-3 border-t border-app-border bg-app-bg-secondary/70 text-right">
+        <button 
+          @click="$emit('close')" 
+          class="px-4 py-1.5 bg-amber-600 hover:bg-amber-700 text-white dark:bg-amber-500 dark:hover:bg-amber-600 dark:text-slate-950 text-xs font-semibold rounded-lg transition-colors cursor-pointer shadow-xs"
+        >
+          Close
+        </button>
       </div>
     </div>
   </div>
 </template>
-
-<style scoped>
-.release-notes-content :deep(h1),
-.release-notes-content :deep(h2),
-.release-notes-content :deep(h3),
-.release-notes-content :deep(h4) {
-  font-weight: 600;
-  margin-top: 0.5rem;
-  margin-bottom: 0.25rem;
-  color: var(--app-text, inherit);
-}
-.release-notes-content :deep(h1) { font-size: 0.95rem; }
-.release-notes-content :deep(h2) { font-size: 0.875rem; }
-.release-notes-content :deep(h3) { font-size: 0.8rem; }
-.release-notes-content :deep(ul) {
-  list-style-type: disc;
-  padding-left: 1.25rem;
-  margin: 0.25rem 0;
-}
-.release-notes-content :deep(ol) {
-  list-style-type: decimal;
-  padding-left: 1.25rem;
-  margin: 0.25rem 0;
-}
-.release-notes-content :deep(li) {
-  margin: 0.125rem 0;
-}
-.release-notes-content :deep(code) {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.75rem;
-  padding: 0.1rem 0.25rem;
-  border-radius: 0.25rem;
-  background-color: rgba(125, 125, 125, 0.15);
-}
-.release-notes-content :deep(p) {
-  margin: 0.25rem 0;
-}
-.release-notes-content :deep(a) {
-  color: #b45309;
-  text-decoration: underline;
-}
-:root.dark .release-notes-content :deep(a),
-.dark .release-notes-content :deep(a) {
-  color: #eab308;
-}
-</style>

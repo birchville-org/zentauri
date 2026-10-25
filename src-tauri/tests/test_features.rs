@@ -166,6 +166,34 @@ $ "Total"_("USD") = 100 $
     assert!(output_pdf.exists(), "PDF file must exist");
     assert!(pdf_bytes.len() > 1000, "PDF must have content");
     println!("✓ Typst Native PDF Rendering: PASS ({:?}, Size: {} bytes)", output_pdf, pdf_bytes.len());
+
+    // Test Hayro pure-Rust PDF to SVG rendering
+    let pdf = hayro_syntax::Pdf::new(pdf_bytes).expect("Hayro failed to parse PDF");
+    let pages = pdf.pages();
+    assert_eq!(pages.len(), 1, "Expected 1 page in demo PDF");
+    let page = pages.get(0).expect("Page 0 must exist");
+    let cache = hayro_svg::RenderCache::new();
+    let interpreter_settings = hayro_interpret::InterpreterSettings::default();
+    let settings = hayro_svg::SvgRenderSettings::default();
+    let svg_str = hayro_svg::convert(&page, &cache, &interpreter_settings, &settings);
+    assert!(svg_str.contains("<svg"), "Output must contain <svg root element");
+    println!("✓ SVG Preview: {}", &svg_str[..svg_str.len().min(250)]);
+    println!("✓ Hayro Pure-Rust PDF to SVG: PASS (SVG size: {} bytes)", svg_str.len());
+
+    // Test Tauri IPC handlers get_pdf_info and render_pdf_page_svg
+    tauri::async_runtime::block_on(async {
+        let info = tauri_app_lib::get_pdf_info_impl(output_pdf.to_str().unwrap().to_string())
+            .await
+            .expect("get_pdf_info failed");
+        assert_eq!(info.page_count, 1);
+        assert_eq!(info.file_name, "zentauri_scholarly_demo.pdf");
+
+        let svg = tauri_app_lib::render_pdf_page_svg_impl(output_pdf.to_str().unwrap().to_string(), 0)
+            .await
+            .expect("render_pdf_page_svg failed");
+        assert!(svg.contains("<svg"));
+        println!("✓ Tauri PDF IPC Handlers: PASS (Page count: {}, SVG size: {} bytes)", info.page_count, svg.len());
+    });
 }
 
 #[test]
@@ -201,4 +229,100 @@ fn test_export_pdf_validation_rules() {
         let tmp_direct = validate_export_destination("/tmp/linux_valid_export.pdf");
         assert!(tmp_direct.is_ok(), "/tmp direct export must be allowed on unix: {:?}", tmp_direct);
     }
+}
+
+#[test]
+fn test_boethlingk_pdf_render() {
+    let pdf_path = "/Volumes/SanDisk1TB/proj/boethlingk/data/output/boethlingk1887_facsimile_dense_test.pdf";
+    if !std::path::Path::new(pdf_path).exists() {
+        println!("Skipping, test file not found");
+        return;
+    }
+    use tauri_app_lib::scope_svg_ids;
+    let data = std::fs::read(pdf_path).unwrap();
+    let pdf = hayro_syntax::Pdf::new(data).unwrap();
+    let page0 = pdf.pages().get(0).unwrap();
+    let cache = hayro_svg::RenderCache::new();
+    let interpreter_settings = hayro_interpret::InterpreterSettings::default();
+    let settings = hayro_svg::SvgRenderSettings::default();
+    
+    let raw_svg0 = hayro_svg::convert(&page0, &cache, &interpreter_settings, &settings);
+    let scoped_svg0 = scope_svg_ids(&raw_svg0, pdf_path, 0);
+    
+    let page1 = pdf.pages().get(1).unwrap();
+    let raw_svg1 = hayro_svg::convert(&page1, &cache, &interpreter_settings, &settings);
+    let scoped_svg1 = scope_svg_ids(&raw_svg1, pdf_path, 1);
+
+    // Verify ID scoping: no raw un-scoped IDs remain
+    assert!(!scoped_svg0.contains("id=\"g0\""), "Page 0 must not contain un-scoped id=g0");
+    assert!(!scoped_svg1.contains("id=\"g0\""), "Page 1 must not contain un-scoped id=g0");
+    assert!(!scoped_svg0.contains("href=\"#g0\""), "Page 0 must not contain un-scoped href=#g0");
+    assert!(!scoped_svg1.contains("href=\"#g0\""), "Page 1 must not contain un-scoped href=#g0");
+
+    // Scoped IDs must have page-specific prefixes
+    assert!(scoped_svg0.contains("id=\"p0_"), "Page 0 must have p0_ prefix");
+    assert!(scoped_svg1.contains("id=\"p1_"), "Page 1 must have p1_ prefix");
+
+    // Extract all IDs from both pages and ensure completely disjoint sets
+    let extract_ids = |svg: &str| -> std::collections::HashSet<String> {
+        let mut set = std::collections::HashSet::new();
+        for part in svg.split("id=\"").skip(1) {
+            if let Some(end) = part.find('"') {
+                set.insert(part[..end].to_string());
+            }
+        }
+        set
+    };
+
+    let ids0 = extract_ids(&scoped_svg0);
+    let ids1 = extract_ids(&scoped_svg1);
+    assert!(!ids0.is_empty(), "Page 0 must have IDs");
+    assert!(!ids1.is_empty(), "Page 1 must have IDs");
+    assert!(
+        ids0.is_disjoint(&ids1),
+        "Page 0 IDs and Page 1 IDs must be completely disjoint to prevent SVG pollution!"
+    );
+    println!("✓ PDF Multi-Page SVG ID Isolation: PASS (Page 0 IDs: {}, Page 1 IDs: {}, Disjoint: true)", ids0.len(), ids1.len());
+}
+
+#[test]
+fn test_vidyut_transliteration() {
+    use vidyut_lipi::{Lipika, Scheme};
+    let mut lipika = Lipika::new();
+
+    // 1. IAST -> Devanagari
+    assert_eq!(lipika.transliterate("dharmaḥ", Scheme::Iast, Scheme::Devanagari), "धर्मः");
+    assert_eq!(lipika.transliterate("kṛṣṇaḥ", Scheme::Iast, Scheme::Devanagari), "कृष्णः");
+    assert_eq!(lipika.transliterate("saṃskṛtam", Scheme::Iast, Scheme::Devanagari), "संस्कृतम्");
+    assert_eq!(lipika.transliterate("śāntiḥ", Scheme::Iast, Scheme::Devanagari), "शान्तिः");
+    assert_eq!(lipika.transliterate("vidyā", Scheme::Iast, Scheme::Devanagari), "विद्या");
+
+    // 2. Devanagari -> IAST
+    assert_eq!(lipika.transliterate("धर्मः", Scheme::Devanagari, Scheme::Iast), "dharmaḥ");
+    assert_eq!(lipika.transliterate("कृष्णः", Scheme::Devanagari, Scheme::Iast), "kṛṣṇaḥ");
+    assert_eq!(lipika.transliterate("संस्कृतम्", Scheme::Devanagari, Scheme::Iast), "saṃskṛtam");
+    assert_eq!(lipika.transliterate("शान्तिः", Scheme::Devanagari, Scheme::Iast), "śāntiḥ");
+
+    // 3. Harvard-Kyoto -> Devanagari
+    assert_eq!(lipika.transliterate("dharmaH", Scheme::HarvardKyoto, Scheme::Devanagari), "धर्मः");
+    assert_eq!(lipika.transliterate("kRSNaH", Scheme::HarvardKyoto, Scheme::Devanagari), "कृष्णः");
+    assert_eq!(lipika.transliterate("saMskRtam", Scheme::HarvardKyoto, Scheme::Devanagari), "संस्कृतम्");
+    assert_eq!(lipika.transliterate("zAntiH", Scheme::HarvardKyoto, Scheme::Devanagari), "शान्तिः");
+    assert_eq!(lipika.transliterate("dharmakSetre", Scheme::HarvardKyoto, Scheme::Devanagari), "धर्मक्षेत्रे");
+
+    // 5. Brackets
+    assert_eq!(lipika.transliterate("《dharma》", Scheme::Iast, Scheme::Devanagari), "《धर्म》");
+    assert_eq!(lipika.transliterate("《धर्म》", Scheme::Devanagari, Scheme::Iast), "《dharma》");
+    assert_eq!(lipika.transliterate("⟪kṛṣṇa⟫", Scheme::Iast, Scheme::Devanagari), "⟪कृष्ण⟫");
+    assert_eq!(lipika.transliterate("⟪कृष्ण⟫", Scheme::Devanagari, Scheme::Iast), "⟪kṛṣṇa⟫");
+
+    // 6. Directives and IPC Impl helpers
+    use tauri_app_lib::{transliterate_sanskrit_impl, toggle_transliteration_impl};
+    assert_eq!(transliterate_sanskrit_impl(":sig[kṛṣṇaḥ]", "iast", "devanagari"), ":sig[कृष्णः]");
+    assert_eq!(transliterate_sanskrit_impl(":sig[कृष्णः]", "devanagari", "iast"), ":sig[kṛṣṇaḥ]");
+    assert_eq!(transliterate_sanskrit_impl("dharmaḥ :sig[kṛṣṇaḥ] śāntiḥ", "iast", "devanagari"), "धर्मः :sig[कृष्णः] शान्तिः");
+    assert_eq!(toggle_transliteration_impl("dharmaḥ", "iast"), "धर्मः");
+    assert_eq!(toggle_transliteration_impl("धर्मः", "iast"), "dharmaḥ");
+    assert_eq!(toggle_transliteration_impl("dharmakSetre", "hk"), "धर्मक्षेत्रे");
+    assert_eq!(toggle_transliteration_impl("धर्मक्षेत्रे", "hk"), "dharmakSetre");
 }

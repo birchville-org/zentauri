@@ -1,3 +1,33 @@
+# Release Notes — ZenTauri v1.6.0
+
+ZenTauri v1.6.0 introduces the dedicated **Dual PDF QA Mode** (Modus 3) for vector synchronous PDF comparison and proofing, deep file explorer integration for multi-document workflows, complete alignment with the strategic 3-Work-Modes architecture, consistent filename handling between tabs and tree views, and critical typing and input-handling hardening across the editor.
+
+## Fixes & Enhancements (v1.6.0)
+
+### 📄 Dual PDF QA Mode (Vector PDF Proofing Suite)
+* **Synchronized Dual PDF Viewer (`PdfDualViewer.vue`):** High-performance side-by-side vector PDF proofing suite rendering crisp vector graphics via `hayro_svg`. Supports both single-page flip layout and vertical continuous scroll view.
+* **Intelligent Scroll Synchronization:** Selectable lockstep sync modes: *Percentage (%)* for proportionally aligned scrolling across documents with different lengths, *Page (P)* for synchronized page-by-page stepping, or *Off* for independent exploration.
+* **Zoom & Pane Controls:** Interactive zoom scaling (40% to 250%), fit-to-width mode, document swap (SWAP), and fluid draggable split-pane divider.
+* **Keyboard Navigation Isolation:** Global shortcut stepper (`ArrowLeft`/`PageUp` and `ArrowRight`/`PageDown`/`Space`) strictly scoped to the active PDF viewer without interfering with CodeMirror text editing.
+
+### 📁 File Explorer & Workspace Integration
+* **Dedicated Open PDFs Section:** Added an "Open PDFs" group to the file explorer sidebar displaying loaded comparison slots (`[1] Ref` and `[2] Comp`), file names, directory badges, and direct actions (reveal in Finder, unload slot).
+* **Direct PDF File Opening:** Selecting or dragging any `.pdf` file in the workspace file tree automatically opens it in the Dual PDF QA viewer.
+* **Consistent Filename Display:** File tree nodes strictly render actual file names on disk (`node.name`) instead of replacing them with document H1 headings, ensuring 100% optical consistency with editor tabs.
+* **Real-Time Rename & Delete Synchronization:** Renaming or moving files in the explorer immediately updates matching open tabs (`path` and `title`). Deleting a file detaches the tab into a safe untitled buffer without discarding editor contents.
+
+### 🏛️ Strategic 3-Work-Modes Architecture Alignment
+* **Focused Mode Switcher:** Streamlined view navigation to the 3 canonical work modes: `Source (<>)`, `Split ([ | ])` with heading scroll synchronization, and `Dual PDF QA ([ 📄 ])`.
+* **Cleaned Native Menus:** Updated native macOS menu shortcuts (`Cmd+3` directly activates Dual PDF QA Mode) and archived legacy text-only reference comparison (`qa-2col`) into the backlog.
+* **Pure English App UI:** Standardized all UI components, buttons, tooltips, and status bar indicators to English, maintaining bilingual (DE/EN) editions for documentation and user guides.
+
+### 🔒 Code Integrity & Type Hardening
+* **Safe Auto-Repair Dispatch:** Corrected `auto_repair` menu handler to safely unwrap `AutoRepairResult.repaired` and set tab dirty state.
+* **Type-Safe Standalone HTML Export:** Synchronized `generateStandaloneHtml` options across Save As and export commands.
+* **Universal Portability:** Eliminated machine-specific absolute path references in session recovery fallback.
+
+---
+
 # Release Notes — ZenTauri v1.5.0
 
 ZenTauri v1.5.0 is a feature-rich minor release introducing a comprehensive formatting ribbon above the editor (`EditorRibbon.vue`), offline-ready standalone HTML export with embedded Birchville Scholarly Synthesis styles, multi-MIME HTML clipboard copy, Typst PDF export hardening for math variables and currencies, and a clean separation between view controls and export workflows.

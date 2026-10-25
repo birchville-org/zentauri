@@ -17,20 +17,36 @@ describe("QaReferencePane", () => {
     expect(wrapper.text()).toContain("SWAP");
   });
 
-  it("emits swap event when swap button is clicked", async () => {
-    const wrapper = mount(QaReferencePane, {
+  it("disables swap button when no file is loaded, and emits swap when file is loaded", async () => {
+    // 1. Without filePath -> disabled
+    const wrapperWithoutFile = mount(QaReferencePane, {
+      props: {
+        title: "Reference (Choose...)",
+        content: "# No file",
+        langCode: "de",
+      },
+    });
+    const disabledSwapBtn = wrapperWithoutFile.find('button[title*="SWAP"]');
+    expect(disabledSwapBtn.exists()).toBe(true);
+    expect(disabledSwapBtn.attributes("disabled")).toBeDefined();
+    await disabledSwapBtn.trigger("click");
+    expect(wrapperWithoutFile.emitted("swap")).toBeFalsy();
+
+    // 2. With filePath -> enabled
+    const wrapperWithFile = mount(QaReferencePane, {
       props: {
         title: "lektion01.md",
+        filePath: "/path/to/lektion01.md",
         content: "# Lektion 01",
         langCode: "de",
       },
     });
 
-    const swapBtn = wrapper.find('button[title*="SWAP"]');
+    const swapBtn = wrapperWithFile.find('button[title*="SWAP"]');
     expect(swapBtn.exists()).toBe(true);
+    expect(swapBtn.attributes("disabled")).toBeUndefined();
     await swapBtn.trigger("click");
-
-    expect(wrapper.emitted("swap")).toBeTruthy();
+    expect(wrapperWithFile.emitted("swap")).toBeTruthy();
   });
 
   it("toggles between rendered preview and raw text view", async () => {
@@ -41,9 +57,7 @@ describe("QaReferencePane", () => {
       },
     });
 
-    const rawBtn = wrapper
-      .findAll("button")
-      .find((b) => b.text() === "Quelltext");
+    const rawBtn = wrapper.findAll("button").find((b) => b.text() === "Source");
     expect(rawBtn).toBeDefined();
     await rawBtn?.trigger("click");
 

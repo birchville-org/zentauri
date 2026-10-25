@@ -722,6 +722,92 @@ async fn export_pdf(typst_markup: String, destination_path: String) -> Result<()
     .map_err(|e| e.to_string())?
 }
 
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
+pub struct PdfDocInfo {
+    pub page_count: usize,
+    pub file_name: String,
+    pub file_size: u64,
+}
+
+pub async fn get_pdf_info_impl(path: String) -> Result<PdfDocInfo, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let p = std::path::Path::new(&path);
+        if !p.exists() || !p.is_file() {
+            return Err("File does not exist or is not a regular file".to_string());
+        }
+        let metadata = std::fs::metadata(p).map_err(|e| format!("Cannot read file metadata: {}", e))?;
+        let data = std::fs::read(p).map_err(|e| format!("Failed to read PDF file: {}", e))?;
+        let pdf = hayro_syntax::Pdf::new(data).map_err(|e| format!("Failed to parse PDF: {:?}", e))?;
+        let page_count = pdf.pages().len();
+        let file_name = p
+            .file_name()
+            .map(|n| n.to_string_lossy().to_string())
+            .unwrap_or_else(|| "document.pdf".to_string());
+
+        Ok(PdfDocInfo {
+            page_count,
+            file_name,
+            file_size: metadata.len(),
+        })
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+async fn get_pdf_info(path: String) -> Result<PdfDocInfo, String> {
+    get_pdf_info_impl(path).await
+}
+
+pub fn scope_svg_ids(svg: &str, path: &str, page_index: usize) -> String {
+    use std::hash::{Hash, Hasher};
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    path.hash(&mut hasher);
+    let doc_hash = format!("{:06x}", hasher.finish() & 0xFFFFFF);
+    let prefix = format!("p{}_{}_", page_index, doc_hash);
+
+    let mut res = svg.replace("id=\"", &format!("id=\"{}", prefix));
+    // Replacing href="# handles both href="#" and xlink:href="#" without double-prefixing
+    res = res.replace("href=\"#", &format!("href=\"#{}", prefix));
+    res = res.replace("url(#", &format!("url(#{}", prefix));
+    res = res.replace("url('#", &format!("url('#{}", prefix));
+    res = res.replace("url(\"#", &format!("url(\"#{}", prefix));
+    res
+}
+
+pub async fn render_pdf_page_svg_impl(path: String, page_index: usize) -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let p = std::path::Path::new(&path);
+        if !p.exists() || !p.is_file() {
+            return Err("File does not exist".to_string());
+        }
+        let data = std::fs::read(p).map_err(|e| format!("Failed to read PDF file: {}", e))?;
+        let pdf = hayro_syntax::Pdf::new(data).map_err(|e| format!("Failed to parse PDF: {:?}", e))?;
+        let pages = pdf.pages();
+        let page = pages.get(page_index).ok_or_else(|| {
+            format!(
+                "Page {} not found (total pages: {})",
+                page_index + 1,
+                pages.len()
+            )
+        })?;
+
+        let cache = hayro_svg::RenderCache::new();
+        let interpreter_settings = hayro_interpret::InterpreterSettings::default();
+        let settings = hayro_svg::SvgRenderSettings::default();
+        let raw_svg = hayro_svg::convert(&page, &cache, &interpreter_settings, &settings);
+        let scoped_svg = scope_svg_ids(&raw_svg, &path, page_index);
+        Ok(scoped_svg)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+async fn render_pdf_page_svg(path: String, page_index: usize) -> Result<String, String> {
+    render_pdf_page_svg_impl(path, page_index).await
+}
+
 fn resolve_file_arg(arg: &str, cwd: Option<&std::path::Path>) -> Option<std::path::PathBuf> {
     if arg.starts_with('-')
         || arg.starts_with("http://")
@@ -743,6 +829,127 @@ fn resolve_file_arg(arg: &str, cwd: Option<&std::path::Path>) -> Option<std::pat
     };
 
     Some(abs_path)
+}
+
+use vidyut_lipi::{Lipika, Scheme};
+
+pub fn contains_devanagari_chars(text: &str) -> bool {
+    text.chars().any(|c| ('\u{0900}'..='\u{097F}').contains(&c))
+}
+
+fn map_scheme_name(name: &str) -> Option<Scheme> {
+    match name.to_lowercase().as_str() {
+        "iast" => Some(Scheme::Iast),
+        "devanagari" | "deva" => Some(Scheme::Devanagari),
+        "hk" | "harvardkyoto" | "harvard-kyoto" => Some(Scheme::HarvardKyoto),
+        _ => None,
+    }
+}
+
+pub fn transliterate_sanskrit_impl(text: &str, from_name: &str, to_name: &str) -> String {
+    let from = match map_scheme_name(from_name) {
+        Some(s) => s,
+        None => return text.to_string(),
+    };
+    let to = match map_scheme_name(to_name) {
+        Some(s) => s,
+        None => return text.to_string(),
+    };
+
+    if from == to || text.is_empty() {
+        return text.to_string();
+    }
+
+    let normalized = if from == Scheme::Iast {
+        text.replace('ṁ', "ṃ").replace('Ṁ', "Ṃ")
+    } else {
+        text.to_string()
+    };
+
+    let mut lipika = Lipika::new();
+    if !normalized.contains(":sig[") && !normalized.contains(":mark[") {
+        return lipika.transliterate(&normalized, from, to);
+    }
+
+    let Ok(re) = regex::Regex::new(r"(:sig\[[\s\S]*?\]|:mark\[[\s\S]*?\])") else {
+        return lipika.transliterate(&normalized, from, to);
+    };
+
+    let mut result = String::with_capacity(normalized.len());
+    let mut last_end = 0;
+
+    for mat in re.find_iter(&normalized) {
+        if mat.start() > last_end {
+            let chunk = &normalized[last_end..mat.start()];
+            result.push_str(&lipika.transliterate(chunk, from, to));
+        }
+        let matched = mat.as_str();
+        if let Some(inner) = matched.strip_prefix(":sig[").and_then(|s| s.strip_suffix(']')) {
+            result.push_str(":sig[");
+            result.push_str(&lipika.transliterate(inner, from, to));
+            result.push(']');
+        } else if let Some(inner) = matched.strip_prefix(":mark[").and_then(|s| s.strip_suffix(']')) {
+            result.push_str(":mark[");
+            result.push_str(&lipika.transliterate(inner, from, to));
+            result.push(']');
+        } else {
+            result.push_str(matched);
+        }
+        last_end = mat.end();
+    }
+
+    if last_end < normalized.len() {
+        let chunk = &normalized[last_end..];
+        result.push_str(&lipika.transliterate(chunk, from, to));
+    }
+
+    result
+}
+
+pub fn toggle_transliteration_impl(text: &str, scheme: &str) -> String {
+    let target = if scheme.eq_ignore_ascii_case("hk") {
+        "hk"
+    } else {
+        "iast"
+    };
+
+    if contains_devanagari_chars(text) {
+        transliterate_sanskrit_impl(text, "devanagari", target)
+    } else {
+        transliterate_sanskrit_impl(text, target, "devanagari")
+    }
+}
+
+#[tauri::command]
+fn transliterate_sanskrit(text: String, from: String, to: String) -> String {
+    transliterate_sanskrit_impl(&text, &from, &to)
+}
+
+#[tauri::command]
+fn toggle_transliteration_scheme(text: String, scheme: String) -> String {
+    toggle_transliteration_impl(&text, &scheme)
+}
+
+static IS_QUITTING: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+#[tauri::command]
+fn exit_app(app: tauri::AppHandle) {
+    IS_QUITTING.store(true, std::sync::atomic::Ordering::SeqCst);
+    app.exit(0);
+}
+
+fn trigger_graceful_quit(app_handle: &tauri::AppHandle) {
+    IS_QUITTING.store(true, std::sync::atomic::Ordering::SeqCst);
+    let handle = app_handle.clone();
+    if let Some(window) = app_handle.get_webview_window("main") {
+        let _ = window.emit("request-app-quit", ());
+        std::thread::spawn(move || {
+            std::thread::sleep(std::time::Duration::from_millis(600));
+            handle.exit(0);
+        });
+    } else {
+        handle.exit(0);
+    }
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -788,7 +995,12 @@ pub fn run() {
             get_knowledge_graph,
             get_app_cwd,
             is_directory_path,
-            watch_workspaces
+            watch_workspaces,
+            get_pdf_info,
+            render_pdf_page_svg,
+            exit_app,
+            transliterate_sanskrit,
+            toggle_transliteration_scheme
         ])
         .setup(|app| {
             // Process initial CLI args on launch
@@ -819,10 +1031,12 @@ pub fn run() {
                     &MenuItem::with_id(app, "save", "Save", true, Some("CmdOrCtrl+S"))?,
                     &MenuItem::with_id(app, "save_as", "Save As...", true, Some("CmdOrCtrl+Shift+S"))?,
                     &PredefinedMenuItem::separator(app)?,
-                    &MenuItem::with_id(app, "print", "Print...", true, Some("CmdOrCtrl+P"))?,
+                    &MenuItem::with_id(app, "export_pdf", "Export PDF via Typst...", true, Some("CmdOrCtrl+P"))?,
+                    &MenuItem::with_id(app, "export_html", "Export Standalone HTML...", true, Some("CmdOrCtrl+Shift+H"))?,
+                    &MenuItem::with_id(app, "copy_html", "Copy HTML to Clipboard", true, None::<String>)?,
                     &PredefinedMenuItem::separator(app)?,
                     #[cfg(not(target_os = "macos"))]
-                    &PredefinedMenuItem::quit(app, Some("Quit"))?,
+                    &MenuItem::with_id(app, "quit_app", "Quit", true, Some("CmdOrCtrl+Q"))?,
                     #[cfg(target_os = "macos")]
                     &PredefinedMenuItem::close_window(app, Some("Close Window"))?,
                 ],
@@ -841,6 +1055,10 @@ pub fn run() {
                     &PredefinedMenuItem::copy(app, None)?,
                     &PredefinedMenuItem::paste(app, None)?,
                     &PredefinedMenuItem::select_all(app, None)?,
+                    &PredefinedMenuItem::separator(app)?,
+                    &MenuItem::with_id(app, "transliterate_devanagari", "Transliterate IAST ⇄ Devanāgarī", true, Some("CmdOrCtrl+Alt+D"))?,
+                    &MenuItem::with_id(app, "transliterate_hk", "Transliterate Harvard-Kyoto ⇄ Devanāgarī", true, Some("CmdOrCtrl+Alt+H"))?,
+                    &MenuItem::with_id(app, "auto_repair", "Auto-Repair Typography & Dandas", true, None::<String>)?,
                 ],
             )?;
 
@@ -850,6 +1068,19 @@ pub fn run() {
                 "View",
                 true,
                 &[
+                    &MenuItem::with_id(app, "view_source", "Source Mode", true, Some("CmdOrCtrl+1"))?,
+                    &MenuItem::with_id(app, "view_split", "Split Mode (Editor + Preview)", true, Some("CmdOrCtrl+2"))?,
+                    &MenuItem::with_id(app, "view_pdf_qa", "Dual PDF QA Mode", true, Some("CmdOrCtrl+3"))?,
+                    &PredefinedMenuItem::separator(app)?,
+                    &MenuItem::with_id(app, "toggle_sync_scroll", "Toggle Scroll Synchronization", true, None::<String>)?,
+                    &PredefinedMenuItem::separator(app)?,
+                    &MenuItem::with_id(app, "toggle_theme", "Toggle Dark/Light Mode", true, Some("CmdOrCtrl+Shift+T"))?,
+                    &MenuItem::with_id(app, "toggle_vim", "Toggle Vim Mode", true, None::<String>)?,
+                    &PredefinedMenuItem::separator(app)?,
+                    &MenuItem::with_id(app, "toggle_explorer", "Toggle File Explorer", true, Some("CmdOrCtrl+Shift+E"))?,
+                    &MenuItem::with_id(app, "toggle_search", "Toggle Search", true, Some("CmdOrCtrl+Shift+F"))?,
+                    &MenuItem::with_id(app, "toggle_cheatsheet", "Toggle Markdown Cheatsheet", true, None::<String>)?,
+                    &PredefinedMenuItem::separator(app)?,
                     &PredefinedMenuItem::fullscreen(app, None)?,
                 ],
             )?;
@@ -880,13 +1111,16 @@ pub fn run() {
             let app_menu = Submenu::with_items(app, "Zentauri", true, &[
                 &PredefinedMenuItem::about(app, None, Some(about_metadata))?,
                 &PredefinedMenuItem::separator(app)?,
+                &MenuItem::with_id(app, "open_settings", "Settings...", true, Some("CmdOrCtrl+,"))?,
+                &MenuItem::with_id(app, "check_updates", "Check for Updates...", true, None::<String>)?,
+                &PredefinedMenuItem::separator(app)?,
                 &PredefinedMenuItem::services(app, None)?,
                 &PredefinedMenuItem::separator(app)?,
                 &PredefinedMenuItem::hide(app, None)?,
                 &PredefinedMenuItem::hide_others(app, None)?,
                 &PredefinedMenuItem::show_all(app, None)?,
                 &PredefinedMenuItem::separator(app)?,
-                &PredefinedMenuItem::quit(app, None)?,
+                &MenuItem::with_id(app, "quit_app", "Quit Zentauri", true, Some("CmdOrCtrl+Q"))?,
             ])?;
 
             #[cfg(target_os = "macos")]
@@ -904,8 +1138,37 @@ pub fn run() {
             app.on_menu_event(move |app_handle, event| {
                 let id = event.id().0.as_str();
                 match id {
-                    "new_file" | "new_folder" | "open_file" | "open_folder" | "close_folder" | "save" | "save_as" | "print" => {
+                    "new_file"
+                    | "new_folder"
+                    | "open_file"
+                    | "open_folder"
+                    | "close_folder"
+                    | "save"
+                    | "save_as"
+                    | "print"
+                    | "export_pdf"
+                    | "export_html"
+                    | "copy_html"
+                    | "transliterate_devanagari"
+                    | "transliterate_hk"
+                    | "auto_repair"
+                    | "view_source"
+                    | "view_split"
+                    | "view_qa"
+                    | "view_pdf_qa"
+                    | "toggle_sync_scroll"
+                    | "swap_documents"
+                    | "toggle_theme"
+                    | "toggle_vim"
+                    | "toggle_explorer"
+                    | "toggle_search"
+                    | "toggle_cheatsheet"
+                    | "open_settings"
+                    | "check_updates" => {
                         let _ = app_handle.emit("menu-event", id);
+                    }
+                    "quit_app" => {
+                        trigger_graceful_quit(app_handle);
                     }
                     _ => {}
                 }
@@ -939,11 +1202,7 @@ pub fn run() {
                             }
                         }
                         "quit_tray" => {
-                            if let Some(window) = app_handle.get_webview_window("main") {
-                                let _ = window.emit("request-app-quit", ());
-                            } else {
-                                app_handle.exit(0);
-                            }
+                            trigger_graceful_quit(app_handle);
                         }
                         _ => {}
                     }
@@ -952,17 +1211,22 @@ pub fn run() {
 
             Ok(())
         })
-        .on_window_event(|_window, _event| {
+        .on_window_event(|window, event| {
             #[cfg(target_os = "macos")]
-            if let tauri::WindowEvent::CloseRequested { api, .. } = _event {
-                api.prevent_close();
-                let _ = _window.hide();
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                if !IS_QUITTING.load(std::sync::atomic::Ordering::SeqCst) {
+                    api.prevent_close();
+                    let _ = window.hide();
+                }
             }
         })
         .build(tauri::generate_context!())
         .expect("error while building tauri application");
 
     app.run(|_app_handle, event| match event {
+        tauri::RunEvent::ExitRequested { .. } => {
+            IS_QUITTING.store(true, std::sync::atomic::Ordering::SeqCst);
+        }
         #[cfg(target_os = "macos")]
         tauri::RunEvent::Opened { urls } => {
             for url in urls {

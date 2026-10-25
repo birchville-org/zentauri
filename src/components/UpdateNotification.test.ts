@@ -53,7 +53,7 @@ describe("UpdateNotification Component", () => {
 
     expect(wrapper.find("[role='alert']").exists()).toBe(true);
     expect(wrapper.text()).toContain("v1.2.0");
-    expect(wrapper.text()).toContain("Was ist neu in v1.2.0?");
+    expect(wrapper.text()).toContain("What's new in v1.2.0?");
 
     // Release notes should initially be collapsed
     expect(wrapper.find(".release-notes-content").exists()).toBe(false);
@@ -94,7 +94,7 @@ describe("UpdateNotification Component", () => {
 
     expect(wrapper.find("[role='alert']").exists()).toBe(true);
 
-    const closeBtn = wrapper.find("button[title='Schließen']");
+    const closeBtn = wrapper.find("button[title='Close']");
     await closeBtn.trigger("click");
     await wrapper.vm.$nextTick();
 
@@ -150,7 +150,7 @@ describe("UpdateNotification Component", () => {
 
     const installBtn = wrapper
       .findAll("button")
-      .find((b) => b.text().includes("Jetzt aktualisieren"));
+      .find((b) => b.text().includes("Update & Restart"));
     expect(installBtn).toBeDefined();
     await installBtn!.trigger("click");
     await wrapper.vm.$nextTick();
@@ -159,12 +159,68 @@ describe("UpdateNotification Component", () => {
 
     const manualFallbackBtn = wrapper
       .findAll("button")
-      .find((b) => b.text().includes("Manuell im Browser herunterladen"));
+      .find((b) => b.text().includes("Download manually in browser"));
     expect(manualFallbackBtn).toBeDefined();
     await manualFallbackBtn!.trigger("click");
 
     expect(mockOpenReleasePage).toHaveBeenCalledWith(
       "https://github.com/birchville-org/zentauri/releases/tag/v1.3.4",
     );
+  });
+
+  it("handles active check when up-to-date and displays current version release notes", async () => {
+    mockCheckForUpdates.mockResolvedValue({
+      available: false,
+    });
+
+    const wrapper = mount(UpdateNotification);
+    await (
+      wrapper.vm as unknown as {
+        openCheck: (force?: boolean) => Promise<void>;
+      }
+    ).openCheck(true);
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.find("[role='alert']").exists()).toBe(true);
+    expect(wrapper.text()).toContain("ZenTauri is up to date");
+    expect(wrapper.text()).toContain("Release Notes (Installed version");
+
+    // The release notes for current version should be rendered
+    const notesContainer = wrapper.find(".release-notes-content");
+    expect(notesContainer.exists()).toBe(true);
+    expect(notesContainer.text().length).toBeGreaterThan(20);
+
+    // Clicking Close closes the dialog
+    const closeBtn = wrapper
+      .findAll("button")
+      .find((b) => b.text().trim() === "Close");
+    expect(closeBtn).toBeDefined();
+    await closeBtn!.trigger("click");
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.find("[role='alert']").exists()).toBe(false);
+  });
+
+  it("handles active check with error and provides retry button", async () => {
+    mockCheckForUpdates.mockResolvedValue({
+      available: false,
+      error: "GitHub API rate limit exceeded",
+    });
+
+    const wrapper = mount(UpdateNotification);
+    await (
+      wrapper.vm as unknown as {
+        openCheck: (force?: boolean) => Promise<void>;
+      }
+    ).openCheck(true);
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.text()).toContain("Update check failed");
+    expect(wrapper.text()).toContain("GitHub API rate limit exceeded");
+
+    const retryBtn = wrapper
+      .findAll("button")
+      .find((b) => b.text().includes("Retry"));
+    expect(retryBtn).toBeDefined();
   });
 });

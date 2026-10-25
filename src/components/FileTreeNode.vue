@@ -492,8 +492,8 @@ async function refresh() {
     <div 
       class="flex items-center py-1.5 px-2 cursor-pointer hover:bg-app-bg-hover transition-all rounded-md my-0.5 whitespace-nowrap min-w-full w-max"
       :class="{ 
-        'bg-app-bg-active text-blue-500 font-medium': activePath === node.path,
-        'ring-2 ring-blue-500 bg-blue-500/15': isDragOver 
+        'bg-app-bg-active text-amber-600 dark:text-amber-400 font-medium': activePath === node.path,
+        'ring-2 ring-amber-500 bg-amber-500/15': isDragOver 
       }"
       :style="{ paddingLeft: (depth * 0.85 + 0.5) + 'rem' }"
       @click="onClick"
@@ -522,7 +522,7 @@ async function refresh() {
         <template v-else>
           <div class="w-[18px] mr-1.5 inline-block"></div>
           <!-- Markdown Icon -->
-          <svg v-if="fileIconType === 'markdown'" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-400">
+          <svg v-if="fileIconType === 'markdown'" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-amber-600 dark:text-amber-400">
             <path d="M12 20h9"/>
             <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>
           </svg>
@@ -564,8 +564,12 @@ async function refresh() {
         class="text-sm px-1 py-0.5 bg-app-bg border border-blue-500 rounded text-app-text focus:outline-none min-w-[140px]"
       />
       <div v-else class="flex flex-col min-w-0 pr-4">
-        <span class="text-sm select-none text-app-text whitespace-nowrap" :class="{ 'text-app-text-muted': !isMarkdown && !node.isDirectory }">
-          {{ node.title || node.name }}
+        <span 
+          class="text-sm select-none text-app-text whitespace-nowrap" 
+          :class="{ 'text-app-text-muted': !isMarkdown && !node.isDirectory }"
+          :title="node.title ? `${node.name} — ${node.title}` : node.name"
+        >
+          {{ node.name }}
         </span>
         <div v-if="node.iast || node.devanagari" class="flex gap-1.5 mt-0.5 whitespace-nowrap">
           <span v-if="node.devanagari" class="text-[9px] px-1 py-0.5 rounded bg-app-border/40 text-app-text-muted font-serif shrink-0">

@@ -4,6 +4,16 @@ title: Release Notes
 
 # 🚀 Zentauri Release Notes
 
+### ZenTauri v1.6.0
+- **Dual PDF QA Mode (Modus 3):** Integrated side-by-side vector PDF proofing suite (`PdfDualViewer.vue`) powered by `hayro_svg` with percentage and page-lockstep scroll synchronization, continuous scroll vs. single-page flip mode, zoom scaling, and document swap.
+- **File Explorer Open PDFs Group:** Added dedicated comparison slot management (`[1] Ref`, `[2] Comp`) with quick-reveal, slot unload, and automatic activation when clicking `.pdf` files.
+- **Consistent Filename Display:** Replaced H1 heading substitution in the file explorer with real disk filenames (`node.name`), matching editor tabs exactly.
+- **Bidirectional Explorer Synchronization:** Renaming or deleting files in the workspace tree immediately synchronizes open editor tabs and detaches deleted files safely into untitled buffers.
+- **Strategic 3-Work-Modes Toolbar:** Streamlined view navigation to `Source`, `Split`, and `Dual PDF QA`, archiving legacy text-reference QA into the backlog.
+- **Type Safety & Portability Hardening:** Fixed auto-repair markdown mutation, typed HTML export options, isolated global keyboard listeners, and eliminated hardcoded machine paths.
+
+---
+
 ### ZenTauri v1.5.0
 - **Dedicated Editor Formatting Ribbon:** Added an interactive editor ribbon (`EditorRibbon.vue`) providing direct tool groups for headings (H1-H3), typography (bold, italic, strike, inline code), structure (lists, tables, quotes), scholarly callouts (`grammar-box`, `warning-box`, `verse-box`, `note-box`), Sanskrit citation markers (`《...》`), signal highlights, and KaTeX math.
 - **Syntax Catalog Dropdown & Transliteration Toggles:** Integrated categorized dropdown select for full cheatsheet access alongside quick-toggle buttons for IAST and Harvard-Kyoto transliteration.

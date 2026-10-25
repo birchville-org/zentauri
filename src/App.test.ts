@@ -79,10 +79,10 @@ describe("App Component Integration", () => {
 
     const vimBtn = wrapper.find("button[aria-label='Vim Mode']");
     expect(vimBtn.exists()).toBe(true);
-    expect(vimBtn.attributes("title")).toBe("Vim-Modus: Inaktiv");
+    expect(vimBtn.attributes("title")).toBe("Vim Mode: Inactive");
 
     await vimBtn.trigger("click");
-    expect(vimBtn.attributes("title")).toBe("Vim-Modus: Aktiv");
+    expect(vimBtn.attributes("title")).toBe("Vim Mode: Active");
   });
 
   it("enforces maximum width constraint of 480px on sidebar container", () => {

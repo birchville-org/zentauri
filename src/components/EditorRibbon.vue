@@ -29,36 +29,36 @@ const typographyActions = [
     label: "B",
     before: "**",
     after: "**",
-    desc: "Fett (Bold)",
+    desc: "Bold (**)",
     class: "font-bold font-serif text-sm",
   },
   {
     label: "I",
     before: "*",
     after: "*",
-    desc: "Kursiv (Italic)",
+    desc: "Italic (*)",
     class: "italic font-serif text-sm",
   },
   {
     label: "S",
     before: "~~",
     after: "~~",
-    desc: "Durchgestrichen (Strikethrough)",
+    desc: "Strikethrough (~~)",
     class: "line-through text-xs font-mono",
   },
   {
     label: "`c`",
     before: "`",
     after: "`",
-    desc: "Inline-Code",
+    desc: "Inline Code (`)",
     class: "font-mono text-xs px-1",
   },
 ];
 
 const headingActions = [
-  { label: "H1", before: "# ", after: "", desc: "Überschrift 1" },
-  { label: "H2", before: "## ", after: "", desc: "Überschrift 2" },
-  { label: "H3", before: "### ", after: "", desc: "Überschrift 3" },
+  { label: "H1", before: "# ", after: "", desc: "Heading 1 (#)" },
+  { label: "H2", before: "## ", after: "", desc: "Heading 2 (##)" },
+  { label: "H3", before: "### ", after: "", desc: "Heading 3 (###)" },
 ];
 
 const boxSnippets = [
@@ -151,8 +151,8 @@ const boxSnippets = [
         <!-- Bullet List -->
         <button
           type="button"
-          @click="insert('\n- ', '', 'List', 'Aufzählungsliste (-)')"
-          title="Aufzählungsliste (-)"
+          @click="insert('\n- ', '', 'List', 'Bullet List (-)')"
+          title="Bullet List (-)"
           class="h-6 w-6 rounded hover:bg-app-bg-hover text-app-text flex items-center justify-center transition-colors"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -168,8 +168,8 @@ const boxSnippets = [
         <!-- Numbered List -->
         <button
           type="button"
-          @click="insert('\n1. ', '', 'Numbered List', 'Nummerierte Liste (1.)')"
-          title="Nummerierte Liste (1.)"
+          @click="insert('\n1. ', '', 'Numbered List', 'Numbered List (1.)')"
+          title="Numbered List (1.)"
           class="h-6 w-6 rounded hover:bg-app-bg-hover text-app-text flex items-center justify-center transition-colors font-mono font-bold text-[11px]"
         >
           1.
@@ -178,8 +178,8 @@ const boxSnippets = [
         <!-- Task List -->
         <button
           type="button"
-          @click="insert('\n- [ ] ', '', 'Task', 'Aufgabenliste (- [ ])')"
-          title="Aufgabenliste (- [ ])"
+          @click="insert('\n- [ ] ', '', 'Task', 'Task List (- [ ])')"
+          title="Task List (- [ ])"
           class="h-6 w-6 rounded hover:bg-app-bg-hover text-app-text flex items-center justify-center transition-colors"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -191,8 +191,8 @@ const boxSnippets = [
         <!-- Table -->
         <button
           type="button"
-          @click="insert('\n| Header 1 | Header 2 |\n|---|---|\n| Cell 1 | Cell 2 |\n', '', 'Table', 'Tabelle')"
-          title="Tabelle (| Spalte 1 | Spalte 2 |)"
+          @click="insert('\n| Header 1 | Header 2 |\n|---|---|\n| Cell 1 | Cell 2 |\n', '', 'Table', 'Table')"
+          title="Table (| Column 1 | Column 2 |)"
           class="h-6 w-6 rounded hover:bg-app-bg-hover text-app-text flex items-center justify-center transition-colors"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -227,24 +227,24 @@ const boxSnippets = [
         <div class="flex items-center gap-0.5 bg-app-bg rounded p-0.5 border border-app-border/60">
           <button
             type="button"
-            @click="insert('《', '》', '《Skt》', 'Sanskrit-Zitate (《...》)')"
-            title="Sanskrit-Klammern (《...》)"
+            @click="insert('《', '》', '《Skt》', 'Sanskrit Citation (《...》)')"
+            title="Sanskrit Chevron (《...》)"
             class="h-6 px-1.5 rounded hover:bg-app-bg-hover text-red-600 dark:text-red-400 font-bold text-xs transition-colors"
           >
             《Skt》
           </button>
           <button
             type="button"
-            @click="insert(':sig[', ']', ':sig', 'Signalrot-Highlight')"
-            title="Signalrot-Highlight (:sig[...])"
+            @click="insert(':sig[', ']', ':sig', 'Signal Highlight')"
+            title="Signal Red Highlight (:sig[...])"
             class="h-6 px-1 rounded hover:bg-app-bg-hover text-red-600 dark:text-red-400 font-mono text-[11px] transition-colors"
           >
             :sig
           </button>
           <button
             type="button"
-            @click="insert('$', '$', '$Math$', 'KaTeX Inline-Formel ($...$)')"
-            title="KaTeX Formel ($...$)"
+            @click="insert('$', '$', '$Math$', 'KaTeX Inline Math ($...$)')"
+            title="KaTeX Math Formula ($...$)"
             class="h-6 px-1.5 rounded hover:bg-app-bg-hover text-emerald-600 dark:text-emerald-400 font-mono font-semibold text-xs transition-colors"
           >
             $x$
@@ -258,10 +258,10 @@ const boxSnippets = [
       <div class="flex items-center shrink-0 min-w-[170px] max-w-[240px]">
         <select
           @change="handleSelectSnippet"
-          title="Vollständige Syntax-Referenz (Cheat Sheet)"
+          title="Complete Syntax Reference Catalog"
           class="w-full bg-app-bg text-app-text text-[11px] border border-app-border/80 rounded px-2 py-0.5 focus:outline-none focus:border-amber-500 cursor-pointer font-sans shadow-2xs h-6"
         >
-          <option value="" disabled selected>-- Syntax-Katalog --</option>
+          <option value="" disabled selected>-- Syntax Catalog --</option>
           <optgroup v-for="cat in CHEAT_SHEET" :key="cat.id" :label="cat.title">
             <option
               v-for="item in cat.items"
@@ -280,7 +280,7 @@ const boxSnippets = [
       <button
         type="button"
         @click="$emit('toggle-transliteration', 'iast')"
-        title="IAST ⇄ Devanāgarī Umschalter (Cmd+Alt+D / F4)"
+        title="IAST ⇄ Devanāgarī Toggle (Cmd+Alt+D / F4)"
         class="flex items-center gap-1 h-6 px-2 rounded bg-app-bg hover:bg-app-bg-hover border border-app-border/80 text-[11px] font-mono transition-colors whitespace-nowrap cursor-pointer shadow-2xs active:scale-95 text-app-text"
       >
         <span class="text-amber-600 dark:text-amber-400 font-semibold">IAST</span>
@@ -292,7 +292,7 @@ const boxSnippets = [
       <button
         type="button"
         @click="$emit('toggle-transliteration', 'hk')"
-        title="Harvard-Kyoto ⇄ Devanāgarī Umschalter (Cmd+Alt+H / Shift+F4)"
+        title="Harvard-Kyoto ⇄ Devanāgarī Toggle (Cmd+Alt+H / Shift+F4)"
         class="flex items-center gap-1 h-6 px-2 rounded bg-app-bg hover:bg-app-bg-hover border border-app-border/80 text-[11px] font-mono transition-colors whitespace-nowrap cursor-pointer shadow-2xs active:scale-95 text-app-text"
       >
         <span class="text-emerald-600 dark:text-emerald-400 font-semibold">HK</span>

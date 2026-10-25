@@ -24,6 +24,11 @@ describe("htmlExporter", () => {
 
       expect(html).toContain("<!DOCTYPE html>");
       expect(html).toContain('<html lang="de" data-theme="payer-day">');
+      expect(html).toContain('<meta name="color-scheme" content="light dark">');
+      expect(html).toContain('http-equiv="Content-Security-Policy"');
+      expect(html).toContain("color-scheme: light;");
+      expect(html).toContain("text-wrap: balance;");
+      expect(html).toContain("text-wrap: pretty;");
       expect(html).toContain("<title>My Custom Doc</title>");
       expect(html).toContain('<main class="standalone-container vp-doc">');
       expect(html).toContain("<h1");
@@ -32,17 +37,29 @@ describe("htmlExporter", () => {
       expect(html).toContain(".katex");
     });
 
-    it("supports dark theme and marks class dark with data-theme payer-night", () => {
+    it("supports custom lang attribute and dark theme color scheme", () => {
       const html = generateStandaloneHtml("# Dark Mode", {
         title: "Dark Doc",
         theme: "dark",
+        lang: "en",
       });
 
       expect(html).toContain(
-        '<html lang="de" data-theme="payer-night" class="dark">',
+        '<html lang="en" data-theme="payer-night" class="dark">',
       );
       expect(html).toContain("<title>Dark Doc</title>");
+      expect(html).toContain("color-scheme: dark;");
       expect(html).toContain("--vp-c-bg: #0a1628;");
+    });
+
+    it("incorporates modern web guidance for accessible codeblocks and lazy images", () => {
+      const markdown =
+        "```js\nconsole.log(42);\n```\n\n![Illustration](https://example.com/pic.png)";
+      const html = generateStandaloneHtml(markdown);
+
+      expect(html).toContain('<pre tabindex="0"');
+      expect(html).toContain('loading="lazy"');
+      expect(html).toContain('decoding="async"');
     });
   });
 

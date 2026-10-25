@@ -1,6 +1,22 @@
-# Zentauri Feature Backlog
+# Zentauri Feature Backlog & Architektur-Vision
 
-Dieses Dokument erfasst geplante, zurückgestellte oder zukünftige Ausbau-Features für den ZenTauri-Editor.
+Dieses Dokument erfasst die strategische Zielarchitektur und zukünftige Ausbau-Features für Zentauri als integrierte **Philologische Editions- und Proofing-Workbench**.
+
+---
+
+## 🏛️ Strategische Zielarchitektur: Das 3-Work-Modes Modell
+
+Zentauri gliedert sich in drei klar abgegrenzte, zuschaltbare Arbeitsmodi in der ActivityBar. Alle Modi teilen sich denselben nativen Rust/Tauri-Unterbau (Dateiverwaltung, `hayro_svg` Vektor-Rendering, Sanskrit-Fontstacks, Transliteration):
+
+1. **Modus 1: Markdown Authoring (Aktiv)**
+   - Fokussiertes Schreiben von Lektionen (Payer-Kurs), Notizen und philologischen Essays.
+   - CodeMirror 6, KaTeX, Sanskrit-Live-IME, Typst-PDF-Export.
+2. **Modus 2: Synoptische Edition & Master-JSON (Geplant)**
+   - Segmentierte Bearbeitung alter gescannter Ausgaben (`book.json` / AST-Gliederung wie im Projekt `brhadaranyaka`).
+   - Split-Pane: Scan-PDF links ⇄ strukturierter, feldorientierter JSON-Editor rechts.
+3. **Modus 3: Dual PDF QA & Proofing (In Konzeption / Backlog)**
+   - 2-spaltiger Vektor-PDF-Vergleich (Original vs. Neusatz).
+   - Visuelle Bounding-Box-Annotationen, 1-Klick-Clipboard-Prompt für KIs und annotierter PDF-Export.
 
 ---
 
@@ -33,24 +49,26 @@ Um den Editor so schlank, fokussiert und ressourceneffizient wie möglich zu hal
 
 ---
 
-## 3. Übersetzungs- & QA-Vergleichsmodus (Dual-Document View & Heading-Sync)
+## 3. Übersetzungs- & Text-QA-Vergleichsmodus (Dual-Document View & Heading-Sync)
 
-- **Status:** Implementiert (v1.2.0)
-- **Komponenten:** `src/components/QaReferencePane.vue`, `src/lib/heading-sync.ts`, `src/lib/language-detector.ts`, `src/App.vue`, `src/components/StatusBar.vue`
+- **Status:** Backlog (in v1.3.0 aus der aktiven UI ausgeblendet zur Fokussierung auf die 3 Kern-Work-Modes)
+- **Komponenten:** `src/components/QaReferencePane.vue`, `src/lib/heading-sync.ts`, `src/lib/language-detector.ts`
 
 ### Hintergrund & Motivation
-Im Payer-Projekt existiert im `qa_viewer.html` ein bewährter Side-by-Side-Modus für Lektoren und Übersetzer. Dieser erlaubt es, zwei Dokumente parallel nebeneinander zu öffnen (z.B. Deutsches Original als Referenz und Zielsprache im Editor), um Übersetzungen und Korpora synchron zu prüfen.
+Im Payer-Projekt existiert im `qa_viewer.html` ein bewährter Side-by-Side-Modus für Lektoren und Übersetzer. Dieser erlaubt es, zwei Dokumente parallel nebeneinander zu öffnen (z. B. deutsches Original als Referenz und Zielsprache im Editor), um Übersetzungen synchron zu prüfen.
 
-### Geplante Funktionen & Ausbaustufen:
+In Zentauri ist das primäre QA-Proofing-Konzept jedoch für Modus 3 (**Dual PDF QA & Proofing**) reserviert (visueller Vektor-PDF-Vergleich Originalscan vs. Neusatz). Um Feature-Creep und redundante Vergleiche im Kern-Markdown-Editor zu vermeiden, wurde die Text-Reference-Funktion (`qa-2col`, SWAP-Button, Referenzspalte) aus der aktiven Menü- und Toolbar-Oberfläche ausgeblendet. Die zugrundeliegenden Komponenten (`QaReferencePane.vue`) und Algorithmen (`heading-sync.ts`) bleiben modular im Repository erhalten und können bei Bedarf für spezialisierte Korpus-Vergleiche reaktiviert werden.
+
+### Geplante Funktionen & Ausbaustufen bei Wiederaufnahme:
 1. **Dual-Pane Dokumentenansicht (2-Col / 3-Col Layout):**
-   - Paralleles Laden zweier Markdown-Dateien im Workspace (z.B. Referenzdatei links schreibgeschützt oder gerendert, Zieldatei rechts im CodeMirror-Editor).
+   - Paralleles Laden zweier Markdown-Dateien im Workspace (z. B. Referenzdatei links schreibgeschützt oder gerendert, Zieldatei rechts im CodeMirror-Editor).
    - Flexible Umschaltung: 2-Spalten-Vergleich (Original vs. Editor), 3-Spalten-Vergleich (Original, Editor, Live-Vorschau) sowie SWAP-Button zum Seitentausch.
 2. **Kapitel- & Überschriften-basiertes Synchron-Scrollen (Heading-Matching):**
    - Intelligente Scroll-Synchronisation basierend auf übereinstimmenden Markdown-Headings (`#`, `##`, `###`) statt reinem Pixel-/Prozent-Scrollen.
-   - Verhindert Desynchronisation bei unterschiedlich langen Sprachfassungen (z.B. Deutsch vs. Sanskrit/Englisch).
+   - Verhindert Desynchronisation bei unterschiedlich langen Sprachfassungen (z. B. Deutsch vs. Sanskrit/Englisch).
    - Wählbare Modi: *Sync: Header*, *Sync: Percentage*, *Sync: Off*.
 3. **Parallele Workspace-Sprachnavigation:**
-   - Schnellauswahl paralleler Dateien bei mehrsprachigen Korpora (z.B. automatische Zuordnung korrespondierender Sprachpfade wie `de/lektion01.md` ↔ `en/lektion01.md`).
+   - Schnellauswahl paralleler Dateien bei mehrsprachigen Korpora (z. B. automatische Zuordnung korrespondierender Sprachpfade wie `de/lektion01.md` ↔ `en/lektion01.md`).
 
 ---
 
@@ -74,6 +92,100 @@ Ein reines OS-Tastaturlayout zwingt zu ständigen Unterbrechungen des Schreibflu
 
 > [!NOTE]
 > **Kompatibilität mit OS-Tastaturlayouts:** Das Hybridkonzept schränkt installierte OS-Layouts (z. B. EasyUnicode, Mac Option-IAST) in keiner Weise ein. Da Stufe 1 als Zielformat IAST nutzt, werden vom Betriebssystem gesendete IAST-Unicode-Zeichen nativ und unverändert in den Editor übernommen. Stufe 2 dient rein als optionale Unterstützung für Autoren ohne installiertes OS-Layout und bleibt jederzeit abschaltbar.
+
+---
+
+## 5. PDF-Vergleich: Visuelle Annotationen & KI-Korrektur-Bridge (Dual PDF QA)
+
+- **Status:** Backlog / Konzipiert (Diskussionsstand Oktober 2026)
+- **Komponenten:** `src/components/PdfDualViewer.vue`, `src-tauri/src/lib.rs` (PDF-Annotation/Export), optionale KI-Bridge-Module
+
+### Hintergrund & Motivation
+Beim visuellen PDF-Vergleich (z. B. Referenz-PDF vs. generiertes Dokument im rechten Viewer) entstehen Korrekturanmerkungen (Typografie, Layout, Übersetzungen, Textfehler). Ziel ist ein strukturierter Workflow, um Anmerkungen direkt auf den Seiten zu erfassen und entweder als annotiertes PDF / strukturierter Prompt an Web-KIs (Claude, ChatGPT, Gemini) weiterzugeben oder optional über eine In-App-Automation (lokale/externe LLMs) direkt in das Markdown-Quelldokument zurückzuführen.
+
+### Geplante Ausbaustufen (3-Ebenen-Modell):
+
+1. **Stufe 1 (Visuelle Erfassung im rechten Pane):**
+   - **Werkzeug-Modus:** Umschaltbar zwischen *Hand/Pan* (Scrollen) und *Annotieren* (Bounding-Box aufziehen per Klick & Drag).
+   - **Normalisiertes Koordinaten-Overlay:** Speicherung von Position und Dimension in relativen Prozentwerten (0.0 bis 1.0) auf Basis der gerenderten SVG-Seiten (`.pdf-page-card`), unabhängig von Zoomstufe und Fenstergröße.
+   - **Inline-Kommentarfeld & Nummerierung:** Fortlaufende Badges (`[1]`, `[2]`, ...) mit Popover-Eingabefeld für Korrekturanweisungen direkt an der Bounding-Box.
+   - **Review-Drawer:** Einklappbare Seitenleiste mit chronologischer Notizenübersicht je Seite und Klick-Navigation zur entsprechenden Fundstelle.
+   - **Persistenz:** Lokale Zwischenspeicherung im Workspace (z. B. `.zentauri/reviews/<pdf-hash>.json`).
+
+2. **Stufe 2 (Web-First Handoff & Export – Primärer Modus):**
+   - **„Copy AI Review Prompt“ (1-Klick ins Clipboard):** Generiert einen strukturierten Markdown-Prompt bestehend aus System-Rolle, aktuellem Markdown-Quelltext aus dem Editor sowie einer tabellarischen Liste aller Anmerkungen (Seite, Kasten-ID, Textanker, Korrekturanweisung) für den direkten Web-Chat (Claude Projects, ChatGPT, Gemini Studio).
+   - **„Export Annotated PDF“:** Erzeugt ein neues PDF (`<name>_annotated.pdf`) mit eingebrannten Boxen, Badge-Nummern und angehängter/eingebetteter Kommentartabelle zur manuellen Weitergabe an Lektoren oder Multimodal-KIs.
+
+3. **Stufe 3 (Optionale Closed-Loop Automation):**
+   - **Provider-Schnittstelle:** Modulare Anbindung an lokale Modelle via Ollama (`http://localhost:11434/api/generate`, z. B. `qwen2.5-coder`) oder Cloud-APIs (OpenAI, Anthropic, Gemini).
+   - **Diff-Review & Apply im Editor:** Automatische Patch-Generierung aus den Annotationen mit visueller Diff-Vorschau im CodeMirror-Editor und schrittweiser Übernahme (Accept/Reject).
+
+---
+
+## 6. Synoptischer Master-JSON Editor für Alt-Ausgaben (`book.json` / Modus 2)
+
+- **Status:** Backlog / Konzeptioniert (Oktober 2026)
+- **Komponenten:** `src/components/MasterJsonEditor.vue` (neu), `src/components/PdfDualViewer.vue`, `src-tauri/src/lib.rs` (JSON-I/O & AST-Validierung)
+- **Referenz-Projekt:** [`/Volumes/SanDisk1TB/proj/brhadaranyaka`](file:///Volumes/SanDisk1TB/proj/brhadaranyaka) (Bṛhadāraṇyaka-Upaniṣad 1.4 Master-JSON & QA-Viewer)
+
+### Hintergrund & Motivation (Die 2 Texttypen der Philologie)
+Zentauri unterscheidet strikt zwischen zwei Texttypen:
+1. **Texttyp A (Linearer Fließtext):** Payer-Lektionen, Grammatiknotizen, Aufsätze. Hier ist **Markdown (Modus 1)** das ideale, leichtgewichtige Format.
+2. **Texttyp B (Segmentierte Korpora & historische Editionen):** Editionen historischer Drucke (z. B. Otto von Böhtlingk 1889, historische St. Petersburger Ausgaben, Handschriften-Scans) oder Korpora wie die *Bṛhadāraṇyaka-Upaniṣad*. Dies sind keine Fließtexte, sondern relationale Datenbanken von Sinneinheiten (Mantren, Verse, Wörterbucheinträge).
+
+**Warum das direkte Editieren von `book.json` alternativlos ist:**
+- In reinem Markdown müssten unlesbare, fehleranfällige Tabellen- oder Boxenkonstrukte erfunden werden.
+- Jedes Segment im JSON hält diskrete Relationen: Vers-ID, Scan-Seitenzahl, Devanāgarī, IAST, Übersetzungen (z. B. Slaje vs. Böhtlingk), textkritischer Apparat und Lemmata.
+- Die synoptische Kopplung (Klick auf Scan links springt exakt zum JSON-Segment rechts) funktioniert nur über diese IDs.
+- Reines TEI-P5 XML ist im redaktionellen Alltag unergonomisch und fehleranfällig. Stattdessen dient das strukturierte **Master-JSON (`book.json` / `master.json`)** als Single-Source-of-Truth. Aus diesem werden TEI-XML, Typst-PDF, Synopse-HTML und EPUB 3 vollautomatisch nachgelagert kompiliert.
+
+### Geplante Funktionen (Modus 2):
+1. **Split-Pane Layout (Payer QA Standard):**
+   - **Linke Spalte:** Originaler Scan (PDF via `hayro_svg` Vektor-Rendering mit synchroner Segmentnavigation).
+   - **Rechte Spalte:** Wahlweise strukturierte, feldorientierte Eingabemaske für das aktive Textsegment (Abschnitt, Vers, Mantra) oder direkter JSON-CodeMirror-Editor mit Schemavalidierung und Folding.
+2. **Feld- & Segmentbasierte Eingabe:**
+   - Dedizierte, syntaktisch isolierte Felder je Segment:
+     * Devanāgarī (mit automatischer Ligaturprüfung).
+     * IAST (wissenschaftliche Umschrift mit Diakritika-Unterstützung).
+     * Deutsche / Englische Übersetzung.
+     * Textkritischer Apparat / Varianten (z. B. Slaje vs. Böhtlingk).
+     * Philologischer Kommentar / Lemmata.
+3. **Silent Auto-Repair & Validierung:**
+   - Automatische Korrektur von typografischen Anführungszeichen, Danda-Interpunktion (`|` / `||`) und JSON-Syntax beim Speichern ohne störende Dialoge.
+4. **TEI- & Export-Kompilierung per Rust-Befehl:**
+   - Export aus dem Master-JSON nach TEI-P5 XML (`<ab>`-Parallelität) und Typst-PDF direkt aus Zentauri.
+
+---
+
+## 7. DOCX-Interoperabilität & CriticMarkup Track-Changes (Word-Brücke)
+
+- **Status:** Backlog / Konzipiert (Oktober 2026)
+- **Komponenten:** `src-tauri/src/docx_engine.rs` (Rust/Pandoc-Bridge), `src/lib/critic-markup.ts`, CodeMirror 6 Visual Extensions
+
+### Hintergrund & Motivation
+In der akademischen Philologie und Editionsarbeit fordern Verlage (Brill, Harrassowitz, De Gruyter) und Koautoren standardmäßig `.docx`-Dokumente. Word scheitert zwar bei philologischen Kernaufgaben (mehrstufige Apparate, Ligaturen, Diakritika-Encoding), bleibt aber das dominierende Austauschformat.
+Zentauri schlägt diese Brücke unter einem strikten Architekturprinzip: **Plain Text First (Markdown als kanonische Single Source of Truth)**. `.docx` wird niemals direkt editiert oder als Speicherformat genutzt, sondern fungiert ausschließlich als **Ingest-** (Import) und **Distributions-Format** (Export).
+
+### Geplante Funktionen:
+
+1. **DOCX-Ingest (Import & semantische Befreiung):**
+   - **Pandoc/Rust Konvertierung:** Drag & Drop oder Öffnen einer `.docx`-Datei wandelt diese unmittelbar in sauberes, archivierbares Markdown um.
+   - **Formatierungs-Sanitization:** Entfernen von Word-Formatierungsmüll, unsichtbaren Steuerzeichen (wie weichen Trennstrichen `\u00ad` und Zero-Width Spaces) und zerstückelten XML-Spans.
+   - **Unicode-Normalisierung (NFC):** Bereinigung von IAST-Diakritika und Devanāgarī-Zeichenfolgen.
+   - **Fußnoten-Mapping:** Verlustfreie Überführung von Word-Fußnoten in den `[^1]`-Standard.
+   - **Track-Changes & Kommentare:** Konvertierung nativer Word-Änderungsverfolgungen in **CriticMarkup** (`{++neu++}`, `{--alt--}`) und Word-Kommentaren in `{>>Hinweis<<}`.
+
+2. **DOCX-Export (Verlags-Kompilierung):**
+   - On-the-Fly-Kompilierung von Markdown zu `.docx` über ein vordefiniertes *Scholarly Reference Template* (`scholarly-reference.docx`).
+   - Feste Zuordnung philologischer Font-Hierarchien (*Gentium Plus* für IAST/Fließtext, *Noto Serif Devanagari* für Devanāgarī), sodass Verlage und Gutachter ein typografisch einwandfreies Dokument ohne Zeilensprünge erhalten.
+   - Rücküberführung von Markdown-Fußnoten in native Word-Fußnoten.
+
+3. **CriticMarkup In-Editor Visualisierung:**
+   - CodeMirror 6 Extensions rendern CriticMarkup-Tags visuell wie die gewohnte Word-Änderungsverfolgung (grün unterstrichen für Ergänzungen, rot durchgestrichen für Streichungen, gelbe Randnotizen für Kommentare).
+   - Werkzeugleiste zum selektiven Annehmen (*Accept*) oder Verwerfen (*Reject*) von Korrekturen direkt im Quelltext.
+
+
+
 
 
 

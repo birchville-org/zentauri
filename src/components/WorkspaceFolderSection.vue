@@ -21,6 +21,8 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: "select", path: string): void;
   (e: "remove-folder", folderPath: string): void;
+  (e: "file-renamed", payload: { oldPath: string; newPath: string }): void;
+  (e: "file-deleted", payload: { path: string }): void;
 }>();
 
 const rootEntries = ref<FileEntry[]>([]);
@@ -189,6 +191,9 @@ async function handleMoveConfirm(payload: {
   sourcePath: string;
   targetDirPath: string;
 }) {
+  const fileName = payload.sourcePath.split(/[/\\]/).pop() || "";
+  const sep = getPathSeparator(payload.targetDirPath);
+  const newPath = `${payload.targetDirPath}${sep}${fileName}`;
   try {
     if (isTauri) {
       await invoke("move_file_item", {
@@ -196,11 +201,9 @@ async function handleMoveConfirm(payload: {
         targetDirPath: payload.targetDirPath,
       });
     } else {
-      await rename(
-        payload.sourcePath,
-        `${payload.targetDirPath}/${payload.sourcePath.split(/[/\\]/).pop()}`,
-      );
+      await rename(payload.sourcePath, newPath);
     }
+    emit("file-renamed", { oldPath: payload.sourcePath, newPath });
     await loadRoot();
   } catch (err) {
     alert(`Failed to move item: ${err}`);
@@ -290,6 +293,7 @@ async function handleRootRenameConfirm(payload: {
     }
     await rename(payload.path, newPath);
     activeRenamePath.value = null;
+    emit("file-renamed", { oldPath: payload.path, newPath });
     await loadRoot();
   } catch (err) {
     alert(`Failed to rename: ${err}`);
@@ -303,6 +307,7 @@ async function handleRootDeleteConfirm(payload: { path: string }) {
     } else {
       await remove(payload.path);
     }
+    emit("file-deleted", { path: payload.path });
     await loadRoot();
   } catch (err) {
     alert(`Failed to delete: ${err}`);

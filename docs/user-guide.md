@@ -1,90 +1,135 @@
 ---
-title: User Guide & Customization
+title: ZenTauri Philological Workbench — User Manual
 ---
 
-# 📖 Zentauri User Guide
+# 📖 ZenTauri Philological Workbench — User Manual
 
-Zentauri is designed specifically for academic writing, knowledge management, and presentation of structured text (such as systematic grammars and linguistic paradigms).
-
-::: tip Core Purpose & Layout Philosophy
-* **Markdown to HTML:** The primary objective of Zentauri is compiling semantic Markdown into clean **HTML** (ideal for web publishings, online documentation, and digital text corpora).
-* **Minimal Layouting:** Zentauri is an authoring tool rather than a desktop publishing suite. It provides a carefully selected set of extra Markdown syntax extensions (container boxes, text centering, indents, table line-breaks) to allow minimal, structured layout directly in text.
-* **PDF Export:** While Zentauri includes a PDF export function, its role is paginating and printing the generated HTML document cleanly rather than providing a freeform DTP layout canvas.
-:::
+> **An integrated, native desktop workbench for digital humanities: Scholarly authoring (EN/DE/SA), synoptic Master-JSON critical editions, and dual-vector PDF collation.**
 
 ---
 
-## 1. Interface & Navigation
+## 🏛️ Introduction & Product Philosophy
 
-- **Sidebar Toolbar:** Access the File Explorer, Workspace Search, Cheatsheet, and Settings via the left-side activity bar.
-- **Split-Pane Layout:** Live synchronized split-view with CodeMirror 6 on the left and rendered Markdown preview on the right.
-- **Interactive Knowledge Graph:** View bi-directional links between documents rendered as an interactive node graph.
+The **ZenTauri Philological Workbench** was born out of real-world editorial challenges in major digital humanities projects (such as the *Payer Sanskrit Course* and the synoptic critical edition of the *Bṛhadāraṇyaka-Upaniṣad*). It is neither a generic markdown notepad nor a bloated office suite, but a **specialized precision environment for scholarly textual editing**.
+
+### The Conventional Word Processing Dilemma (MS Word & Co.)
+In academic editing and translation, philologists frequently resort to Microsoft Word simply due to a lack of viable alternatives. However, when applied to critical edition workflows, traditional word processors fail consistently:
+1. **Font Mixing & Script Chaos:** Mixing European languages with Sanskrit (IAST diacritics, Vedic accents, Devanāgarī script) causes jumping line heights, broken ligatures, and unpredictable font substitutions.
+2. **Collation & Synoptic Fragility:** Multi-column alignments (e.g. Scan ⇄ Original text ⇄ Translation ⇄ Critical Apparatus) break across page boundaries.
+3. **Multi-Tier Apparatus:** Managing manuscript variants, parallel testimonies, and philological commentary simultaneously overwhelms standard footnote engines.
+4. **The TEI-XML Dilemma:** While standard TEI-P5 XML is universally required by research libraries and archives, manually authoring raw XML tags during drafting is painfully tedious and error-prone.
+
+### The Four Core Principles of ZenTauri
+
+ZenTauri addresses these challenges through four foundational principles:
+
+1. **The 3 Work-Modes Architecture (Functional Separation):**
+   Rather than cluttering the screen with every conceivable tool, the Activity Bar toggles between three distinct modes:
+   - **Mode 1 (Authoring):** Fast, distraction-free writing in extended scholarly Markdown.
+   - **Mode 2 (Synoptic Edition & Master-JSON):** Segmented editing of historical scanned editions (`book.json` / AST format) in split-pane (Scan PDF on the left ⇄ structured segment editor on the right).
+   - **Mode 3 (Dual PDF QA & Proofing):** Dual-vector PDF comparison (original scan vs. re-typeset edition) with visual bounding-box annotations and 1-click AI correction prompts.
+
+2. **Dual Data Architecture (The Two Philological Text Types):**
+   - *Text Type A (Linear Running Prose: Lessons, notes, essays):* Stored canonically as pure **Markdown**.
+   - *Text Type B (Segmented Corpora & Historical Editions like Böhtlingk or Bṛhadāraṇyaka):* Stored canonically as structured **Master-JSON (`book.json`)**.
+   Each text type possesses its own natural, immutable *Single Source of Truth*.
+
+3. **Plain Text First & Interoperability (Compilation over Manual Tagging):**
+   Scholars never type raw TEI-P5 XML or unstable OOXML binary schemas by hand.
+   - **DOCX files** are automatically ingested and sanitized into clean Markdown via a native Rust/Pandoc pipeline.
+   - **Publisher DOCX manuscripts** (*Gentium Plus* / *Noto Serif Devanagari*), **standard TEI-P5 XML**, **Typst academic PDFs**, and **web synopses** are compiled on-demand as downstream distribution targets.
+
+4. **Rust-First Desktop Core:**
+   Zentauri ships as a lightweight ~30 MB native binary on macOS, launching instantaneously without heavy Node.js or Chromium runtime overhead. PDF rendering is vector-based SVG (`hayro_svg`), and workspace indexing runs on an embedded SQLite database.
 
 ---
 
-## 2. Scholarly Syntax & Boxes
+## 🗺️ User Manual Chapter Outline
 
-Zentauri supports scholarly block containers out-of-the-box:
+This manual is organized into six comprehensive parts. Active features are immediately available, while upcoming modules are clearly designated by their roadmap status:
+
+### Part I: Fundamentals & Workspace
+- **Chapter 1: Installation & Workspace Architecture** (System requirements, project folders, local SQLite index)
+- **Chapter 2: User Interface & Navigation** (Activity Bar, File Explorer, document search, split-pane ergonomics)
+
+### Part II: Work-Mode 1 — Scholarly Authoring (Markdown)
+- **Chapter 3: Scholarly Markdown & Container Boxes** (Grammar boxes, Payer syntax, Danda punctuation, table line breaks via `:br`)
+- **Chapter 4: Multilingual Input & Sanskrit Typography** (IAST, Devanāgarī brackets `《...》`, transliteration shortcuts `⌥⌘D` / `⌥⌘H`, live IME)
+- **Chapter 5: Math, Diagrams & Hyperlinking** (KaTeX formulas, Mermaid diagrams, footnotes `[^1]`, definition lists)
+- **Chapter 6: Compilation & Export** (Native Typst PDF compilation, standalone HTML export adhering to Modern Web Guidance)
+
+### Part III: Work-Mode 2 — Synoptic Master-JSON Edition *(Roadmap)*
+- **Chapter 7: Master-JSON Concept (`book.json`)** (The Bṛhadāraṇyaka edition architecture as an AST Single Source)
+- **Chapter 8: Split-Pane Collation Layout** (Historical PDF scan on the left ⇄ structured segment inputs on the right)
+- **Chapter 9: Segment-Based Fields** (Devanāgarī, IAST, translations, critical variants, philological apparatus)
+- **Chapter 10: Silent Auto-Repair & Validation** (Background auto-repair of quotation marks, dandas, and JSON syntax on save)
+- **Chapter 11: TEI-P5 XML & Synoptic HTML Compilation** (Automated generation of `<ab>`-aligned TEI archives and web presentations)
+
+### Part IV: Work-Mode 3 — Dual PDF QA & Proofing *(Active / In Development)*
+- **Chapter 12: Dual-Vector Synchronous Viewer** (Loading parallel PDFs, one-click SWAP control)
+- **Chapter 13: Scroll Synchronization Modes** (Percentage scroll, page lockstep, heading matching)
+- **Chapter 14: Normalized Bounding-Box Annotations** *(Conceived)* (Click-and-drag overlays on vector SVGs with relative coordinates)
+- **Chapter 15: Web-First AI Correction Bridge** *(Conceived)* (1-click clipboard prompt for Claude, ChatGPT, and Gemini)
+- **Chapter 16: Flattened Annotated PDF Export** *(Conceived)* (Embedded markings for human reviewers and multimodal vision models)
+
+### Part V: Interoperability & Word Workflows
+- **Chapter 17: DOCX Ingest (Import & Sanitization)** *(Conceived)* (Stripping Word styling debris, Unicode NFC normalization)
+- **Chapter 18: DOCX Export (Publisher Manuscripts)** *(Conceived)* (Scholarly Reference Template with *Gentium Plus* & footnotes)
+- **Chapter 19: Track Changes & CriticMarkup** *(Conceived)* (Visual editorial reviews via `{++added++}`, `{--deleted--}`, `{>>notes<<}`)
+
+### Part VI: Configuration & Reference
+- **Chapter 20: Stylesheet Customization (`custom.css`)** (Birchville Scholarly Synthesis design tokens, custom containers)
+- **Chapter 21: Keyboard Shortcuts & Productivity Cheatsheet** (Complete shortcut reference for macOS and Windows/Linux)
+
+---
+
+## 🛠️ Practical Guide to Active Features
+
+### 1. User Interface & File Tree (Part I)
+- **Activity Bar:** Quickly switch between File Explorer, Workspace Search, Cheatsheet, and Work-Modes.
+- **Split-Pane:** Synchronized live preview pairing CodeMirror 6 with the rendered HTML output.
+- **Inline Renaming:** Rename notes and folders inline in the tree without popups (`Enter` commits, `Escape` cancels).
+
+### 2. Scholarly Container Blocks (Mode 1)
+Zentauri provides built-in Payer-compliant container boxes:
 
 ::: grammar-box
-**Grammar Paradigm Example:**
-devo viṣṇuḥ = ⟪देवो⟫ ⟪विष्णुः⟫ = "Viṣṇu ist ein Gott."
+**Grammar Paradigm:**
+devo viṣṇuḥ = ⟪देवो⟫ ⟪विष्णुः⟫ = "Viṣṇu is a god."
 :::
 
-- **Sanskrit Typographics:** Wrapped in `《Sanskrit-Text》` or `⟪Text⟫` for automatic Devanāgarī font mapping.
-- **Inline Highlights:** Direct inline visual cues using `:sig[Signal Text]` (signal red) and `:mark[Highlighted Text]` (amber yellow).
-- **Line Breaks in Tables:** Use `:br` for clean line breaks inside markdown table cells without breaking table structure.
+- `::: grammar-box`: Golden border for morphological paradigms and sound laws.
+- `::: grammar-box2`: Warm orange border for secondary paradigms.
+- `::: note-box`: Slate navy box for philological observations.
+- `::: literatur-box`: Bibliographic references and manuscript citations.
+- `::: info`, `::: tip`, `::: warning`, `::: danger`, `::: details`: Standard VitePress alerts.
 
----
+### 3. Sanskrit Typography & Hotkeys (Mode 1)
+- **Devanāgarī CJK Brackets:** Any text enclosed in `《धर्मक्षेत्रे कुरुक्षेत्रे》` or `⟪...⟫` is highlighted and rendered in the Devanāgarī font stack.
+- **Bidirectional Transliteration:**
+  - `⌥⌘D` (Option+Cmd+D): Toggle selection between **IAST** (`kṛṣṇaḥ`) and **Devanāgarī** (`कृष्णः`).
+  - `⌥⌘H` (Option+Cmd+H): Toggle selection between **Harvard-Kyoto** (`kRSNaH`) and **Devanāgarī**.
+- **Footnotes & Definition Lists:**
+  - Standard footnotes using `[^1]` inline and `[^1]: Footnote body` at the bottom.
+  - Lexical definition lists via `Term\n: Definition`.
 
-## 3. Custom Stylesheets (User Empowerment)
+### 4. Dual PDF QA: Vector Synchronous Viewer (Mode 3)
+- **Synchronized Collation:** Load two PDFs side-by-side using the `PdfDualViewer` component.
+- **Rust Vector Precision:** Pages are compiled as SVG via `hayro_svg` — preserving razor-sharp typography at any zoom level.
+- **Sync Modes:**
+  - `% (Percentage):` Both panes scroll proportionally relative to their overall scroll height.
+  - `Page (Lockstep):` Both panes lock to the identical page number.
+  - `Off:` Independent scrolling.
+- **SWAP Control:** Instantly flip left and right panes with a single click.
 
-You can customize layout details and fonts using your own stylesheet. Zentauri will automatically look for and load a `custom.css` file from your application config directory:
+### 5. Custom Styling (`custom.css`)
+Override colors, fonts, and container styles via `~/.config/zentauri/custom.css` (macOS/Linux) or `%APPDATA%\zentauri\custom.css` (Windows):
 
-1. **Locate `custom.css`:** Located in `~/.config/zentauri/custom.css` (Linux/macOS) or `%APPDATA%\zentauri\custom.css` (Windows).
-2. **Apply CSS Overrides:** A starter template is automatically generated on first launch.
-3. **Restart Zentauri:** Changes take effect immediately upon restarting.
-
-### Example: Modifying the Grammar-Box
 ```css
-/* Change the grammar-box to a light blue theme */
+/* Custom styling for grammar boxes */
 .vp-doc .custom-block.grammar-box,
 .grammar-box {
-  background-color: #f0f8ff !important;
-  border-left-color: #0369a1 !important;
-}
-```
-
----
-
-## 4. Creating New Syntax Elements
-
-Thanks to `markdown-it-extensible`, defining new syntax elements is straightforward:
-
-### Dynamic Inline Directives (Zero-Code)
-You can use new inline markers on the fly without changing any application code:
-```markdown
-This is a :magic[special text].
-```
-This renders as `<span class="magic">special text</span>`. To style it, add `.magic` to your `custom.css`:
-```css
-.magic {
-  color: #b45309;
-  font-weight: bold;
-}
-```
-
-### Dynamic Block Containers
-Pre-registered custom containers (`custom1` to `custom5`) can be styled directly:
-```markdown
-::: custom1 [Custom Title]
-Content of custom container.
-:::
-```
-```css
-.custom-block.custom1 {
-  background-color: #fcf9f2;
-  border-left: 4px solid #b45309;
-  padding: 1rem;
+  background-color: #fcf9f2 !important;
+  border-left-color: #b45309 !important;
 }
 ```

@@ -1,16 +1,29 @@
 <script setup lang="ts">
+import { invoke } from "@tauri-apps/api/core";
 import { computed, onBeforeUpdate, ref } from "vue";
 import WorkspaceFolderSection from "./WorkspaceFolderSection.vue";
+
+export interface OpenPdfItem {
+  slot: "left" | "right";
+  slotLabel: string;
+  name: string;
+  path: string;
+  pageCount?: number;
+  currentPage?: number;
+}
 
 const props = defineProps<{
   rootPath?: string | null;
   rootPaths?: string[];
   activePath?: string;
   openTabs?: { id: string; path: string; title: string; content: string }[];
+  openPdfs?: OpenPdfItem[];
 }>();
 
 const emit = defineEmits<{
   (e: "select", path: string): void;
+  (e: "select-pdf", item: OpenPdfItem): void;
+  (e: "close-pdf", slot: "left" | "right"): void;
   (e: "open-folder"): void;
   (e: "open-file"): void;
   (e: "remove-folder", folderPath: string): void;
@@ -22,6 +35,8 @@ const emit = defineEmits<{
   (e: "new-file"): void;
   (e: "new-folder"): void;
   (e: "save-all"): void;
+  (e: "file-renamed", payload: { oldPath: string; newPath: string }): void;
+  (e: "file-deleted", payload: { path: string }): void;
 }>();
 
 const computedRootPaths = computed(() => {
@@ -42,7 +57,39 @@ const displayOpenTabs = computed(() => {
 });
 
 const isOpenEditorsExpanded = ref(true);
+const isOpenPdfsExpanded = ref(true);
 const quickFilter = ref("");
+
+const formatPdfPath = (path: string) => {
+  if (!path) return "";
+  const cleanPath = path.replace(/\\/g, "/");
+  const lastSlash = cleanPath.lastIndexOf("/");
+  if (lastSlash <= 0) return "";
+  const parent = cleanPath.substring(0, lastSlash);
+
+  if (props.rootPath) {
+    const normalizedRoot = props.rootPath.replace(/\\/g, "/");
+    if (cleanPath.startsWith(`${normalizedRoot}/`)) {
+      const rel = cleanPath.slice(normalizedRoot.length + 1);
+      const parts = rel.split("/");
+      parts.pop(); // remove file name
+      return parts.join("/") ? `📁 ${parts.join("/")}/` : "📁 ./";
+    }
+  }
+
+  const parts = parent.split("/").filter(Boolean);
+  const tail = parts.slice(-2).join("/");
+  return tail ? `📁 .../${tail}/` : `📁 ${parent}/`;
+};
+
+async function revealInFinder(path: string) {
+  if (!path) return;
+  try {
+    await invoke("reveal_in_explorer", { path });
+  } catch (err) {
+    console.error("Failed to reveal in Finder:", err);
+  }
+}
 
 const getDisplayDirectory = (path: string) => {
   if (!path || path.startsWith("untitled://")) return "";
@@ -153,7 +200,7 @@ defineExpose({
 
     <!-- Quick Filter Input Bar (Pinned at top when workspace/tabs present) -->
     <div 
-      v-if="computedRootPaths.length > 0 || displayOpenTabs.length > 0" 
+      v-if="computedRootPaths.length > 0 || displayOpenTabs.length > 0 || (props.openPdfs && props.openPdfs.length > 0)" 
       class="px-2 py-1.5 border-b border-app-border/60 bg-app-bg-secondary flex items-center gap-1.5 shrink-0 z-10"
     >
       <div class="relative w-full flex items-center">
@@ -174,7 +221,7 @@ defineExpose({
     
     <div class="flex-1 py-2 flex flex-col gap-1 overflow-x-auto overflow-y-auto min-w-0 custom-scrollbar">
       <!-- Big Welcome/Empty State when no workspace is open and no files are loaded -->
-      <div v-if="computedRootPaths.length === 0 && displayOpenTabs.length === 0" class="px-4 py-8 flex flex-col gap-3">
+      <div v-if="computedRootPaths.length === 0 && displayOpenTabs.length === 0 && (!props.openPdfs || props.openPdfs.length === 0)" class="px-4 py-8 flex flex-col gap-3">
         <div class="text-center mb-1">
           <p class="text-xs text-app-text-muted leading-relaxed">No folder opened in workspace.</p>
         </div>
@@ -195,6 +242,78 @@ defineExpose({
       </div>
 
       <div v-else class="min-w-full flex flex-col">
+        <!-- Open PDFs Section (Dual PDF QA) -->
+        <div v-if="openPdfs && openPdfs.length > 0" class="mb-2 min-w-full flex flex-col">
+          <div 
+            class="px-2 py-1.5 text-xs font-bold uppercase tracking-wider text-app-text-muted flex justify-between items-center group/section cursor-pointer select-none bg-app-bg-secondary hover:bg-app-bg transition-colors border-y border-app-border sticky left-0 z-[5] w-full" 
+            @click="isOpenPdfsExpanded = !isOpenPdfsExpanded"
+          >
+            <div class="flex items-center gap-1.5">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="transition-transform opacity-80" :class="{'rotate-[-90deg]': !isOpenPdfsExpanded}"><polyline points="6 9 12 15 18 9"></polyline></svg>
+              <span class="text-amber-600 dark:text-amber-400">Open PDFs</span>
+              <span class="text-[10px] font-medium opacity-60">({{ openPdfs.length }})</span>
+            </div>
+          </div>
+          
+          <div v-show="isOpenPdfsExpanded" class="flex flex-col py-1 min-w-full w-max">
+            <div 
+              v-for="pdf in openPdfs" 
+              :key="pdf.slot + ':' + pdf.path"
+              @click="$emit('select-pdf', pdf)"
+              class="flex flex-col px-2 py-1 text-[13px] cursor-pointer hover:bg-app-bg transition-colors group/pdf border-l-2 border-l-amber-500/60 hover:border-l-amber-500 min-w-full"
+              :title="pdf.path"
+            >
+              <!-- Line 1: Slot Badge + File Name + Actions -->
+              <div class="flex items-center justify-between gap-1.5 min-w-0">
+                <div class="flex items-center gap-1.5 min-w-0 pr-2">
+                  <span class="px-1 py-0.2 rounded text-[10px] font-mono font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 shrink-0">
+                    {{ pdf.slotLabel }}
+                  </span>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-amber-600 dark:text-amber-400 shrink-0">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                  </svg>
+                  <span class="truncate text-app-text font-medium text-[12px] group-hover/pdf:text-amber-600 dark:group-hover/pdf:text-amber-400 transition-colors">
+                    {{ pdf.name }}
+                  </span>
+                </div>
+
+                <!-- Action buttons on hover: Reveal in Finder & Unload -->
+                <div class="flex items-center gap-1 opacity-0 group-hover/pdf:opacity-100 transition-opacity shrink-0" @click.stop>
+                  <button
+                    type="button"
+                    @click="revealInFinder(pdf.path)"
+                    class="p-1 hover:bg-app-border rounded text-app-text-muted hover:text-amber-600 dark:hover:text-amber-400 transition-colors cursor-pointer"
+                    title="Reveal in System Finder"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                      <polyline points="15 3 21 3 21 9"/>
+                      <line x1="10" y1="14" x2="21" y2="3"/>
+                    </svg>
+                  </button>
+                  <button
+                    type="button"
+                    @click="$emit('close-pdf', pdf.slot)"
+                    class="p-1 hover:bg-app-border rounded text-app-text-muted hover:text-red-500 transition-colors cursor-pointer"
+                    title="Unload PDF"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <line x1="18" y1="6" x2="6" y2="18"/>
+                      <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Line 2: Truncated directory path -->
+              <div v-if="formatPdfPath(pdf.path)" class="text-[10px] text-app-text-muted font-mono truncate pl-5 opacity-70">
+                {{ formatPdfPath(pdf.path) }}
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Open Editors Section (Querbalken 1) -->
         <div v-if="displayOpenTabs && displayOpenTabs.length > 0" class="mb-2 min-w-full flex flex-col">
           <div 
@@ -250,6 +369,8 @@ defineExpose({
             :quickFilter="quickFilter"
             @select="$emit('select', $event)"
             @remove-folder="$emit('remove-folder', $event)"
+            @file-renamed="$emit('file-renamed', $event)"
+            @file-deleted="$emit('file-deleted', $event)"
           />
         </div>
 

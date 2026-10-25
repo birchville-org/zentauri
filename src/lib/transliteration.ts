@@ -1,4 +1,4 @@
-import Sanscript from "@indic-transliteration/sanscript";
+import { invoke } from "@tauri-apps/api/core";
 
 /**
  * Supported transliteration schemes for bidirectional conversion with Devanagari.
@@ -13,48 +13,27 @@ export function containsDevanagari(text: string): boolean {
 }
 
 /**
- * Helper to transliterate text while preserving directive wrappers (:sig[...] and :mark[...]).
+ * Transliterates IAST to Devanagari via native Rust Vidyut engine.
  */
-function transformPreservingDirectives(
-  text: string,
-  transform: (chunk: string) => string,
-): string {
+export async function iastToDevanagari(text: string): Promise<string> {
   if (!text) return text;
-  if (!text.includes(":sig[") && !text.includes(":mark[")) {
-    return transform(text);
-  }
-  const parts = text.split(/(:(?:sig|mark)\[[\s\S]*?\])/g);
-  return parts
-    .map((part) => {
-      const match = part.match(/^(:(?:sig|mark)\[)([\s\S]*?)(\])$/);
-      if (match) {
-        return match[1] + transform(match[2]) + match[3];
-      }
-      return part ? transform(part) : "";
-    })
-    .join("");
+  return await invoke<string>("transliterate_sanskrit", {
+    text,
+    from: "iast",
+    to: "devanagari",
+  });
 }
 
 /**
- * Transliterates IAST to Devanagari.
+ * Transliterates Devanagari to IAST via native Rust Vidyut engine.
  */
-export function iastToDevanagari(text: string): string {
+export async function devanagariToIast(text: string): Promise<string> {
   if (!text) return text;
-  // Normalize ISO 15919 / keyboard variants like ṁ to standard IAST ṃ
-  const normalized = text.replace(/ṁ/g, "ṃ").replace(/Ṁ/g, "Ṃ");
-  return transformPreservingDirectives(normalized, (chunk) =>
-    chunk ? Sanscript.t(chunk, "iast", "devanagari") : "",
-  );
-}
-
-/**
- * Transliterates Devanagari to IAST.
- */
-export function devanagariToIast(text: string): string {
-  if (!text) return text;
-  return transformPreservingDirectives(text, (chunk) =>
-    chunk ? Sanscript.t(chunk, "devanagari", "iast") : "",
-  );
+  return await invoke<string>("transliterate_sanskrit", {
+    text,
+    from: "devanagari",
+    to: "iast",
+  });
 }
 
 /**
@@ -62,31 +41,36 @@ export function devanagariToIast(text: string): string {
  * If the input contains Devanagari, convert Devanagari -> IAST.
  * Otherwise, convert IAST -> Devanagari.
  */
-export function toggleTransliteration(text: string): string {
+export async function toggleTransliteration(text: string): Promise<string> {
   if (!text) return text;
-  return containsDevanagari(text)
-    ? devanagariToIast(text)
-    : iastToDevanagari(text);
+  return await invoke<string>("toggle_transliteration_scheme", {
+    text,
+    scheme: "iast",
+  });
 }
 
 /**
- * Transliterates Harvard-Kyoto (HK) to Devanagari.
+ * Transliterates Harvard-Kyoto (HK) to Devanagari via native Rust Vidyut engine.
  */
-export function hkToDevanagari(text: string): string {
+export async function hkToDevanagari(text: string): Promise<string> {
   if (!text) return text;
-  return transformPreservingDirectives(text, (chunk) =>
-    chunk ? Sanscript.t(chunk, "hk", "devanagari") : "",
-  );
+  return await invoke<string>("transliterate_sanskrit", {
+    text,
+    from: "hk",
+    to: "devanagari",
+  });
 }
 
 /**
- * Transliterates Devanagari to Harvard-Kyoto (HK).
+ * Transliterates Devanagari to Harvard-Kyoto (HK) via native Rust Vidyut engine.
  */
-export function devanagariToHk(text: string): string {
+export async function devanagariToHk(text: string): Promise<string> {
   if (!text) return text;
-  return transformPreservingDirectives(text, (chunk) =>
-    chunk ? Sanscript.t(chunk, "devanagari", "hk") : "",
-  );
+  return await invoke<string>("transliterate_sanskrit", {
+    text,
+    from: "devanagari",
+    to: "hk",
+  });
 }
 
 /**
@@ -94,22 +78,26 @@ export function devanagariToHk(text: string): string {
  * If the input contains Devanagari, convert Devanagari -> Harvard-Kyoto.
  * Otherwise, convert Harvard-Kyoto -> Devanagari.
  */
-export function toggleHkTransliteration(text: string): string {
+export async function toggleHkTransliteration(text: string): Promise<string> {
   if (!text) return text;
-  return containsDevanagari(text) ? devanagariToHk(text) : hkToDevanagari(text);
+  return await invoke<string>("toggle_transliteration_scheme", {
+    text,
+    scheme: "hk",
+  });
 }
 
 /**
  * Smart bidirectional toggle for a specified scheme ('iast' or 'hk').
  */
-export function toggleSchemeTransliteration(
+export async function toggleSchemeTransliteration(
   text: string,
   scheme: TransliterationScheme = "iast",
-): string {
-  if (scheme === "hk") {
-    return toggleHkTransliteration(text);
-  }
-  return toggleTransliteration(text);
+): Promise<string> {
+  if (!text) return text;
+  return await invoke<string>("toggle_transliteration_scheme", {
+    text,
+    scheme,
+  });
 }
 
 /**

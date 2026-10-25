@@ -6,6 +6,8 @@ html {
 
 :root,
 :root[data-theme="payer-day"] {
+  color-scheme: light;
+  accent-color: var(--vp-c-brand-1, #b45309);
   --vp-font-family-base: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
     Roboto, sans-serif;
   --vp-font-family-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
@@ -32,6 +34,8 @@ html {
 
 .dark,
 :root[data-theme="payer-night"] {
+  color-scheme: dark;
+  accent-color: var(--vp-c-brand-1, #eab308);
   /* ── Scholarly Synthesis Dark · "Die illuminierte Handschrift bei Kerzenlicht" ── */
   /* Hintergründe: Deep Ink ── */
   --vp-c-bg: #0a1628;

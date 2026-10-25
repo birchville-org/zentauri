@@ -1,16 +1,16 @@
 # Zentauri
 
-> **ZenTauri is a minimalistic Markdown editor with an extensible syntax plugin and KaTeX for math formulae and mermaid for diagrams. It is preloaded with syntax extensions for scholarly display of Sanskrit Grammar.**
+> **ZenTauri is a native desktop workbench for scholarly Sanskrit editions, multilingual authoring (DE/EN/SA), and critical text collation. It combines a lightweight Markdown editor with custom grammar extensions, KaTeX math rendering, and multi-pane alignment tools for digital humanities.**
 
 📚 **Online Documentation & Technical Wiki:** [https://birchville-org.github.io/zentauri/](https://birchville-org.github.io/zentauri/)
 
-Zentauri is a lightweight (ca. 30MB on Mac), high-performance Markdown note-taking editor. Built with Tauri and Vue.js, it was first conceived as an extension to ZenNotes, but later built on a modern native desktop tech stack (Tauri -> ZenTauri). It combines native desktop performance with advanced scholarly Markdown rendering features specifically aligned with the Payer project (Sanskritkurs) standards.
+Zentauri is a lightweight (ca. 30MB on Mac), high-performance philological desktop environment. Built with Tauri and Vue 3, it originated as a standalone editor for the Payer Sanskrit Course and evolved into an integrated three-pillar workbench:
 
 > [!NOTE]
-> **Purpose & Minimal Layout Philosophy**
-> - **Primary Goal (Markdown to HTML):** The primary purpose of Zentauri is to generate clean, semantic **HTML from Markdown** (optimized for scholarly digital corpora, VitePress online documentation, and web publications).
-> - **Minimal Layout Syntax:** Zentauri is not a bloated desktop publishing (DTP) suite. It deliberately provides only a focused set of extra Markdown syntax extensions (`::: grammar-box`, `::: note-box`, `::: center`, `:indent`, `:br`, and table spans) that allow a minimal, structured layout directly within the document flow.
-> - **PDF Export:** An integrated PDF export feature is available, designed to output the rendered HTML structure cleanly for archiving and sharing, rather than offering freeform print layouting.
+> **The 3 Work-Modes of Zentauri**
+> 1. **✍️ Markdown Authoring (Active):** High-speed writing of Sanskrit grammar lessons, notes, and scholarly articles with custom container boxes (`::: grammar-box`, `::: note-box`), Sanskrit Devanāgarī bracket highlighting (`《...》`), and bidirectional transliteration.
+> 2. **📜 Synoptic Edition & Master-JSON (Planned):** Structured editing of scanned historical editions (`book.json` / AST format as in the *Bṛhadāraṇyaka-Upaniṣad* project). Split-pane alignment pairing historical scans (PDF) with segmented field inputs for Devanāgarī, IAST, translation, and critical apparatus without brittle TEI-XML manual markup.
+> 3. **🔍 Dual PDF QA & Proofing (In Development):** Synchronized dual-vector PDF comparison (original vs. re-typeset edition) with normalized bounding-box annotations, 1-click clipboard prompt generation for LLMs, and annotated PDF export.
 
 If you wish to explore the full architecture, developer notes, and syntax extensions, visit the [Documentation Wiki](https://birchville-org.github.io/zentauri/).
 
