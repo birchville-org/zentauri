@@ -336,6 +336,8 @@ textarea {
   pre,
   code,
   .mermaid,
+  .mermaid-diagram,
+  .pele,
   table,
   img,
   blockquote,
@@ -375,7 +377,9 @@ textarea {
   }
 
   /* Ensure Mermaid flowcharts scale properly on print and do not cut off */
-  .mermaid svg {
+  .mermaid svg,
+  .mermaid-diagram svg,
+  .pele {
     max-width: 100% !important;
     height: auto !important;
   }

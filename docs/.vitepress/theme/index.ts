@@ -7,26 +7,17 @@ export default {
   extends: DefaultTheme,
   enhanceApp({ app, router, siteData }) {
     if (typeof window !== "undefined") {
-      import("mermaid")
-        .then((m) => {
-          m.default.initialize({
-            startOnLoad: false,
-            theme: "neutral",
-            securityLevel: "loose",
-          });
-
-          const renderMermaid = async () => {
+      import("pele")
+        .then(({ render }) => {
+          const renderMermaid = () => {
             const els = document.querySelectorAll(
               "pre.language-mermaid, div.language-mermaid pre",
             );
-            els.forEach(async (el, idx) => {
+            for (const el of els) {
               const code = el.textContent || "";
-              if (!code.trim()) return;
+              if (!code.trim()) continue;
               try {
-                const { svg } = await m.default.render(
-                  `mermaid-svg-${idx}-${Date.now()}`,
-                  code,
-                );
+                const { svg } = render(code);
                 const container = document.createElement("div");
                 container.className = "mermaid-container";
                 container.style.display = "flex";
@@ -35,18 +26,18 @@ export default {
                 container.innerHTML = svg;
                 el.parentElement?.replaceChild(container, el);
               } catch (err) {
-                console.error("Mermaid render error:", err);
+                console.error("Pele render error in docs:", err);
               }
-            });
+            }
           };
 
           router.onAfterRouteChanged = () => {
-            setTimeout(renderMermaid, 100);
+            setTimeout(renderMermaid, 50);
           };
-          setTimeout(renderMermaid, 100);
+          setTimeout(renderMermaid, 50);
         })
         .catch((err) => {
-          console.warn("Could not load mermaid in docs:", err);
+          console.warn("Could not load pele in docs:", err);
         });
     }
   },

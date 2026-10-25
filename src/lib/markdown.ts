@@ -10,6 +10,7 @@ import * as extensiblePluginModule from "markdown-it-extensible";
 import markdownItFootnote from "markdown-it-footnote";
 // @ts-ignore
 import multimdTable from "markdown-it-multimd-table";
+import { render as renderPele } from "pele";
 import { adjustContainerNesting } from "./auto-repair";
 import { recordRendererPerf } from "./perf";
 
@@ -51,6 +52,7 @@ const ALLOWED_RENDERED_DATA_ATTRS = [
   "data-local-asset-kind",
   "data-local-asset-url",
   "data-mermaid-source",
+  "data-id",
   "data-resolved-path",
   "data-source-line",
   "data-tag",
@@ -68,6 +70,7 @@ const ALLOWED_RENDERED_DATA_ATTRS = [
   "role",
   "aria-label",
   "aria-hidden",
+  "aria-roledescription",
   "scope",
 ];
 
@@ -172,6 +175,8 @@ const MATHML_TAGS = [
   "line",
   "rect",
   "circle",
+  "text",
+  "tspan",
 ];
 
 function sanitizeRenderedHtml(html: string): string {
@@ -365,7 +370,13 @@ function setupFenceRule(mdInstance: MarkdownIt) {
         : "";
     if (info === "mermaid") {
       const code = token.content.trim();
-      return `<pre class="mermaid"${lineAttr} tabindex="0" role="region" aria-label="Mermaid Diagram" data-mermaid-source="${mdInstance.utils.escapeHtml(code)}">${mdInstance.utils.escapeHtml(code)}</pre>`;
+      try {
+        const { svg } = renderPele(code);
+        return `<div class="mermaid-diagram flex justify-center my-4 overflow-x-auto"${lineAttr} tabindex="0" role="region" aria-label="Mermaid Diagram" data-mermaid-source="${mdInstance.utils.escapeHtml(code)}">${svg}</div>`;
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        return `<div class="mermaid-error my-4 p-3 rounded border border-red-500/30 bg-red-500/5"${lineAttr} role="region" aria-label="Mermaid Syntax Error"><div class="text-xs font-semibold text-red-600 dark:text-red-400 mb-1">Diagram Syntax Error: ${mdInstance.utils.escapeHtml(msg)}</div><pre class="text-xs overflow-x-auto font-mono text-muted" tabindex="0">${mdInstance.utils.escapeHtml(code)}</pre></div>`;
+      }
     }
     if (info === "math" || info === "katex") {
       try {

@@ -285,4 +285,21 @@ Ausseres Fazit
       '<span class="sanskrit-dev" translate="no" lang="sa">rāmaḥ &amp; sītā</span>',
     );
   });
+
+  it("renders valid Mermaid diagrams synchronously to themed SVG via Pele", () => {
+    const md = "```mermaid\nflowchart LR\n  A[Start] --> B[Zentauri]\n```";
+    const html = renderMarkdown(md);
+    expect(html).toContain("mermaid-diagram");
+    expect(html).toContain("<svg");
+    expect(html).toContain("pele-flowchart");
+    expect(html).toContain("Zentauri");
+  });
+
+  it("handles invalid Mermaid syntax gracefully with a descriptive error container", () => {
+    const md = "```mermaid\nthis is invalid diagram syntax ???\n```";
+    const html = renderMarkdown(md);
+    expect(html).toContain("mermaid-error");
+    expect(html).toContain("Diagram Syntax Error:");
+    expect(html).toContain("this is invalid diagram syntax");
+  });
 });
