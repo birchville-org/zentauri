@@ -184,6 +184,50 @@ Zentauri schlägt diese Brücke unter einem strikten Architekturprinzip: **Plain
    - CodeMirror 6 Extensions rendern CriticMarkup-Tags visuell wie die gewohnte Word-Änderungsverfolgung (grün unterstrichen für Ergänzungen, rot durchgestrichen für Streichungen, gelbe Randnotizen für Kommentare).
    - Werkzeugleiste zum selektiven Annehmen (*Accept*) oder Verwerfen (*Reject*) von Korrekturen direkt im Quelltext.
 
+---
+
+## 8. Synchroner Mermaid-Renderer via Pele (`pele.run`)
+
+- **Status:** Evaluation & Prototyping (Oktober 2026)
+- **Komponenten:** `src/lib/markdown.ts`, `src/components/Preview.vue`, `src/lib/htmlExporter.ts`, `src/styles.css`
+- **Referenz:** [`pele.run`](https://pele.run) (Steph Ango / kepano, MIT, Zero Dependencies)
+
+### Hintergrund & Motivation
+ZenTauri nutzt aktuell die offizielle `mermaid`-Bibliothek (v11/12). Obwohl Mermaid mächtig ist, bringt es signifikante Nachteile für einen nativen, leichtgewichtigen Desktop-Editor mit:
+1. **Enorme Bundle-Größe:** Mermaid zersplittert im Vite-Build in über 20 Chunks (`mermaid.core` 605 kB, `cytoscape.esm` 443 kB, `cynefin` 690 kB, `architectureDiagram` 151 kB, etc.) mit einem Gesamtgewicht von über 2,5 MB minifiziert.
+2. **Asynchrone DOM-Mutation & Race Conditions:** Mermaid rendert ausschließlich asynchron im DOM (`await mermaid.run()`). Dies erzwingt in `Preview.vue` künstliche Debounce-Timer (`setTimeout(200)`), Request-IDs (`mermaidRunId`) und sichtbares Flackern/Nachladen bei jedem Tastendruck im Editor.
+3. **Schwieriges Theming:** Mermaid injiziert Inline-Styles in SVG-Elemente. Der Wechsel zwischen Tag- und Nachtmodus (Birchville Pergament `#fcf9f2` ↔ Kerzenlicht `#0a1628`) erfordert ein komplettes Neuinitialisieren und Neu-Rendern aller Diagramme.
+4. **Fehlende Diagramme im Standalone-HTML-Export:** Der Standalone-Export (`src/lib/htmlExporter.ts`) nutzt aus Sicherheitsgründen eine strikte Content Security Policy (`script-src 'none'`). Da Mermaid Client-JavaScript benötigt, blieben Diagramme im exportierten HTML ungerendert als roher `<pre class="mermaid">`-Codeblock.
+
+### Die Vorteile von `pele` für Zentauri
+Pele ist ein hochgradig optimierter, abhängigkeitsfreier Mermaid-Renderer (kompatibel mit Mermaid 12.1 Syntax):
+
+1. **Synchrones Rendern (Zero-Lag):**
+   - Pele stellt eine synchrone `render(code)`-Funktion bereit: `const { svg } = render(code);`.
+   - Das Diagramm-Rendering kann direkt synchron in der `markdown-it`-Fence-Rule (`src/lib/markdown.ts`) erfolgen.
+   - Beseitigt `mermaidDebounceTimer`, `mermaidRunId` und jegliche DOM-Query-Mutationen in `Preview.vue`.
+2. **Birchville-Theming via native CSS-Variablen:**
+   - Pele steuert alle Diagrammfarben über standardisierte CSS-Custom-Properties (`--pele-bg`, `--pele-fg`, `--pele-surface`, `--pele-line`, `--pele-accent`, etc.).
+   - Farbwechsel bei Theme-Umschaltung erfolgen verzögerungsfrei per CSS, ohne dass SVGs neu berechnet oder neu gerendert werden müssen.
+   - Nahtlose Harmonie mit den Birchville Scholarly Synthesis Farbwerten (`#b45309` Warm Amber / `#eab308` Kerzengold).
+3. **Echtes Vektor-Embedding im Standalone-HTML-Export:**
+   - Da `pele.render()` ohne Headless-Browser oder DOM auskommt, können fertige, voll funktionsfähige Vektor-SVGs direkt in die exportierte `.html`-Datei eingebettet werden – unter Beibehaltung von `script-src 'none'`.
+4. **Dramatische Verschlankung des Distribution-Bundles:**
+   - Reduktion des JS-Bundles um über 2 MB.
+
+### Architektur- & Migrationsplan:
+- **Phase A (Machbarkeits- & Feature-Check):**
+  - Syntax-Abdeckung gängiger Diagrammtypen (Flowchart, Sequence, State, Class, ER).
+  - Test des synchronen Markdown-It-Plugins.
+- **Phase B (Integration & Theming):**
+  - Implementierung in `src/lib/markdown.ts` mit Fallback-Handling bei Syntaxfehlern.
+  - Definition des Birchville-Farbmappings in `src/payer-theme.css` und `src/styles.css`.
+- **Phase C (Bereinigung):**
+  - Entfernung von `mermaid` aus `package.json`.
+  - Bereinigung von Debounce-Logik in `Preview.vue`.
+  - Aktualisierung der Vitest-Suites (`Preview.test.ts`, `markdown.test.ts`).
+
+
 
 
 
