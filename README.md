@@ -44,16 +44,17 @@ If you wish to explore the full architecture, developer notes, and syntax extens
 
 ### ✍️ Custom Scholarly Markdown Rendering
 
-- **Sanskrit Devanagari Highlighting:** Matches word boundaries wrapped in CJK double brackets `《Sanskrit-Text》` and highlights them in Sanskrit-Red.
-- **Custom Container Blocks:** Implements Payer-compatible style containers:
-  - `:::grammar-box` (gold border)
-  - `:::grammar-box2` (orange border)
-  - `:::important` (purple border)
-  - `:::note-box` (blue-grey border)
-  - `:::literatur-box` (bibliographic data)
-- **VitePress Standard Containers:** Provides rendering for VitePress standard containers:
+- **Sanskrit Typography & Transliteration:** Full support for Devanāgarī bracket highlighting `《संस्कृतम्》`, IAST mathematical chevrons `⟪saṃskṛtam⟫`, Danda interpunctuation (`|`, `||`), and bidirectional keyboard shortcuts (`⌥⌘D` for IAST ⇄ Devanāgarī, `⌥⌘H` for HK ⇄ Devanāgarī).
+- **Payer-v2 Scholarly Containers:** Specialized semantic blocks tailored for digital philology and linguistics:
+  - `:::grammar-box` (Normative grammar, paradigms, and phonetic sound laws — gold border)
+  - `:::warning-box` (Didactic alerts, false friends, and linguistic pitfalls — terracotta/red border)
+  - `:::verse-box` (Metrical schemas, Ślokas, and Sanskrit verse forms)
+  - `:::note-box` (Philological apparatus, commentary, and historical references — slate border)
+  - Layout & structural blocks: `:::indent`, `:::center`, `:::media` (captioned figures), `:::no-header` (tables without thead)
+  - Backward-compatibility aliases: `important` (maps to `warning-box`), `literatur-box` (maps to `note-box`), `compact` (maps to `verse-box`)
+- **VitePress Standard Containers:** Full rendering for standard alerts:
   - `:::info`, `:::tip`, `:::warning`, `:::danger`, `:::details`
-- **Scientific Extensions:** Full support for KaTeX math equations (inline & block), Mermaid structural diagrams, and GitHub Flavored Markdown (GFM) tables.
+- **Scientific Extensions:** Full support for KaTeX math equations (inline `$...$` & block `$$...$$`), Mermaid diagrams, academic footnotes (`[^1]`), definition lists (`Term\n: Definition`), and table cell merging (Colspan & Rowspan).
 - **Local Asset Integration:** Renders local images, videos, and PDFs directly in the live preview.
 
 ### 🎨 Custom Stylesheet (User Empowerment)
@@ -69,7 +70,7 @@ Comprehensive architecture guides, scholarly feature specifications, and technol
 👉 **[https://birchville-org.github.io/zentauri/](https://birchville-org.github.io/zentauri/)**
 
 - 📐 **[System Architecture](https://birchville-org.github.io/zentauri/system-architecture)**: Rust-First backend, SQLite workspace indexing, Typst native PDF export pipeline.
-- 📝 **[Scholarly Extensions](https://birchville-org.github.io/zentauri/scholarly-features)**: Specialized containers, Devanagari highlighting, and interactive knowledge graph.
+- 📝 **[Scholarly Extensions](https://birchville-org.github.io/zentauri/scholarly-features)**: Specialized containers, Devanāgarī typography, and comparative QA collation.
 
 ---
 

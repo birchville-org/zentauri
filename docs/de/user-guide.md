@@ -99,10 +99,12 @@ devo viṣṇuḥ = ⟪देवो⟫ ⟪विष्णुः⟫ = „Viṣṇ
 :::
 
 - `::: grammar-box`: Goldene Umrandung für morphologische Paradigmen und Lautgesetze.
-- `::: grammar-box2`: Warme Orange-Umrandung für sekundäre Schemata.
-- `::: note-box`: Schiefergrauer Kasten für philologische Sachanmerkungen.
-- `::: literatur-box`: Für bibliographische Belege und Textzeugen-Nachweise.
+- `::: warning-box`: Terracotta/Signalrot für didaktische Warnungen und sprachliche Stolperfallen.
+- `::: verse-box`: Eingerückter Kasten für Ślokas, Mantras und metrische Schemata.
+- `::: note-box`: Schiefergrauer Kasten für philologische Sachanmerkungen und Textzeugen.
+- `::: indent`, `::: center`, `::: media`, `::: no-header`: Strukturelle Layout-Blöcke.
 - `::: info`, `::: tip`, `::: warning`, `::: danger`, `::: details`: Standard-VitePress-Container.
+- Abwärtskompatible Aliase: `grammar-box2` (sekundäre Schemata), `important` (`warning-box`), `literatur-box` (`note-box`), `compact` (`verse-box`).
 
 ### 3. Sanskrit-Typografie & Transliterations-Shortcuts (Modus 1)
 - **Devanāgarī-Brackets:** Text in CJK-Doppelklammern wie `《धर्मक्षेत्रे कुरुक्षेत्रे》` oder `⟪...⟫` wird automatisch im Devanāgarī-Font gerendert und farblich hervorgehoben.

@@ -6,23 +6,25 @@ export interface HelpChapter {
 
 const welcomeContent = `# Welcome to Zentauri
 
-This is your new Markdown home.
-Zentauri combines the simplicity of markdown with powerful extensions like Mermaid and LaTeX.
+ZenTauri is an integrated desktop workbench for digital humanities, Sanskrit philology, and critical text collation, structured around three dedicated work-modes:
+1. **Mode 1 (Markdown Authoring):** Sanskrit grammar lessons, notes, and essays with Payer-v2 containers, IAST/Devanāgarī chevrons, KaTeX math rendering, and Typst PDF export.
+2. **Mode 2 (Synoptic Edition & Master-JSON):** Segmented editing of historical scans (\`book.json\` AST format) with scan-synchronous split-pane alignment.
+3. **Mode 3 (Dual PDF QA & Proofing):** High-precision vector PDF collation (\`hayro_svg\`) with normalized bounding-box annotations and 1-click AI review prompts.
 
 ::: note-box
-**Primary Purpose: Markdown to HTML**  
-The main purpose of Zentauri is compiling Markdown into clean, semantic **HTML** (optimized for web publishing and online digital editions). 
+**Layout Philosophy: Semantic Content First**  
+ZenTauri focuses on compiling clean, semantic Markdown into standardized HTML and publication-ready Typst PDFs.
 
-While an integrated **PDF export** is provided, Zentauri deliberately features only a minimal set of extra Markdown syntax extensions (\`::: grammar-box\`, \`::: note-box\`, \`::: center\`, \`:indent\`, \`:br\`, and table formatting) to allow minimal, structured layouting directly within the text.
+ZenTauri deliberately provides a focused, media-neutral set of scholarly syntax extensions (\`::: grammar-box\`, \`::: warning-box\`, \`::: verse-box\`, \`::: note-box\`, \`::: center\`, \`:indent\`, \`:br\`, and MultiMarkdown table cell merging) to facilitate structured, didactic layouting directly within the text flow.
 :::
 
 ## Shortcuts
 - **Settings:** Click the ⚙️ icon to change themes or font sizes.
 - **Help:** Click the ? icon to open this guide.
 - **Vim Mode:** Toggle Vim mode from the toolbar if you prefer keyboard navigation.
-- **Cheatsheet:** A quick reference to standard Markdown.
-- **Transliteration (IAST ⇄ Devanagari):** \`⌥⌘D\` / \`Ctrl+Alt+D\` or \`F4\`
-- **Transliteration (Harvard-Kyoto ⇄ Devanagari):** \`⌥⌘H\` / \`Ctrl+Alt+H\` or \`Shift+F4\`
+- **Cheatsheet:** A quick reference to standard and scholarly Markdown.
+- **Transliteration (IAST ⇄ Devanāgarī):** \`⌥⌘D\` / \`Ctrl+Alt+D\` or \`F4\`
+- **Transliteration (Harvard-Kyoto ⇄ Devanāgarī):** \`⌥⌘H\` / \`Ctrl+Alt+H\` or \`Shift+F4\`
 
 ---
 Checkout the other help files to learn about advanced extensions!
@@ -30,39 +32,43 @@ Checkout the other help files to learn about advanced extensions!
 
 const infoBoxesContent = `# Extended Info Boxes
 
-Zentauri uses a special syntax to create visually distinct blocks, great for notes, tables, and warnings matching the Payer project format.
+ZenTauri uses semantic container syntax to create visually distinct blocks matching the Payer v2 scholarly standard.
 
-## Supported Payer Containers
+## Supported Scholarly Containers
 
-Use the \`:::\` syntax to create a box.
+Use the \`:::\` syntax to create a box:
 
-:::important
-This is an important box (violet). It renders as an \`aside\` element.
+:::grammar-box
+**Grammar Paradigm:**
+Normative grammar rules, morphological paradigms, and phonetic sound laws (gold border).
 :::
 
-:::grammarbox
-This is a grammarbox (yellow/gold). Often used for Sanskrit grammar.
+:::warning-box
+**Warning & Caution:**
+Didactic alerts, false friends, and linguistic pitfalls (terracotta/signal border).
 :::
 
-:::grammarbox2
-This is an advanced grammarbox (orange).
+:::verse-box
+**Verse & Metrik:**
+Ślokas, mantras, metrical schemas, and indented stanzas.
 :::
 
 :::note-box
-This is a didactic note box (gray).
+**Philological Notes:**
+Philological commentary, textual criticism, realia, and manuscript citations (slate border).
 :::
 
-You can also center content:
+You can also center text blocks:
 :::center
 This text is centered.
 :::
 
 ## Nesting Boxes
 
-You can nest boxes inside each other. To do this, the outer box must have more colons than the inner box (e.g., 4 colons for the outer box, 3 for the inner box).
+You can nest boxes inside each other. To do this, the outer box must have more colons than the inner box (e.g., 4 colons for the outer box, 3 for the inner box):
 
-::::grammarbox
-This is the outer box with 4 colons (\`::::grammarbox\`).
+::::grammar-box
+This is the outer grammar box with 4 colons (\`::::grammar-box\`).
 
 :::no-header
 | Nested | Table |

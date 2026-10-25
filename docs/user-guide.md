@@ -99,10 +99,12 @@ devo viṣṇuḥ = ⟪देवो⟫ ⟪विष्णुः⟫ = "Viṣṇu 
 :::
 
 - `::: grammar-box`: Golden border for morphological paradigms and sound laws.
-- `::: grammar-box2`: Warm orange border for secondary paradigms.
-- `::: note-box`: Slate navy box for philological observations.
-- `::: literatur-box`: Bibliographic references and manuscript citations.
+- `::: warning-box`: Terracotta/red border for didactic alerts and linguistic pitfalls.
+- `::: verse-box`: Indented block for Ślokas, mantras, and metrical schemas.
+- `::: note-box`: Slate navy box for philological observations and citations.
+- `::: indent`, `::: center`, `::: media`, `::: no-header`: Structural layout blocks.
 - `::: info`, `::: tip`, `::: warning`, `::: danger`, `::: details`: Standard VitePress alerts.
+- Backward-compatibility aliases: `grammar-box2` (secondary paradigm), `important` (`warning-box`), `literatur-box` (`note-box`), `compact` (`verse-box`).
 
 ### 3. Sanskrit Typography & Hotkeys (Mode 1)
 - **Devanāgarī CJK Brackets:** Any text enclosed in `《धर्मक्षेत्रे कुरुक्षेत्रे》` or `⟪...⟫` is highlighted and rendered in the Devanāgarī font stack.

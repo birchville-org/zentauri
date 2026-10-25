@@ -12,9 +12,9 @@ Zentauri integrates custom extensions on top of `markdown-it-extensible` to supp
 
 We've extended the standard markdown parser to support unique semantic blocks crucial for grammatical descriptions and literary analysis:
 
-- **Scholarly Blocks:** Custom containers like `::: grammar-box`, `::: note-box`, and `::: important`.
+- **Scholarly Containers:** Core Payer-v2 containers (`::: grammar-box`, `::: warning-box`, `::: verse-box`, and `::: note-box`).
 - **Footnotes & Definition Lists:** Complete academic footnoting (`[^1]` and `[^1]: Note`) and multi-line definition lists (`Term\n: Definition`).
-- **Inline Sanskrit Typographics:** Support for special inline syntax like `《Sanskrit》` mapping perfectly to custom fallback fonts (e.g., Noto Sans Devanagari) during rendering.
+- **Inline Sanskrit Typography:** Support for Devanāgarī `《...》`, IAST `⟪...⟫`, and danda punctuation (`|`, `||`) mapping to the scholarly font stack (Gentium Plus, Noto Serif Devanagari).
 - **Visual Signals:** Direct inline highlights using `:sig[Signal]` and `:mark[Highlight]`.
 - **Math & Equations:** Native MathJax/KaTeX syntax `$e^{i\pi} + 1 = 0$` mapped to Typst math environments.
 - **Mermaid Diagrams:** Fully supported in the editor live preview.
@@ -50,7 +50,11 @@ The file explorer natively hooks into the SQLite backend to fetch and display in
 
 ---
 
-## 5. QA Dual-Document Comparison & Heading Sync
+## 5. QA Dual-Document Comparison & Heading Sync (Backlog / Reference Feature)
+
+::: info Status: Parked in Backlog (v1.3.0)
+The text-based QA reference dual-pane (`QaReferencePane.vue`) was parked in the backlog in v1.3.0 to focus the user interface on the primary 3 Work-Modes (specifically **Mode 3: Dual PDF QA & Proofing**). The modular components and heading synchronization algorithms remain in the repository for specialized corpus collation.
+:::
 
 Tailored for translators, scholarly editors, and comparative philology (inspired by the Payer QA Viewer):
 

@@ -12,9 +12,9 @@ Zentauri integriert spezialisierte Erweiterungen auf Basis von `markdown-it-exte
 
 Der Markdown-Parser unterstützt didaktische und linguistische Blöcke:
 
-- **Scholarly Container:** Spezielle Blöcke wie `::: grammar-box`, `::: note-box` und `::: important`.
+- **Scholarly Container:** Payer-v2 Kernset (`::: grammar-box`, `::: warning-box`, `::: verse-box` und `::: note-box`).
 - **Fußnoten & Definitionslisten:** Vollständige wissenschaftliche Fußnoten (`[^1]` und `[^1]: Notiz`) und mehrzeilige Definitionslisten (`Begriff\n: Definition`).
-- **Inline Sanskrit-Typografie:** Syntax wie `《Sanskrit》` mit automatischer Schriftartenkaskade (`Noto Sans Devanagari`, `Kohinoor Devanagari`).
+- **Inline Sanskrit-Typografie:** Syntax wie Devanāgarī `《...》`, IAST `⟪...⟫` und Dandas (`|`, `||`) mit Schriftartenkaskade (`Gentium Plus`, `Noto Serif Devanagari`).
 - **Signal-Markierungen:** Direkte Inline-Hervorhebungen via `:sig[Signal]` und `:mark[Highlight]`.
 - **Formelsatz & Gleichungen:** Native KaTeX/MathJax-Syntax `$e^{i\pi} + 1 = 0$` nahtlos in der Vorschau gerendert.
 - **Mermaid-Diagramme:** Interaktive Architektur- und Ablaufdiagramme direkt im Editor.
@@ -50,7 +50,11 @@ Der Datei-Explorer greift auf die native SQLite-Datenbank zu, um Dokumenttitel u
 
 ---
 
-## 5. QA-Vergleichsmodus & Synchron-Scrollen
+## 5. QA-Vergleichsmodus & Synchron-Scrollen (Backlog / Referenz-Funktion)
+
+::: info Status: Im Backlog geparkt (v1.3.0)
+Die textbasierte Referenzspalte (`QaReferencePane.vue`) wurde in v1.3.0 aus der aktiven Benutzeroberfläche in den Backlog verschoben, um den Fokus auf die 3 Haupt-Work-Modes (**insbesondere Modus 3: Dual PDF QA & Proofing**) zu richten. Die modularen Komponenten und Heading-Sync-Algorithmen verbleiben im Code für spezialisierte Korpusvergleiche.
+:::
 
 Für Übersetzer, Lektoren und vergleichende Textanalysen (nach Vorbild des Payer QA Viewers):
 

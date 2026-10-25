@@ -5,23 +5,23 @@ title: Zentauri — Technische Dokumentation
 
 # 🌌 Zentauri — Technische Dokumentation
 
-Willkommen zur offiziellen Dokumentation für **Zentauri**, dem modernen, ultra-schnellen Markdown-Editor für akademische Arbeiten und wissenschaftliche Textkorpora.
+Willkommen zur offiziellen Dokumentation für **Zentauri**, der integrierten Desktop-Workbench für die Digital Humanities (Sanskrit-Philologie, mehrsprachiges Authoring und kritische Textkollation).
 
 ::: note-box
-**Zweck & Layout-Philosophie**:
-Der primäre Zweck von Zentauri ist es, aus **Markdown sauberes, semantisches HTML herzustellen** (prädestiniert für wissenschaftliche Web-Korpora, Online-Editionen und VitePress-Dokumentationen). 
-
-Zwar besteht eine integrierte PDF-Exportfunktion, Zentauri versteht sich jedoch nicht als mächtige Desktop-Publishing-Suite (DTP): Es bietet bewusst nur wenige, gezielte Markdown-Syntaxerweiterungen (`::: grammar-box`, `::: note-box`, `::: center`, `:indent`, `:br`, Tabellenspans), die ein minimales, didaktisches Layouten direkt im Textfluss erlauben.
+**Die 3 Work-Modes von Zentauri**:
+1. **Modus 1 (Markdown Authoring):** Philologisches Schreiben mit Payer-v2-Containern (`grammar-box`, `warning-box`, `verse-box`, `note-box`), IAST/Devanāgarī-Klammern (`《...》`, `⟪...⟫`), KaTeX-Formelsatz und nativem Typst-PDF-Export.
+2. **Modus 2 (Synoptische Edition & Master-JSON):** Segmentierte Bearbeitung historischer Scans (`book.json` / AST-Format) im synchronen Split-Pane (Scan-PDF links ⇄ strukturierte Felder für Devanāgarī, IAST, Apparat und Übersetzung rechts).
+3. **Modus 3 (Dual PDF QA & Proofing):** Vektorbasiertes 2-Spalten-PDF-Kollationieren (`hayro_svg`) mit relativen Bounding-Box-Annotationen und 1-Klick-Clipboard-Prompt für multimodale KIs.
 :::
 
 ---
 
-## 🎯 Primärzweck: Markdown zu HTML
+## 🎯 Primärzweck: Multi-Purpose Philologische Suite
 
-Zentauri fokussiert sich auf die medienneutrale Strukturierung von Texten:
-1. **HTML als primäres Zielformat:** Die Textauszeichnung wird verlustfrei und hochgradig standardisiert in HTML überführt – ideal für Webseiten, VitePress-Dokumentationen und digitale Lehrbücher.
-2. **Minimales Layouting im Markdown:** Statt visueller Pixel-Schieberei gibt es eine kleine, feine Auswahl an semantischen Layout-Direktiven (Container-Boxen, Einrückungen, Inline-Signalmarkierungen und Textzentrierung).
-3. **PDF-Export:** Die integrierte PDF-Funktion rendert das erzeugte HTML zur Weitergabe und Archivierung, ersetzt aber kein komplexes Satzprogramm für Print-Layouts.
+Zentauri verbindet fokussiertes Markdown-Authoring mit strukturierter Korpus-Edition und visuellem Proofing:
+1. **Markdown & Semantisches HTML:** Die Textauszeichnung wird verlustfrei und standardisiert in HTML überführt – ideal für Webseiten, VitePress-Dokumentationen und digitale Lehrbücher.
+2. **Medienneutrales didaktisches Layout:** Statt manueller DTP-Layouts bietet Zentauri eine kuratierte Auswahl semantischer Direktiven (Scholarly Boxes, Einrückungen, Inline-Signalmarkierungen, Textzentrierung und MultiMarkdown-Spans).
+3. **Typst-PDF-Export:** Blitzschneller akademischer Buchsatz direkt über das native Rust-Backend ohne Chromium-Ballast.
 
 ---
 
@@ -30,9 +30,11 @@ Zentauri fokussiert sich auf die medienneutrale Strukturierung von Texten:
 | Kernsäule | Technologie | Status & Zielsetzung |
 | :--- | :--- | :--- |
 | 🦀 **Rust-First Architektur** | Tauri v2, Rust, SQLite | **Aktiv** — Maximale Performance, minimaler Speicherverbrauch und native OS-Integration |
-| 📝 **Scholarly Editing** | Vue 3, CodeMirror 6, markdown-it-extensible | **Aktiv** — Split-Pane Editing, QA-Vergleichsmodus, Fußnoten, Silent Auto-Repair und Metadaten |
-| 🖨️ **Nativer PDF-Export** | Typst (`typst-as-lib`) | **Roadmap** — Blitzschneller, hochpräziser PDF-Satz nativ in Rust ohne Chromium oder Node.js |
-| 🕸️ **Knowledge Graph** | SQLite Indexing, `v-network-graph` | **Roadmap** — Visuelle Darstellung von Verknüpfungen (Indexierung aktiv, UI-Ansicht im Backlog) |
+| 📝 **Scholarly Editing (Modus 1)** | Vue 3, CodeMirror 6, markdown-it-extensible | **Aktiv** — Split-Pane Authoring, Payer-v2 Container, Fußnoten, Silent Auto-Repair und Metadaten |
+| 📜 **Synoptische Edition (Modus 2)** | Master-JSON (`book.json`), Scan Split-Pane | **Roadmap (v2.1.0)** — Segmentbasierte Bearbeitung historischer Drucke und Scans |
+| 🔍 **Dual PDF QA (Modus 3)** | `hayro_svg`, Bounding-Boxes, KI-Prompt | **Aktiv / Roadmap (v2.0.0)** — 2-spaltiger Vektor-PDF-Vergleich und visuelles Proofing |
+| 🖨️ **Nativer PDF-Export** | Typst (`typst-as-lib`) | **Roadmap** — Direkter akademischer Buchsatz nativ in Rust ohne Chromium oder Node.js |
+| 🕸️ **Knowledge Graph** | SQLite Indexing, `v-network-graph` | **Backlog** — Visuelle Darstellung von Verknüpfungen (Indexierung aktiv, UI-Ansicht geparkt) |
 
 ---
 

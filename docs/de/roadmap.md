@@ -12,7 +12,7 @@ Dieses Dokument erfasst geplante Ausbau-Features, Architekturkonzepte und vorlä
 
 | Funktion | Aktueller Status | Zielversion | Beschreibung |
 | :--- | :--- | :--- | :--- |
-| **QA Reference Dual-Pane** | ✅ **Aktiv (v1.2.0)** | v1.2.0 | 2- und 3-Spalten-Vergleich, Heading-Scroll-Sync, Seitentausch (SWAP) |
+| **QA Reference Dual-Pane** | 📋 **Backlog / Pausiert (v1.3.0)** | v2.2.0 | Textbasierter 2-Spalten-Vergleich (in v1.3.0 zugunsten von Modus 3: Dual PDF QA zurückgestellt) |
 | **Harvard-Kyoto & IAST Shortcuts** | ✅ **Aktiv (v1.2.0)** | v1.2.0 | Bidirektionale Tastenkürzel `⌥⌘D` & `⌥⌘H` mit Tag-geschützter Transliteration |
 | **Wissenschaftliche Fußnoten & Deflists** | ✅ **Aktiv (v1.2.0)** | v1.2.0 | Standard `[^1]` Fußnoten und `Begriff\n: Definition` Definitionslisten |
 | **Nativer Typst-PDF-Compiler** | ⏳ **In Entwicklung** | v2.0.0 | Direkter Typst-Satz im Rust-Backend (`src-tauri`) ohne Browser-Drucker |

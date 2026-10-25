@@ -12,7 +12,7 @@ This document provides transparent tracking of features currently in development
 
 | Capability | Current Status | Target Milestone | Description |
 | :--- | :--- | :--- | :--- |
-| **QA Reference Dual-Pane** | ✅ **Active (v1.2.0)** | v1.2.0 | Side-by-side comparison (2-col / 3-col), heading scroll sync, swap control |
+| **QA Reference Dual-Pane** | 📋 **Backlog / Parked (v1.3.0)** | v2.2.0 | Text-based dual-pane comparison (parked in v1.3.0 in favor of Mode 3: Dual PDF QA) |
 | **Harvard-Kyoto & IAST Hotkeys** | ✅ **Active (v1.2.0)** | v1.2.0 | Bidirectional shortcuts `⌥⌘D` & `⌥⌘H` with tag-safe directive isolation |
 | **Academic Footnotes & Deflists** | ✅ **Active (v1.2.0)** | v1.2.0 | Standard `[^1]` footnotes and `Term\n: Definition` lists via markdown-it |
 | **Native Typst PDF Compilation** | ⏳ **In Development** | v2.0.0 | Pure Rust Typst compilation in `src-tauri` without browser/WebKit print engine |

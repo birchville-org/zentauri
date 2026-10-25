@@ -25,6 +25,8 @@ export const BLOCK_CONTAINERS: ReadonlyArray<ContainerDefinition> = [
   { name: "compact", className: "verse-box" },
 
   // ── Strukturelle & Redaktionelle Legacy-Container ──
+  { name: "grammar-box2", className: "grammar-box2" },
+  { name: "grammarbox2", className: "grammar-box2" },
   { name: "metrik-schema", className: "verse-box metrik-schema" },
   { name: "metrikschema", className: "verse-box metrik-schema" },
   { name: "center", className: "center" },
@@ -32,6 +34,13 @@ export const BLOCK_CONTAINERS: ReadonlyArray<ContainerDefinition> = [
   { name: "lauttable", className: "laut-table" },
   { name: "deleteme-box", className: "deleteme-box" },
   { name: "deletemebox", className: "deleteme-box" },
+
+  // ── User-definierbare Dummy-Container (custom.css Erweiterungen) ──
+  { name: "custom1", className: "custom1 custom-block" },
+  { name: "custom2", className: "custom2 custom-block" },
+  { name: "custom3", className: "custom3 custom-block" },
+  { name: "custom4", className: "custom4 custom-block" },
+  { name: "custom5", className: "custom5 custom-block" },
 
   // ── VitePress Standard-Container ──
   { name: "info", className: "info custom-block" },
