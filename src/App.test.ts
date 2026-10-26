@@ -111,4 +111,106 @@ describe("App Component Integration", () => {
     expect(fileTreeContainer?.getAttribute("style")).toContain("width: 480px");
     localStorage.removeItem("zentauri-sidebar-width");
   });
+
+  describe("Scroll Synchronization in Split View", () => {
+    it("synchronizes scroll from Editor to Preview in header and percentage modes", async () => {
+      const editorScrollToFractionalLine = vi.fn();
+      const editorScrollToRatio = vi.fn();
+      const previewScrollToFractionalLine = vi.fn();
+      const previewScrollToRatio = vi.fn();
+
+      const MockEditor = {
+        name: "Editor",
+        template: "<div class='mock-editor'></div>",
+        methods: {
+          scrollToFractionalLine: editorScrollToFractionalLine,
+          scrollToRatio: editorScrollToRatio,
+        },
+      };
+
+      const MockPreview = {
+        name: "Preview",
+        template: "<div class='mock-preview'></div>",
+        methods: {
+          scrollToFractionalLine: previewScrollToFractionalLine,
+          scrollToRatio: previewScrollToRatio,
+        },
+      };
+
+      localStorage.setItem(
+        "zentauri-settings",
+        JSON.stringify({ syncMode: "header" }),
+      );
+      const wrapper = mount(App, {
+        global: {
+          stubs: {
+            Editor: MockEditor,
+            Preview: MockPreview,
+            Cheatsheet: true,
+            HelpSystem: true,
+            Settings: true,
+            SearchPanel: true,
+            UpdateNotification: true,
+            StatusBar: true,
+          },
+        },
+      });
+
+      const editor = wrapper.findComponent(MockEditor);
+      const preview = wrapper.findComponent(MockPreview);
+      expect(editor.exists()).toBe(true);
+      expect(preview.exists()).toBe(true);
+
+      // In header mode, Editor scroll propagates scrollToFractionalLine to Preview
+      await editor.vm.$emit("scroll", {
+        fractionalLine: 5.5,
+        ratio: 0.35,
+        totalLines: 100,
+      });
+
+      // Await requestAnimationFrame
+      await new Promise((r) => requestAnimationFrame(r));
+      expect(previewScrollToFractionalLine).toHaveBeenCalledWith(
+        5.5,
+        0.35,
+        100,
+      );
+
+      // While editor is activeScroller, echo scrolls from preview are blocked
+      previewScrollToFractionalLine.mockClear();
+      editorScrollToFractionalLine.mockClear();
+      await preview.vm.$emit("scroll", {
+        fractionalLine: 5.5,
+        ratio: 0.35,
+      });
+      await new Promise((r) => requestAnimationFrame(r));
+      expect(editorScrollToFractionalLine).not.toHaveBeenCalled();
+
+      // Cycle sync mode to percentage mode
+      const syncBtn = wrapper.find("button[title*='Scroll-Sync']");
+      expect(syncBtn.exists()).toBe(true);
+      await syncBtn.trigger("click"); // header -> percentage
+
+      await editor.vm.$emit("scroll", {
+        fractionalLine: 10,
+        ratio: 0.6,
+        totalLines: 100,
+      });
+      await new Promise((r) => requestAnimationFrame(r));
+      expect(previewScrollToRatio).toHaveBeenCalledWith(0.6);
+
+      // Cycle sync mode to off
+      await syncBtn.trigger("click"); // percentage -> off
+      previewScrollToRatio.mockClear();
+      await editor.vm.$emit("scroll", {
+        fractionalLine: 20,
+        ratio: 0.8,
+        totalLines: 100,
+      });
+      await new Promise((r) => requestAnimationFrame(r));
+      expect(previewScrollToRatio).not.toHaveBeenCalled();
+
+      localStorage.removeItem("zentauri-settings");
+    });
+  });
 });

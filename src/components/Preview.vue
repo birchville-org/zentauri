@@ -19,15 +19,30 @@ let mermaidRunId = 0;
 let mermaidDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 let isProgrammaticScroll = false;
 let rafUnlockId: number | null = null;
+let unlockTimer: ReturnType<typeof setTimeout> | null = null;
+let programmaticTargetTop: number | null = null;
 
 function scheduleUnlock() {
   if (rafUnlockId !== null) {
     cancelAnimationFrame(rafUnlockId);
-  }
-  rafUnlockId = requestAnimationFrame(() => {
-    isProgrammaticScroll = false;
     rafUnlockId = null;
+  }
+  if (unlockTimer !== null) {
+    clearTimeout(unlockTimer);
+    unlockTimer = null;
+  }
+  // Double RAF + safety timeout to ensure DOM scroll events from scrollTop updates have fired
+  rafUnlockId = requestAnimationFrame(() => {
+    rafUnlockId = requestAnimationFrame(() => {
+      isProgrammaticScroll = false;
+      rafUnlockId = null;
+      programmaticTargetTop = null;
+    });
   });
+  unlockTimer = setTimeout(() => {
+    isProgrammaticScroll = false;
+    programmaticTargetTop = null;
+  }, 120);
 }
 
 async function runMermaidSafely() {
@@ -216,6 +231,7 @@ function scrollToFractionalLine(
 
   if (targetLine <= 1) {
     isProgrammaticScroll = true;
+    programmaticTargetTop = 0;
     scroller.scrollTop = 0;
     scheduleUnlock();
     return;
@@ -225,6 +241,7 @@ function scrollToFractionalLine(
     (fallbackRatio !== undefined && fallbackRatio >= 0.999)
   ) {
     isProgrammaticScroll = true;
+    programmaticTargetTop = maxScroll;
     scroller.scrollTop = maxScroll;
     scheduleUnlock();
     return;
@@ -233,8 +250,10 @@ function scrollToFractionalLine(
   const items = getSourceElements();
   if (items.length === 0) {
     if (fallbackRatio !== undefined) {
+      const targetScrollTop = Math.round(fallbackRatio * maxScroll);
       isProgrammaticScroll = true;
-      scroller.scrollTop = Math.round(fallbackRatio * maxScroll);
+      programmaticTargetTop = targetScrollTop;
+      scroller.scrollTop = targetScrollTop;
       scheduleUnlock();
     }
     return;
@@ -296,6 +315,7 @@ function scrollToFractionalLine(
     Math.min(maxScroll, Math.round(targetScrollTop)),
   );
   isProgrammaticScroll = true;
+  programmaticTargetTop = targetScrollTop;
   scroller.scrollTop = targetScrollTop;
   scheduleUnlock();
 }
@@ -305,16 +325,35 @@ function scrollToRatio(ratio: number) {
   const scroller = scrollContainer.value;
   const maxScroll = scroller.scrollHeight - scroller.clientHeight;
   if (maxScroll <= 0) return;
-  isProgrammaticScroll = true;
-  scroller.scrollTop = Math.max(
+  const targetScrollTop = Math.max(
     0,
     Math.min(maxScroll, Math.round(ratio * maxScroll)),
   );
+  isProgrammaticScroll = true;
+  programmaticTargetTop = targetScrollTop;
+  scroller.scrollTop = targetScrollTop;
   scheduleUnlock();
 }
 
 function handleScroll() {
-  if (isProgrammaticScroll) return;
+  if (!scrollContainer.value) return;
+  const currentTop = scrollContainer.value.scrollTop;
+  if (isProgrammaticScroll) {
+    if (
+      programmaticTargetTop !== null &&
+      Math.abs(currentTop - programmaticTargetTop) <= 2
+    ) {
+      programmaticTargetTop = null;
+    }
+    return;
+  }
+  if (
+    programmaticTargetTop !== null &&
+    Math.abs(currentTop - programmaticTargetTop) <= 2
+  ) {
+    programmaticTargetTop = null;
+    return;
+  }
   const info = getScrollInfo();
   if (info) {
     emit("scroll", info);
@@ -372,6 +411,10 @@ onBeforeUnmount(() => {
   if (rafUnlockId !== null) {
     cancelAnimationFrame(rafUnlockId);
     rafUnlockId = null;
+  }
+  if (unlockTimer !== null) {
+    clearTimeout(unlockTimer);
+    unlockTimer = null;
   }
   if (scrollContainer.value) {
     const scroller = scrollContainer.value;

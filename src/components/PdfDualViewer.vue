@@ -91,10 +91,19 @@ const rightScrollContainer = ref<HTMLDivElement | null>(null);
 const containerRef = ref<HTMLDivElement | null>(null);
 
 // Sync guards
-let isSyncing = false;
+let activeScroller: "left" | "right" | null = null;
+let activeScrollerTimer: ReturnType<typeof setTimeout> | null = null;
 let syncRaf: number | null = null;
 let leftLoadToken = 0;
 let rightLoadToken = 0;
+
+function setActiveScroller(scroller: "left" | "right") {
+  activeScroller = scroller;
+  if (activeScrollerTimer) clearTimeout(activeScrollerTimer);
+  activeScrollerTimer = setTimeout(() => {
+    activeScroller = null;
+  }, 200);
+}
 
 // Computed active single pages
 const activeLeftPage = computed(() => {
@@ -450,25 +459,26 @@ function scrollToPageCard(target: "left" | "right", pageNum: number) {
 // Scroll Synchronization logic
 function onLeftScroll() {
   updateCurrentPage("left");
-  if (isSyncing || syncMode.value === "off") return;
+  if (syncMode.value === "off" || activeScroller === "right") return;
   const leftEl = leftScrollContainer.value;
   const rightEl = rightScrollContainer.value;
   if (!leftEl || !rightEl) return;
+
+  setActiveScroller("left");
 
   if (syncMode.value === "percentage") {
     const leftMax = leftEl.scrollHeight - leftEl.clientHeight;
     if (leftMax <= 0) return;
     const ratio = leftEl.scrollTop / leftMax;
 
-    isSyncing = true;
     if (syncRaf) cancelAnimationFrame(syncRaf);
     syncRaf = requestAnimationFrame(() => {
+      syncRaf = null;
       const rightMax = rightEl.scrollHeight - rightEl.clientHeight;
       if (rightMax > 0) {
         rightEl.scrollTop = ratio * rightMax;
         updateCurrentPage("right");
       }
-      isSyncing = false;
     });
   } else if (syncMode.value === "page") {
     syncToPage("right", leftCurrentPage.value);
@@ -477,25 +487,26 @@ function onLeftScroll() {
 
 function onRightScroll() {
   updateCurrentPage("right");
-  if (isSyncing || syncMode.value === "off") return;
+  if (syncMode.value === "off" || activeScroller === "left") return;
   const leftEl = leftScrollContainer.value;
   const rightEl = rightScrollContainer.value;
   if (!leftEl || !rightEl) return;
+
+  setActiveScroller("right");
 
   if (syncMode.value === "percentage") {
     const rightMax = rightEl.scrollHeight - rightEl.clientHeight;
     if (rightMax <= 0) return;
     const ratio = rightEl.scrollTop / rightMax;
 
-    isSyncing = true;
     if (syncRaf) cancelAnimationFrame(syncRaf);
     syncRaf = requestAnimationFrame(() => {
+      syncRaf = null;
       const leftMax = leftEl.scrollHeight - leftEl.clientHeight;
       if (leftMax > 0) {
         leftEl.scrollTop = ratio * leftMax;
         updateCurrentPage("left");
       }
-      isSyncing = false;
     });
   } else if (syncMode.value === "page") {
     syncToPage("left", rightCurrentPage.value);
@@ -541,9 +552,9 @@ function syncToPage(target: "left" | "right", pageNum: number) {
   const card = pageCards[targetIndex] as HTMLElement;
 
   if (card) {
-    isSyncing = true;
     if (syncRaf) cancelAnimationFrame(syncRaf);
     syncRaf = requestAnimationFrame(() => {
+      syncRaf = null;
       container.scrollTop = card.offsetTop - container.offsetTop;
       if (target === "left") {
         leftCurrentPage.value = pageNum;
@@ -551,7 +562,6 @@ function syncToPage(target: "left" | "right", pageNum: number) {
         rightCurrentPage.value = pageNum;
       }
       loadVisiblePages(target, pageNum - 1);
-      isSyncing = false;
     });
   }
 }
@@ -661,6 +671,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   window.removeEventListener("keydown", handleKeydown);
   if (syncRaf) cancelAnimationFrame(syncRaf);
+  if (activeScrollerTimer) clearTimeout(activeScrollerTimer);
   window.removeEventListener("mousemove", onSplitMouseMove);
   window.removeEventListener("mouseup", onSplitMouseUp);
   cleanupPages(leftPages.value);
@@ -976,6 +987,9 @@ defineExpose({
         <div
           ref="leftScrollContainer"
           @scroll="onLeftScroll"
+          @wheel="setActiveScroller('left')"
+          @pointerdown="setActiveScroller('left')"
+          @touchstart="setActiveScroller('left')"
           class="flex-1 overflow-y-auto px-4 py-4 relative"
           :class="pageLayoutMode === 'continuous' ? 'space-y-4' : 'flex items-center justify-center'"
         >
@@ -1186,6 +1200,9 @@ defineExpose({
         <div
           ref="rightScrollContainer"
           @scroll="onRightScroll"
+          @wheel="setActiveScroller('right')"
+          @pointerdown="setActiveScroller('right')"
+          @touchstart="setActiveScroller('right')"
           class="flex-1 overflow-y-auto px-4 py-4 relative"
           :class="pageLayoutMode === 'continuous' ? 'space-y-4' : 'flex items-center justify-center'"
         >

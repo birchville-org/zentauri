@@ -526,17 +526,24 @@ function toggleSyncScroll() {
 }
 
 let activeScroller: "editor" | "preview" | null = null;
-let syncSource: "editor" | "preview" | null = null;
-let syncResetTimer: ReturnType<typeof setTimeout> | null = null;
+let activeScrollerTimer: ReturnType<typeof setTimeout> | null = null;
 let editorSyncRaf: number | null = null;
 let previewSyncRaf: number | null = null;
 
+function setActiveScroller(scroller: "editor" | "preview") {
+  activeScroller = scroller;
+  if (activeScrollerTimer) clearTimeout(activeScrollerTimer);
+  activeScrollerTimer = setTimeout(() => {
+    activeScroller = null;
+  }, 200);
+}
+
 function onEditorUserInteraction() {
-  activeScroller = "editor";
+  setActiveScroller("editor");
 }
 
 function onPreviewUserInteraction() {
-  activeScroller = "preview";
+  setActiveScroller("preview");
 }
 
 function onEditorScroll(info: {
@@ -545,10 +552,9 @@ function onEditorScroll(info: {
   totalLines: number;
 }) {
   if (syncMode.value === "off") return;
-  if (syncSource === "preview") return;
+  if (activeScroller === "preview") return;
 
-  activeScroller = "editor";
-  syncSource = "editor";
+  setActiveScroller("editor");
 
   if (editorSyncRaf !== null) {
     cancelAnimationFrame(editorSyncRaf);
@@ -559,17 +565,16 @@ function onEditorScroll(info: {
 
     // Sync Preview Pane (if present)
     if (showPreview.value && previewRef.value) {
-      previewRef.value.scrollToFractionalLine(
-        info.fractionalLine,
-        info.ratio,
-        info.totalLines,
-      );
+      if (syncMode.value === "percentage") {
+        previewRef.value.scrollToRatio(info.ratio);
+      } else {
+        previewRef.value.scrollToFractionalLine(
+          info.fractionalLine,
+          info.ratio,
+          info.totalLines,
+        );
+      }
     }
-
-    if (syncResetTimer) clearTimeout(syncResetTimer);
-    syncResetTimer = setTimeout(() => {
-      syncSource = null;
-    }, 60);
   });
 }
 
@@ -578,10 +583,9 @@ function onPreviewScroll(info: {
   ratio: number;
 }) {
   if (syncMode.value === "off" || !showPreview.value) return;
-  if (syncSource === "editor") return;
+  if (activeScroller === "editor") return;
 
-  activeScroller = "preview";
-  syncSource = "preview";
+  setActiveScroller("preview");
 
   if (previewSyncRaf !== null) {
     cancelAnimationFrame(previewSyncRaf);
@@ -590,12 +594,12 @@ function onPreviewScroll(info: {
   previewSyncRaf = requestAnimationFrame(() => {
     previewSyncRaf = null;
     if (editorRef.value) {
-      editorRef.value.scrollToFractionalLine(info.fractionalLine, info.ratio);
+      if (syncMode.value === "percentage") {
+        editorRef.value.scrollToRatio(info.ratio);
+      } else {
+        editorRef.value.scrollToFractionalLine(info.fractionalLine, info.ratio);
+      }
     }
-    if (syncResetTimer) clearTimeout(syncResetTimer);
-    syncResetTimer = setTimeout(() => {
-      syncSource = null;
-    }, 60);
   });
 }
 
@@ -1098,7 +1102,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   if (editorSyncRaf !== null) cancelAnimationFrame(editorSyncRaf);
   if (previewSyncRaf !== null) cancelAnimationFrame(previewSyncRaf);
-  if (syncResetTimer) clearTimeout(syncResetTimer);
+  if (activeScrollerTimer) clearTimeout(activeScrollerTimer);
   if (pdfExportTimer) clearTimeout(pdfExportTimer);
   if (htmlExportTimer) clearTimeout(htmlExportTimer);
   if (htmlCopyTimer) clearTimeout(htmlCopyTimer);
