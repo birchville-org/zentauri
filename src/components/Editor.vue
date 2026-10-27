@@ -207,6 +207,19 @@ let rafUnlockId: number | null = null;
 let unlockTimer: ReturnType<typeof setTimeout> | null = null;
 let programmaticTargetTop: number | null = null;
 
+function clearProgrammaticScrollLock() {
+  if (rafUnlockId !== null) {
+    cancelAnimationFrame(rafUnlockId);
+    rafUnlockId = null;
+  }
+  if (unlockTimer !== null) {
+    clearTimeout(unlockTimer);
+    unlockTimer = null;
+  }
+  isProgrammaticScroll = false;
+  programmaticTargetTop = null;
+}
+
 function scheduleUnlock() {
   if (rafUnlockId !== null) {
     cancelAnimationFrame(rafUnlockId);
@@ -219,14 +232,11 @@ function scheduleUnlock() {
   // Double RAF + safety timeout to ensure DOM scroll events from scrollTop updates have fired
   rafUnlockId = requestAnimationFrame(() => {
     rafUnlockId = requestAnimationFrame(() => {
-      isProgrammaticScroll = false;
-      rafUnlockId = null;
-      programmaticTargetTop = null;
+      clearProgrammaticScrollLock();
     });
   });
   unlockTimer = setTimeout(() => {
-    isProgrammaticScroll = false;
-    programmaticTargetTop = null;
+    clearProgrammaticScrollLock();
   }, 120);
 }
 
@@ -375,6 +385,7 @@ function handleScroll() {
 }
 
 function handleInteraction() {
+  clearProgrammaticScrollLock();
   emit("user-interaction");
 }
 
@@ -595,14 +606,7 @@ watch(
 );
 
 onBeforeUnmount(() => {
-  if (rafUnlockId !== null) {
-    cancelAnimationFrame(rafUnlockId);
-    rafUnlockId = null;
-  }
-  if (unlockTimer !== null) {
-    clearTimeout(unlockTimer);
-    unlockTimer = null;
-  }
+  clearProgrammaticScrollLock();
   if (view) {
     const scroller = view.scrollDOM;
     scroller.removeEventListener("scroll", handleScroll);

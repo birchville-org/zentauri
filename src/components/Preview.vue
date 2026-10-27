@@ -15,12 +15,26 @@ const props = defineProps<{ source: string }>();
 const scrollContainer = ref<HTMLElement | null>(null);
 const container = ref<HTMLElement | null>(null);
 const html = ref("");
+const sourceLineCount = ref(1);
 let mermaidRunId = 0;
 let mermaidDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 let isProgrammaticScroll = false;
 let rafUnlockId: number | null = null;
 let unlockTimer: ReturnType<typeof setTimeout> | null = null;
 let programmaticTargetTop: number | null = null;
+
+function clearProgrammaticScrollLock() {
+  if (rafUnlockId !== null) {
+    cancelAnimationFrame(rafUnlockId);
+    rafUnlockId = null;
+  }
+  if (unlockTimer !== null) {
+    clearTimeout(unlockTimer);
+    unlockTimer = null;
+  }
+  isProgrammaticScroll = false;
+  programmaticTargetTop = null;
+}
 
 function scheduleUnlock() {
   if (rafUnlockId !== null) {
@@ -34,14 +48,11 @@ function scheduleUnlock() {
   // Double RAF + safety timeout to ensure DOM scroll events from scrollTop updates have fired
   rafUnlockId = requestAnimationFrame(() => {
     rafUnlockId = requestAnimationFrame(() => {
-      isProgrammaticScroll = false;
-      rafUnlockId = null;
-      programmaticTargetTop = null;
+      clearProgrammaticScrollLock();
     });
   });
   unlockTimer = setTimeout(() => {
-    isProgrammaticScroll = false;
-    programmaticTargetTop = null;
+    clearProgrammaticScrollLock();
   }, 120);
 }
 
@@ -74,6 +85,7 @@ async function runMermaidSafely() {
 }
 
 function updatePreview() {
+  sourceLineCount.value = props.source ? props.source.split("\n").length : 1;
   html.value = renderMarkdown(props.source, { sourceLines: true });
 
   if (mermaidDebounceTimer) {
@@ -132,13 +144,18 @@ function getSourceElements(): { el: HTMLElement; line: number }[] {
   const nodes =
     container.value.querySelectorAll<HTMLElement>("[data-source-line]");
   const result: { el: HTMLElement; line: number }[] = [];
+  let lastLine = 0;
   for (let i = 0; i < nodes.length; i++) {
     const el = nodes[i];
+    // Exclude footnotes placed at the end of the rendered document which reference earlier source lines
+    if (el.closest(".footnotes")) continue;
     const lineStr = el.getAttribute("data-source-line");
     if (!lineStr) continue;
     const line = Number.parseInt(lineStr, 10);
-    if (!Number.isNaN(line) && line > 0) {
+    // Enforce strictly monotonic line progression to preserve binary search invariants
+    if (!Number.isNaN(line) && line > lastLine) {
       result.push({ el, line });
+      lastLine = line;
     }
   }
   return result;
@@ -203,7 +220,11 @@ function getScrollInfo(): ScrollInfo | null {
     const progress = nextItem.top > 0 ? scrollTop / nextItem.top : 0;
     fractionalLine = 1 + progress * (nextItem.line - 1);
   } else if (prevItem && !nextItem) {
-    fractionalLine = prevItem.line;
+    const remainingScroll = maxScroll - prevItem.top;
+    const progress =
+      remainingScroll > 0 ? (scrollTop - prevItem.top) / remainingScroll : 0;
+    const remainingLines = Math.max(0, sourceLineCount.value - prevItem.line);
+    fractionalLine = prevItem.line + progress * remainingLines;
   } else if (prevItem && nextItem) {
     const distance = nextItem.top - prevItem.top;
     const progress = distance > 0 ? (scrollTop - prevItem.top) / distance : 0;
@@ -361,6 +382,7 @@ function handleScroll() {
 }
 
 function handleInteraction() {
+  clearProgrammaticScrollLock();
   emit("user-interaction");
 }
 
@@ -408,14 +430,7 @@ onBeforeUnmount(() => {
     themeObserver.disconnect();
     themeObserver = null;
   }
-  if (rafUnlockId !== null) {
-    cancelAnimationFrame(rafUnlockId);
-    rafUnlockId = null;
-  }
-  if (unlockTimer !== null) {
-    clearTimeout(unlockTimer);
-    unlockTimer = null;
-  }
+  clearProgrammaticScrollLock();
   if (scrollContainer.value) {
     const scroller = scrollContainer.value;
     scroller.removeEventListener("scroll", handleScroll);

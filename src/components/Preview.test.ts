@@ -134,5 +134,32 @@ describe("Preview Component - Link Handling", () => {
       vm.scrollToFractionalLine(1);
       expect(scroller.scrollTop).toBe(0);
     });
+
+    it("interpolates fractional line smoothly towards end of document when past last heading", async () => {
+      const markdown =
+        "# Header\n\nParagraph 1\n\nParagraph 2\n\nParagraph 3\n\nParagraph 4";
+      const wrapper = mount(Preview, {
+        props: { source: markdown },
+      });
+      await wrapper.vm.$nextTick();
+
+      const vm = wrapper.vm as any;
+      const scroller = vm.getScrollerElement() as HTMLElement;
+
+      Object.defineProperty(scroller, "scrollHeight", {
+        value: 1200,
+        configurable: true,
+      });
+      Object.defineProperty(scroller, "clientHeight", {
+        value: 400,
+        configurable: true,
+      });
+
+      // Halfway down
+      scroller.scrollTop = 400;
+      const midInfo = vm.getScrollInfo();
+      expect(midInfo).not.toBeNull();
+      expect(midInfo.fractionalLine).toBeGreaterThan(1);
+    });
   });
 });

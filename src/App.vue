@@ -532,6 +532,13 @@ let previewSyncRaf: number | null = null;
 
 function setActiveScroller(scroller: "editor" | "preview") {
   activeScroller = scroller;
+  if (scroller === "editor" && previewSyncRaf !== null) {
+    cancelAnimationFrame(previewSyncRaf);
+    previewSyncRaf = null;
+  } else if (scroller === "preview" && editorSyncRaf !== null) {
+    cancelAnimationFrame(editorSyncRaf);
+    editorSyncRaf = null;
+  }
   if (activeScrollerTimer) clearTimeout(activeScrollerTimer);
   activeScrollerTimer = setTimeout(() => {
     activeScroller = null;

@@ -99,6 +99,10 @@ let rightLoadToken = 0;
 
 function setActiveScroller(scroller: "left" | "right") {
   activeScroller = scroller;
+  if (syncRaf) {
+    cancelAnimationFrame(syncRaf);
+    syncRaf = null;
+  }
   if (activeScrollerTimer) clearTimeout(activeScrollerTimer);
   activeScrollerTimer = setTimeout(() => {
     activeScroller = null;
@@ -383,6 +387,10 @@ function goToPage(
   if (count <= 0) return;
   const targetPage = Math.max(1, Math.min(pageNum, count));
 
+  if (propagateSync) {
+    setActiveScroller(target);
+  }
+
   if (target === "left") {
     leftCurrentPage.value = targetPage;
     loadVisiblePages("left", targetPage - 1);
@@ -452,7 +460,7 @@ function scrollToPageCard(target: "left" | "right", pageNum: number) {
   const targetIndex = pageNum - 1;
   const card = cards[targetIndex];
   if (card) {
-    card.scrollIntoView({ behavior: "smooth", block: "start" });
+    container.scrollTop = card.offsetTop - container.offsetTop;
   }
 }
 
