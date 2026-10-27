@@ -4,6 +4,15 @@ title: Release Notes
 
 # 🚀 Zentauri Release Notes
 
+### ZenTauri v1.6.1
+- **Gehärtete Scroll-Synchronisation:** Aktiver Scroller-Besitz (`setActiveScroller`) mit 200 ms Debounce in Split-View und Dual-PDF-QA, wodurch programmatische Ping-Pong-Feedback-Schleifen zuverlässig verhindert werden.
+- **Strikt monotone Zeilenzuordnung:** Ausschluss von Fußnotenblöcken am Dokumentende und Filterung doppelter Wrapper-Tags im Preview zur Absicherung der binären Suche in `scrollToFractionalLine`.
+- **Gleichmäßige Endbereich-Interpolation:** Proportionale Zeilenberechnung über den letzten Header hinaus bis zur tatsächlichen Gesamtzeilenanzahl (`sourceLineCount`).
+- **Natives Prozent-Routing:** Prozent-Modus (`%`) in der Split-Ansicht steuert nun direkt `scrollToRatio` auf beiden Seiten an.
+- **Deterministische PDF-Seitensprünge:** Ersetzung von asynchronem Smooth-Scroll in `PdfDualViewer.vue` durch deterministisches Offset-Scrolling zur Vermeidung von Race Conditions bei Seitenzählern.
+
+---
+
 ### ZenTauri v1.6.0
 - **Dual PDF QA Modus (Modus 3):** Integrierte synchrone Vektor-PDF-Vergleichs- und Proofing-Suite (`PdfDualViewer.vue`) auf Basis von `hayro_svg` mit Prozent- und Seiten-Lockstep-Scroll-Synchronisation, kontinuierlicher Scroll- vs. Einzelseitenansicht, Zoom-Skalierung und Dokumententausch (SWAP).
 - **„Open PDFs“-Sektion im File-Explorer:** Spezielle Verwaltung geladener Vergleichs-Slots (`[1] Ref`, `[2] Comp`) im Explorer mit Direktanzeige im Finder, Entladefunktion und automatischer Modus-Aktivierung beim Öffnen von `.pdf`-Dateien.

@@ -1,3 +1,19 @@
+# Release Notes — ZenTauri v1.6.1
+
+ZenTauri v1.6.1 is a stability and bugfix release hardening bidirectional scroll synchronization across the Markdown split view and the Dual PDF QA viewer, ensuring strictly monotonic line-mapping, and stabilizing page navigation.
+
+## Fixes & Enhancements (v1.6.1)
+
+### 🔄 Bidirectional Scroll Synchronization
+* **Active Scroller Ownership:** Re-architected scroll ownership (`setActiveScroller`) with 200ms debouncing across `Editor.vue`, `Preview.vue`, and `PdfDualViewer.vue`. Echo events from programmatic scrolling are completely blocked from feeding back to the initiator.
+* **Immediate RAF Cancellation:** Switching active panes immediately cancels any pending animation frame (`editorSyncRaf` or `previewSyncRaf`) of the counterpart, preventing late frame overrides.
+* **Strict Monotonic Line Mapping:** Filtered duplicate block tags and excluded trailing footnote sections (`.footnotes`) in `Preview.vue` to ensure strictly ascending source-line progression, mathematically guaranteeing binary search stability in `scrollToFractionalLine`.
+* **Smooth End-of-Document Interpolation:** Symmetrized fractional line calculation past the final document heading up to `sourceLineCount`, preventing scroll drift in the bottom section.
+* **True Percentage Mode Execution:** Correctly routes to `scrollToRatio` in both panes when percentage mode (`%`) is active.
+* **Deterministic Dual PDF Page Navigation:** Aligned `scrollToPageCard` with instant container offset scroll, eliminating asynchronous smooth-scroll races that corrupted current page counters.
+
+---
+
 # Release Notes — ZenTauri v1.6.0
 
 ZenTauri v1.6.0 introduces the dedicated **Dual PDF QA Mode** (Modus 3) for vector synchronous PDF comparison and proofing, deep file explorer integration for multi-document workflows, complete alignment with the strategic 3-Work-Modes architecture, consistent filename handling between tabs and tree views, and critical typing and input-handling hardening across the editor.

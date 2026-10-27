@@ -1,7 +1,7 @@
 {
   "name": "zentauri",
   "private": true,
-  "version": "1.6.0",
+  "version": "1.6.1",
   "description": "ZenTauri is a multi-purpose philological authoring, edition, and proofing suite (Digital Humanities Desktop Workbench) featuring 3 dedicated work-modes: Markdown Authoring with Sanskrit grammar extensions and Typst PDF export, Synoptic Master-JSON Edition with split-pane scan alignment, and Dual PDF QA & Proofing with vector collation.",
   "type": "module",
   "scripts": {

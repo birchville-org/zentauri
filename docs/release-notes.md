@@ -4,6 +4,15 @@ title: Release Notes
 
 # 🚀 Zentauri Release Notes
 
+### ZenTauri v1.6.1
+- **Hardened Scroll Synchronization:** Implemented active scroller ownership with 200ms debounce in split view and Dual PDF QA, eliminating programmatic echo ping-pong loops.
+- **Strict Monotonic Line Progression:** Excluded trailing footnotes and filtered duplicate wrapper tags in Preview source elements to guarantee binary search stability.
+- **End-of-Document Interpolation:** Proportional fractional line progression from the last heading to `sourceLineCount`, preventing scroll drift in concluding paragraphs.
+- **True Percentage Scroll Routing:** Split view percentage mode (`%`) now executes `scrollToRatio` directly across both editor and preview panes.
+- **Deterministic PDF Page Jumps:** Replaced asynchronous smooth-scroll in `PdfDualViewer.vue` with deterministic offset scroll, preventing race conditions on active page counters.
+
+---
+
 ### ZenTauri v1.6.0
 - **Dual PDF QA Mode (Modus 3):** Integrated side-by-side vector PDF proofing suite (`PdfDualViewer.vue`) powered by `hayro_svg` with percentage and page-lockstep scroll synchronization, continuous scroll vs. single-page flip mode, zoom scaling, and document swap.
 - **File Explorer Open PDFs Group:** Added dedicated comparison slot management (`[1] Ref`, `[2] Comp`) with quick-reveal, slot unload, and automatic activation when clicking `.pdf` files.
