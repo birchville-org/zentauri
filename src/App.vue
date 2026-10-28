@@ -739,6 +739,50 @@ function handleActivityAction(action: string) {
   }
 }
 
+async function handleIncomingPaths(paths: string[]) {
+  if (!paths || paths.length === 0) return;
+
+  const pdfPaths: string[] = [];
+  const otherPaths: string[] = [];
+
+  for (const p of paths) {
+    if (typeof p === "string" && p.toLowerCase().endsWith(".pdf")) {
+      pdfPaths.push(p);
+    } else if (typeof p === "string" && p.trim()) {
+      otherPaths.push(p);
+    }
+  }
+
+  if (pdfPaths.length > 0) {
+    setViewMode("pdf-qa");
+    showExplorerView();
+    const leftPdf = pdfPaths[0];
+    const rightPdf = pdfPaths.length > 1 ? pdfPaths[1] : undefined;
+    nextTick(() => {
+      pdfDualViewerRef.value?.loadPdfPair(leftPdf, rightPdf);
+    });
+  }
+
+  for (const p of otherPaths) {
+    await handleIncomingPath(p);
+  }
+}
+
+async function handleIncomingPath(path: string) {
+  if (isTauri) {
+    try {
+      const isDir = await invoke<boolean>("is_directory_path", { path });
+      if (isDir) {
+        addWorkspaceFolder(path);
+        return;
+      }
+    } catch (e) {
+      console.error("is_directory_path check failed:", e);
+    }
+  }
+  await loadFile(path);
+}
+
 // Memory
 onMounted(() => {
   window.addEventListener("keydown", handleGlobalKeydown);
@@ -831,21 +875,6 @@ onMounted(() => {
     } catch (e) {}
   }
 
-  async function handleIncomingPath(path: string) {
-    if (isTauri) {
-      try {
-        const isDir = await invoke<boolean>("is_directory_path", { path });
-        if (isDir) {
-          addWorkspaceFolder(path);
-          return;
-        }
-      } catch (e) {
-        console.error("is_directory_path check failed:", e);
-      }
-    }
-    await loadFile(path);
-  }
-
   if (isTauri && workspaceRoots.value.length > 0) {
     (async () => {
       const validFolders: string[] = [];
@@ -922,16 +951,16 @@ onMounted(() => {
   window.addEventListener("beforeunload", handleBeforeUnload);
 
   if (isTauri) {
-    listen<string>("open-file-path", (event) => {
-      if (event.payload) {
-        handleIncomingPath(event.payload);
+    listen<string[]>("open-files-batch", (event) => {
+      if (event.payload && event.payload.length > 0) {
+        handleIncomingPaths(event.payload);
       }
     })
       .then((unlisten) => {
         unlistenFns.push(unlisten);
       })
       .catch((err) => {
-        console.error("Failed to setup open-file-path listener:", err);
+        console.error("Failed to setup open-files-batch listener:", err);
       });
 
     const debouncedFsRefresh = debounce(() => {
@@ -951,9 +980,7 @@ onMounted(() => {
     invoke<string[]>("get_pending_open_files")
       .then((paths) => {
         if (paths && paths.length > 0) {
-          for (const path of paths) {
-            handleIncomingPath(path);
-          }
+          handleIncomingPaths(paths);
         }
       })
       .catch((err) => {

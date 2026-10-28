@@ -123,4 +123,37 @@ describe("PdfDualViewer", () => {
     const emptyDocs = afterUnload![afterUnload!.length - 1][0] as any[];
     expect(emptyDocs.length).toBe(0);
   });
+
+  it("loads PDF pair correctly with 1 PDF and 2 PDFs", async () => {
+    const { invoke } = await import("@tauri-apps/api/core");
+    vi.mocked(invoke).mockImplementation(async (cmd: string, args?: any) => {
+      if (cmd === "get_pdf_info") {
+        const path = args?.path || "sample.pdf";
+        const name = path.split("/").pop() || "sample.pdf";
+        return {
+          page_count: name === "second.pdf" ? 10 : 5,
+          file_name: name,
+          file_size: 2048,
+        };
+      }
+      return undefined;
+    });
+
+    const wrapper = mount(PdfDualViewer);
+    const vm = wrapper.vm as any;
+
+    // 1. Load pair with 2 PDFs
+    await vm.loadPdfPair("/docs/first.pdf", "/docs/second.pdf");
+    expect(vm.leftPdfPath).toBe("/docs/first.pdf");
+    expect(vm.leftPdfName).toBe("first.pdf");
+    expect(vm.rightPdfPath).toBe("/docs/second.pdf");
+    expect(vm.rightPdfName).toBe("second.pdf");
+
+    // 2. Load pair with only 1 PDF -> left is loaded, right is unloaded
+    await vm.loadPdfPair("/docs/solo.pdf");
+    expect(vm.leftPdfPath).toBe("/docs/solo.pdf");
+    expect(vm.leftPdfName).toBe("solo.pdf");
+    expect(vm.rightPdfPath).toBe("");
+    expect(vm.rightPdfName).toBe("");
+  });
 });

@@ -441,7 +441,7 @@ use tauri::State;
 use tauri_plugin_fs::FsExt;
 
 #[derive(Default)]
-pub struct PendingOpenFiles(pub Arc<Mutex<Vec<String>>>);
+pub struct PendingOpenFiles(pub Arc<Mutex<(Vec<String>, bool)>>);
 
 #[derive(Default)]
 pub struct WorkspaceWatcher(pub Arc<Mutex<Option<RecommendedWatcher>>>);
@@ -513,10 +513,9 @@ fn watch_workspaces(
 
 #[tauri::command]
 fn get_pending_open_files(state: State<'_, PendingOpenFiles>) -> Vec<String> {
-    let mut files = state.0.lock().unwrap();
-    let result = files.clone();
-    files.clear();
-    result
+    let mut guard = state.0.lock().unwrap();
+    guard.1 = true;
+    std::mem::take(&mut guard.0)
 }
 
 fn get_valid_cwd() -> Option<PathBuf> {
@@ -965,14 +964,27 @@ pub fn run() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_single_instance::init(|app, argv, cwd| {
             let cwd_path = std::path::Path::new(&cwd);
+            let mut batch_paths = Vec::new();
             for arg in argv.iter().skip(1) {
                 if let Some(abs_path) = resolve_file_arg(arg, Some(cwd_path)) {
                     let path_str = abs_path.to_string_lossy().to_string();
                     let _ = app.fs_scope().allow_file(&abs_path);
-                    let _ = app.emit("open-file-path", &path_str);
-                    if let Some(state) = app.try_state::<PendingOpenFiles>() {
-                        state.0.lock().unwrap().push(path_str);
-                    }
+                    batch_paths.push(path_str);
+                }
+            }
+            if !batch_paths.is_empty() {
+                let is_ready = app
+                    .try_state::<PendingOpenFiles>()
+                    .map(|state| {
+                        let mut guard = state.0.lock().unwrap();
+                        if !guard.1 {
+                            guard.0.extend(batch_paths.iter().cloned());
+                        }
+                        guard.1
+                    })
+                    .unwrap_or(true);
+                if is_ready {
+                    let _ = app.emit("open-files-batch", &batch_paths);
                 }
             }
             if let Some(window) = app.get_webview_window("main") {
@@ -1010,7 +1022,7 @@ pub fn run() {
                     if let Some(abs_path) = resolve_file_arg(&arg, Some(&cwd)) {
                         let path_str = abs_path.to_string_lossy().to_string();
                         let _ = app.fs_scope().allow_file(&abs_path);
-                        pending_state.0.lock().unwrap().push(path_str);
+                        pending_state.0.lock().unwrap().0.push(path_str);
                     }
                 }
             }
@@ -1229,15 +1241,33 @@ pub fn run() {
         }
         #[cfg(target_os = "macos")]
         tauri::RunEvent::Opened { urls } => {
+            let mut batch_paths = Vec::new();
             for url in urls {
                 if let Ok(path) = url.to_file_path() {
                     let path_str = path.to_string_lossy().to_string();
                     let _ = _app_handle.fs_scope().allow_file(&path);
-                    let _ = _app_handle.emit("open-file-path", &path_str);
-                    if let Some(state) = _app_handle.try_state::<PendingOpenFiles>() {
-                        state.0.lock().unwrap().push(path_str);
-                    }
+                    batch_paths.push(path_str);
                 }
+            }
+            if !batch_paths.is_empty() {
+                let is_ready = _app_handle
+                    .try_state::<PendingOpenFiles>()
+                    .map(|state| {
+                        let mut guard = state.0.lock().unwrap();
+                        if !guard.1 {
+                            guard.0.extend(batch_paths.iter().cloned());
+                        }
+                        guard.1
+                    })
+                    .unwrap_or(true);
+                if is_ready {
+                    let _ = _app_handle.emit("open-files-batch", &batch_paths);
+                }
+            }
+            if let Some(window) = _app_handle.get_webview_window("main") {
+                let _ = window.show();
+                let _ = window.unminimize();
+                let _ = window.set_focus();
             }
         }
         #[cfg(target_os = "macos")]

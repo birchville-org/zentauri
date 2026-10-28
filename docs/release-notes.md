@@ -4,6 +4,14 @@ title: Release Notes
 
 # 🚀 Zentauri Release Notes
 
+### ZenTauri v1.7.0
+- **External PDF Launch & Slot Assignment:** Launch ZenTauri with PDF file paths via command line arguments or macOS Finder context menu ("Open With..."). 1 PDF loads directly into the left reference slot (`[1] Ref`), 2 PDFs populate reference (`[1] Ref`) and comparison (`[2] Comp`) slots simultaneously, and additional PDFs (>2) are ignored.
+- **Finder & File Association Integration:** Registered `.pdf` (`com.adobe.pdf`) in macOS bundle file associations with role `Viewer` for seamless drag-and-drop and context menu execution.
+- **Batched IPC & Cold-Start Synchronization:** Implemented `open-files-batch` in the Rust backend with atomic `frontend_ready` tracking in `PendingOpenFiles`, preventing duplicate tab creation and race conditions between `RunEvent::Opened` and initial mounting.
+- **Targeted PDF Slot Re-render Prevention:** `loadPdfPair` compares existing paths and error states per slot, preserving scroll position and rendered SVG cache when only one slot changes.
+
+---
+
 ### ZenTauri v1.6.1
 - **Hardened Scroll Synchronization:** Implemented active scroller ownership with 200ms debounce in split view and Dual PDF QA, eliminating programmatic echo ping-pong loops.
 - **Strict Monotonic Line Progression:** Excluded trailing footnotes and filtered duplicate wrapper tags in Preview source elements to guarantee binary search stability.

@@ -1,20 +1,29 @@
 import { mount } from "@vue/test-utils";
 import { describe, expect, it, vi } from "vitest";
+import { defineComponent, h, nextTick, ref } from "vue";
 import App from "./App.vue";
 import Editor from "./components/Editor.vue";
 import FileTree from "./components/FileTree.vue";
+
+const listeners: Record<string, (event: any) => void> = {};
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: vi.fn().mockImplementation(async (cmd) => {
     if (cmd === "read_workspace_tree") return [];
     if (cmd === "get_app_cwd") return null;
     if (cmd === "is_directory_path") return false;
+    if (cmd === "get_pending_open_files") return [];
     return [];
   }),
 }));
 
 vi.mock("@tauri-apps/api/event", () => ({
-  listen: vi.fn().mockResolvedValue(() => {}),
+  listen: vi
+    .fn()
+    .mockImplementation((name: string, handler: (event: any) => void) => {
+      listeners[name] = handler;
+      return Promise.resolve(() => {});
+    }),
 }));
 
 vi.mock("@tauri-apps/plugin-fs", () => ({
@@ -212,5 +221,75 @@ describe("App Component Integration", () => {
 
       localStorage.removeItem("zentauri-settings");
     });
+  });
+
+  it("routes incoming PDFs into pdf-qa mode with 1, 2, and >2 files", async () => {
+    (window as any).__TAURI_INTERNALS__ = {};
+    const loadPdfPairMock = vi.fn();
+    const MockPdfDualViewer = defineComponent({
+      name: "PdfDualViewer",
+      setup(_, { expose }) {
+        expose({
+          loadPdfPair: loadPdfPairMock,
+          loadPdf: vi.fn(),
+          loadPdfFromExternal: vi.fn(),
+          unloadPdf: vi.fn(),
+          revealInFinder: vi.fn(),
+          leftPdfPath: ref(""),
+          rightPdfPath: ref(""),
+        });
+        return () => h("div", { class: "mock-pdf-dual-viewer" });
+      },
+    });
+
+    const wrapper = mount(App, {
+      global: {
+        stubs: {
+          Editor: true,
+          Preview: true,
+          Cheatsheet: true,
+          HelpSystem: true,
+          Settings: true,
+          SearchPanel: true,
+          UpdateNotification: true,
+          StatusBar: true,
+          PdfDualViewer: MockPdfDualViewer,
+        },
+      },
+    });
+
+    const batchHandler = listeners["open-files-batch"];
+    expect(batchHandler).toBeDefined();
+
+    // 1. Single PDF -> 1st into left, right undefined
+    batchHandler({ payload: ["/path/single.pdf"] });
+    await nextTick();
+    await nextTick();
+    expect(loadPdfPairMock).toHaveBeenLastCalledWith(
+      "/path/single.pdf",
+      undefined,
+    );
+
+    // 2. Two PDFs -> 1st into left, 2nd into right
+    batchHandler({ payload: ["/path/left.pdf", "/path/right.pdf"] });
+    await nextTick();
+    await nextTick();
+    expect(loadPdfPairMock).toHaveBeenLastCalledWith(
+      "/path/left.pdf",
+      "/path/right.pdf",
+    );
+
+    // 3. Three PDFs (>2) -> 1st into left, 2nd into right, 3rd ignored
+    batchHandler({
+      payload: ["/path/first.pdf", "/path/second.pdf", "/path/third.pdf"],
+    });
+    await nextTick();
+    await nextTick();
+    expect(loadPdfPairMock).toHaveBeenLastCalledWith(
+      "/path/first.pdf",
+      "/path/second.pdf",
+    );
+
+    (window as any).__TAURI_INTERNALS__ = undefined;
   });
 });

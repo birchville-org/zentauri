@@ -208,6 +208,23 @@ async function loadPdfFromExternal(path: string, slot?: "left" | "right") {
   }
 }
 
+async function loadPdfPair(leftPath: string, rightPath?: string) {
+  const promises: Promise<void>[] = [];
+  if (leftPdfPath.value !== leftPath || leftError.value) {
+    promises.push(loadPdf("left", leftPath));
+  }
+  if (rightPath) {
+    if (rightPdfPath.value !== rightPath || rightError.value) {
+      promises.push(loadPdf("right", rightPath));
+    }
+  } else if (rightPdfPath.value) {
+    unloadPdf("right");
+  }
+  if (promises.length > 0) {
+    await Promise.all(promises);
+  }
+}
+
 async function revealInFinder(path: string) {
   if (!path) return;
   try {
@@ -689,6 +706,7 @@ onBeforeUnmount(() => {
 defineExpose({
   loadPdf,
   loadPdfFromExternal,
+  loadPdfPair,
   unloadPdf,
   revealInFinder,
   leftPdfPath,

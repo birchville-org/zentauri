@@ -4,6 +4,14 @@ title: Release Notes
 
 # 🚀 Zentauri Release Notes
 
+### ZenTauri v1.7.0
+- **PDF-Start per Befehlszeile & Finder-Kontextmenü:** Direktes Öffnen von Zentauri mit PDF-Pfaden als Argumente oder per Finder-Kontextmenü („Öffnen mit …“). Bei 1 PDF wird die Datei in den linken Referenz-Slot (`[1] Ref`) geladen; bei 2 PDFs werden beide Slots (`[1] Ref` links, `[2] Comp` rechts) synchron belegt; ab dem 3. PDF werden überzählige Pfade verworfen.
+- **Systemweite Dateiverknüpfung (macOS Bundle):** Registrierung von `.pdf` (`com.adobe.pdf`) in den `fileAssociations` der `tauri.conf.json` mit Rolle `Viewer` für native Finder-Integration.
+- **Gepufferte IPC- & Start-Synchronisation:** Bündelung eingehender Pfade über das Rust-Backend-Event `open-files-batch` mit atomarem `frontend_ready`-Status in `PendingOpenFiles`, wodurch Race Conditions und doppelte Verarbeitungen beim Kaltstart ausgeschlossen sind.
+- **Selektives Slot-Caching in `loadPdfPair`:** Differenzierte Pfad- und Fehlerprüfung pro Slot, wodurch unveränderte Dokumente ohne Flackern oder Positionsverlust im Cache verbleiben.
+
+---
+
 ### ZenTauri v1.6.1
 - **Gehärtete Scroll-Synchronisation:** Aktiver Scroller-Besitz (`setActiveScroller`) mit 200 ms Debounce in Split-View und Dual-PDF-QA, wodurch programmatische Ping-Pong-Feedback-Schleifen zuverlässig verhindert werden.
 - **Strikt monotone Zeilenzuordnung:** Ausschluss von Fußnotenblöcken am Dokumentende und Filterung doppelter Wrapper-Tags im Preview zur Absicherung der binären Suche in `scrollToFractionalLine`.
