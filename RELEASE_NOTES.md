@@ -1,3 +1,17 @@
+# Release Notes — ZenTauri v1.7.0
+
+ZenTauri v1.7.0 introduces external PDF CLI argument and macOS Finder context menu ("Open With...") launch integration, automatic comparison slot assignment, system file associations for PDF documents, and batched cold-start IPC synchronization.
+
+## Fixes & Enhancements (v1.7.0)
+
+### 📄 External PDF Launch & Slot Assignment
+* **CLI & Argument Routing:** Passing PDF paths as arguments to ZenTauri automatically activates Dual PDF QA Mode (`pdf-qa`) and populates the comparison slots: 1 PDF loads directly into the left reference slot (`[1] Ref`), 2 PDFs load into left (`[1] Ref`) and right (`[2] Comp`) slots respectively, and additional PDFs (>2) are ignored.
+* **macOS Finder Context Menu ("Open With..."):** Added `.pdf` (`com.adobe.pdf`) to macOS application bundle `fileAssociations` with role `Viewer`, enabling direct multi-file selection and opening from the Finder and Dock drag-and-drop.
+* **Cold-Start IPC Synchronization:** Implemented `open-files-batch` in the Rust backend with atomic `frontend_ready` tracking in `PendingOpenFiles`, preventing duplicate tab creation and race conditions between macOS `RunEvent::Opened` and initial Vue mounting.
+* **Targeted PDF Slot Re-render Prevention:** `loadPdfPair` verifies path and error state per slot, preserving scroll position and rendered SVG cache when only one slot changes.
+
+---
+
 # Release Notes — ZenTauri v1.6.1
 
 ZenTauri v1.6.1 is a stability and bugfix release hardening bidirectional scroll synchronization across the Markdown split view and the Dual PDF QA viewer, ensuring strictly monotonic line-mapping, and stabilizing page navigation.
