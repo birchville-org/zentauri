@@ -4,6 +4,18 @@ title: Release Notes
 
 # 🚀 Zentauri Release Notes
 
+### ZenTauri v1.8.0
+- **Native DOCX & ODT Document Ingest (`docling-rs`):** Integrated the pure-Rust `docling` engine (v2.55, without Python/Pandoc/LibreOffice dependencies). Existing manuscripts from Microsoft Word (`.docx`), OpenDocument Text (`.odt`), and `.rtf`, `.epub`, `.pptx`, `.xlsx` are parsed and converted directly into clean, archivable Markdown in the Rust backend (`src-tauri`).
+- **Safe Import Buffer & Source Preservation:** Ingested documents open in a new editor tab (`<filename>.md`) marked as unsaved (`isDirty: true`). The original file on disk is never modified or overwritten.
+- **Import Confirmation Notice Dialog:** Native dialog upon opening or dropping office files detailing Markdown conversion limits (omission of complex page margins and absolute frames) and markdown-only persistence.
+- **Window-Wide Drag & Drop:** Connected `getCurrentWebview().onDragDropEvent` in `src/App.vue` for native macOS Finder file drops (`.md`, `.pdf`, `.docx`, `.odt`).
+- **Unicode NFC & Control Character Sanitizing:** Automatic Unicode NFC normalization (essential for Sanskrit IAST diacritics and Devanāgarī ligatures) and stripping of soft hyphens (`\u{00ad}`), zero-width spaces (`\u{200b}`), and BOM (`\u{feff}`).
+- **Scholarly Fontstack (Böhtlingk Standard):** Adopted `STIX Two Text` across Typst export (`typstConverter.ts`) and CSS for native OpenType small caps with IAST diacritics (e.g. PĀṆINI, MAHĀBHĀṢYA).
+- **Workspace Indexing & File Associations:** Added `.docx` and `.odt` indexing in `db.rs` and registered macOS `fileAssociations` in `tauri.conf.json`.
+- **Toolbar Balloon Tooltip De-duplication:** Removed redundant native HTML `title` attributes in toolbar buttons to eliminate duplicate overlapping tooltips on hover.
+
+---
+
 ### ZenTauri v1.7.1
 - **markdown-it-extensible v1.4.2 Upgrade:** Updated parsing engine to support table linebreaks (`:br`) directly adjacent to word characters and Sanskrit Unicode delimiters (e.g. `Wurzel:br⟪धाtu⟫`), as well as immediately preceding numbers and verb class designations (`:br5 P`). Word-internal substrings (`:breakfast`, `:br_var`) and multi-colon tags (`::br`) are preserved as literal text.
 - **Typst PDF Export Table Linebreak Parity:** Synchronized the native Typst PDF converter with the HTML table linebreak specification. Linebreaks (`\ `) and horizontal indentation (`#h(2em)`) are scoped exclusively to table cells, maintaining literal representations in normal body text and escaping special characters cleanly.

@@ -1,3 +1,23 @@
+# Release Notes — ZenTauri v1.8.0
+
+ZenTauri v1.8.0 integrates a native pure-Rust document ingest engine powered by `docling-rs`, enabling direct conversion of Microsoft Word (`.docx`), OpenDocument Text (`.odt`), and rich text formats into clean, archivable Markdown with window drag-and-drop, import notice dialogues, and the STIX Two Text scholarly fontstack.
+
+## Fixes & Enhancements (v1.8.0)
+
+### 📄 Native Office Document Ingest (`docling-rs`)
+* **Pure-Rust Ingest Pipeline:** Integrated `docling` (v2.55) without Python, Pandoc, or LibreOffice dependencies. Directly parses and converts `.docx`, `.odt`, `.rtf`, `.epub`, `.pptx`, and `.xlsx` into clean, standard-compliant Markdown.
+* **Safe Import Buffer & Original File Safety:** Converted documents open in a new editor tab (`<filename>.md`) marked as unsaved (`isDirty: true`), ensuring the original binary file on disk is never overwritten.
+* **Pre-Import Confirmation Dialog:** Added native dialog prompts notifying users about Markdown conversion specifics, omission of complex proprietary page layouts, and markdown-only storage.
+* **Window-Wide Drag & Drop:** Wired `getCurrentWebview().onDragDropEvent` in `src/App.vue` for direct drag-and-drop from macOS Finder into ZenTauri.
+* **Unicode NFC & Control Character Sanitizing:** Automatic Unicode NFC normalization (essential for Sanskrit IAST diacritics and Devanāgarī ligatures) and stripping of soft hyphens (`\u{00ad}`), zero-width spaces (`\u{200b}`), and BOM (`\u{feff}`).
+
+### 🏛️ Typography & Scholarly Standards
+* **Birchville Scholarly Fontstack (Böhtlingk Standard):** Adopted `STIX Two Text` across Typst export and CSS for native OpenType small caps with IAST diacritics.
+* **Workspace Indexing & File Associations:** Added `.docx` and `.odt` indexing to embedded SQLite database (`src-tauri/src/db.rs`) and registered macOS `fileAssociations` in `tauri.conf.json`.
+* **Toolbar Balloon Tooltip De-duplication:** Removed redundant native HTML `title` attributes on toolbar buttons to eliminate duplicate overlapping tooltips on hover.
+
+---
+
 # Release Notes — ZenTauri v1.7.1
 
 ZenTauri v1.7.1 upgrades the markdown rendering engine to `markdown-it-extensible` v1.4.2, adding support for table linebreaks adjacent to word characters and preceding numbers/classes, and synchronizes the native Typst PDF converter with identical table-scoped formatting rules.

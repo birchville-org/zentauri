@@ -4,6 +4,18 @@ title: Release Notes
 
 # 🚀 Zentauri Release Notes
 
+### ZenTauri v1.8.0
+- **Nativer DOCX- & ODT-Dokumentenimport (`docling-rs`):** Vollwertige Integration der reinen Rust-Konvertierungs-Engine `docling` (v2.55, ohne Python-/Pandoc-/LibreOffice-Abhängigkeiten). Bestehende Manuskripte aus Microsoft Word (`.docx`), OpenDocument Text (`.odt`) sowie `.rtf`, `.epub`, `.pptx` und `.xlsx` werden direkt und blitzschnell im Rust-Backend (`src-tauri`) in sauberes, archivierbares Markdown überführt.
+- **Sicherer Import-Puffer & Originaldateischutz:** Das konvertierte Dokument wird als neuer Arbeitsreiter (`<dateiname>.md`) im Editor geöffnet und als ungespeichert (`isDirty: true`) markiert. Die originale Quelldatei auf der Festplatte bleibt unberührt und wird niemals überschrieben.
+- **Vorab-Bestätigungsdialog für Office-Dateien:** Transparenter nativer Bestätigungshinweis beim Öffnen oder Hineinziehen von Office-Dokumenten, der über Konvertierungsmerkmale, den Wegfall proprietärer Layoutdetails (komplexe Spaltensätze, Rahmen) und das ausschließliche Speichern im Markdown-Format informiert.
+- **Fenster-weites Drag & Drop:** Anbindung von `getCurrentWebview().onDragDropEvent` in `src/App.vue`. Dateien (`.md`, `.pdf`, `.docx`, `.odt`) können direkt aus dem macOS Finder per Drag & Drop in das Anwendungsfenster gezogen werden.
+- **Unicode-NFC & Steuerzeichen-Sanitizing:** Automatische Normalisierung aller importierten Texte nach Unicode NFC (essentiell für Sanskrit-IAST-Diakritika und Devanāgarī-Ligaturen) sowie rückstandslose Bereinigung unsichtbarer Office-Steuerzeichen (weiche Trennstriche `\u{00ad}`, Zero-Width Spaces `\u{200b}`, BOM `\u{feff}`).
+- **Scholarly Fontstack (Böhtlingk-Standard):** Durchgängige Einbindung von `STIX Two Text` im Typst-PDF-Export (`typstConverter.ts`) und CSS für native OpenType-Kapitälchen mit IAST-Diakritika (z. B. PĀṆINI, MAHĀBHĀṢYA).
+- **Workspace-Indexierung & Dateityp-Assoziationen:** Erweiterung der SQLite-Indizierung in `db.rs` um `.docx` und `.odt` sowie Hinterlegung von macOS `fileAssociations` in `tauri.conf.json`.
+- **Toolbar Balloon-Tooltip Bereinigung:** Entfernung redundanter nativer HTML-`title`-Attribute in der oberen Menüleiste zur Vermeidung überlappender Tooltip-Boxen beim Hovern.
+
+---
+
 ### ZenTauri v1.7.1
 - **Upgrade auf markdown-it-extensible v1.4.2:** Aktualisierung der Parsing-Engine zur Unterstützung von Tabellenumbrüchen (`:br`) unmittelbar angrenzend an Wortzeichen und Sanskrit-Unicode-Klammern (z. B. `Wurzel:br⟪धाtu⟫`) sowie direkt vor Ziffern und Verbklassen (`:br5 P`). Wortbestandteile (`:breakfast`, `:br_var`) und Mehrfach-Doppelpunkte (`::br`) bleiben als Fließtext erhalten.
 - **Typst-PDF-Export Parität bei Tabellenumbrüchen:** Synchronisation des nativen Typst-PDF-Konverters mit der HTML-Tabellenspezifikation. Umbrüche (`\ `) und Einrückungen (`#h(2em)`) greifen ausschließlich innerhalb von Tabellenzellen (`inTable`), während Fließtext unverändert bleibt und Sonderzeichen typografisch sauber maskiert werden.
