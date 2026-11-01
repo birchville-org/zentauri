@@ -1,3 +1,15 @@
+# Release Notes — ZenTauri v1.7.1
+
+ZenTauri v1.7.1 upgrades the markdown rendering engine to `markdown-it-extensible` v1.4.2, adding support for table linebreaks adjacent to word characters and preceding numbers/classes, and synchronizes the native Typst PDF converter with identical table-scoped formatting rules.
+
+## Fixes & Enhancements (v1.7.1)
+
+### 🧩 Markdown Engine & Typst PDF Parity
+* **markdown-it-extensible v1.4.2 Upgrade:** Relaxed `:br` lookbehind in tables so linebreaks directly adjacent to text (e.g. `Wurzel:br⟪धाtu⟫`) and directly preceding numbers or verb classes (`:br5 P`) are parsed into `<br>`. Negative lookarounds ensure that words (`:breakfast`, `:br_var`) and multi-colons (`::br`) are never converted.
+* **Typst Table Linebreak & Indent Parity:** Aligned `src/lib/typstConverter.ts` with the extensible parser standard. Substitutions for `:br` (`\ `) and `:indent` (`#h(2em)`) are now strictly scoped to table environments (`inTable`), preventing unintended transformations in standard paragraphs and preserving Typst escape rules.
+
+---
+
 # Release Notes — ZenTauri v1.7.0
 
 ZenTauri v1.7.0 introduces external PDF CLI argument and macOS Finder context menu ("Open With...") launch integration, automatic comparison slot assignment, system file associations for PDF documents, and batched cold-start IPC synchronization.

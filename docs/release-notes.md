@@ -4,6 +4,12 @@ title: Release Notes
 
 # 🚀 Zentauri Release Notes
 
+### ZenTauri v1.7.1
+- **markdown-it-extensible v1.4.2 Upgrade:** Updated parsing engine to support table linebreaks (`:br`) directly adjacent to word characters and Sanskrit Unicode delimiters (e.g. `Wurzel:br⟪धाtu⟫`), as well as immediately preceding numbers and verb class designations (`:br5 P`). Word-internal substrings (`:breakfast`, `:br_var`) and multi-colon tags (`::br`) are preserved as literal text.
+- **Typst PDF Export Table Linebreak Parity:** Synchronized the native Typst PDF converter with the HTML table linebreak specification. Linebreaks (`\ `) and horizontal indentation (`#h(2em)`) are scoped exclusively to table cells, maintaining literal representations in normal body text and escaping special characters cleanly.
+
+---
+
 ### ZenTauri v1.7.0
 - **External PDF Launch & Slot Assignment:** Launch ZenTauri with PDF file paths via command line arguments or macOS Finder context menu ("Open With..."). 1 PDF loads directly into the left reference slot (`[1] Ref`), 2 PDFs populate reference (`[1] Ref`) and comparison (`[2] Comp`) slots simultaneously, and additional PDFs (>2) are ignored.
 - **Finder & File Association Integration:** Registered `.pdf` (`com.adobe.pdf`) in macOS bundle file associations with role `Viewer` for seamless drag-and-drop and context menu execution.

@@ -69,5 +69,34 @@ describe("typstConverter math handling", () => {
 
       expect(typst).toContain("$ e^(i pi) + 1 = 0 $");
     });
+
+    it("converts :br and :indent to Typst linebreaks and horizontal space inside tables (v1.4.2)", () => {
+      const md =
+        "| Spalte A | Spalte B |\n|---|---|\n| Wort:br5 P | Vor Vokal:br(schwach) :indent Einrückung |\n";
+      const typst = convertMarkdownToTypst(md);
+      expect(typst).toContain("Wort\\\n5 P");
+      expect(typst).toContain("Vor Vokal\\\n(schwach)");
+      expect(typst).toContain("#h(1em) Einrückung");
+    });
+
+    it("leaves :br and :indent untouched outside of tables and respects identifier boundaries in tables", () => {
+      // Outside tables: must remain unchanged
+      const paraMd = "Wort:br5 P und Vor Vokal:br(schwach) :indent Text";
+      const paraTypst = convertMarkdownToTypst(paraMd);
+      expect(paraTypst).not.toContain("\\\n");
+      expect(paraTypst).not.toContain("#h(1em)");
+      expect(paraTypst).toContain(
+        "Wort:br5 P und Vor Vokal:br(schwach) :indent Text",
+      );
+
+      // In tables: :breakfast, :br_var or ::br must not trigger linebreaks
+      const boundaryTableMd =
+        "| Col 1 | Col 2 | Col 3 |\n|---|---|---|\n| :breakfast | :br_var | ::br |\n";
+      const boundaryTypst = convertMarkdownToTypst(boundaryTableMd);
+      expect(boundaryTypst).not.toContain("\\\n");
+      expect(boundaryTypst).toContain(":breakfast");
+      expect(boundaryTypst).toContain(":br\\_var");
+      expect(boundaryTypst).toContain("::br");
+    });
   });
 });

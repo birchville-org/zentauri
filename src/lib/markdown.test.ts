@@ -28,6 +28,31 @@ describe("renderMarkdown", () => {
     expect(tableHtml).toContain('rowspan="2"');
   });
 
+  it("converts :br to <br> in tables even when adjacent to words or followed by digits (v1.4.2)", () => {
+    const tableMd =
+      "| Spalte A | Spalte B |\n|---|---|\n| Wort:br5 P | Vor Vokal:br(schwach) |\n";
+    const html = renderMarkdown(tableMd);
+    expect(html).toContain("Wort<br>\n5 P");
+    expect(html).toContain("Vor Vokal<br>\n(schwach)");
+  });
+
+  it("leaves :br untouched outside of tables and respects identifier boundaries in tables", () => {
+    // Outside tables: :br should remain untouched
+    const paraMd = "Fließtext:br5 P und Vor Vokal:br(schwach)";
+    const paraHtml = renderMarkdown(paraMd);
+    expect(paraHtml).not.toContain("<br>");
+    expect(paraHtml).toContain("Fließtext:br5 P und Vor Vokal:br(schwach)");
+
+    // In tables: identifiers like :breakfast, :br_var or double colon ::br must not convert
+    const boundaryTableMd =
+      "| Col 1 | Col 2 | Col 3 |\n|---|---|---|\n| :breakfast | :br_var | ::br |\n";
+    const boundaryHtml = renderMarkdown(boundaryTableMd);
+    expect(boundaryHtml).not.toContain("<br>");
+    expect(boundaryHtml).toContain(":breakfast");
+    expect(boundaryHtml).toContain(":br_var");
+    expect(boundaryHtml).toContain("::br");
+  });
+
   it("renders footnotes with working anchors", () => {
     for (const markdownExtensionsEnabled of [true, false]) {
       const html = renderMarkdown("Text[^1]\n\n[^1]: Die Notiz.", {

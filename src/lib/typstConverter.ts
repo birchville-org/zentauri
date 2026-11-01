@@ -361,9 +361,10 @@ export function latexToTypstMath(latex: string): string {
   return res;
 }
 
-function processInlineScholarly(rawText: string): string {
-  const regex =
-    /([⟪《][^⟫⟩》]+[⟫⟩》](?:\s*\|\|?)?)|(:sig\[.*?\])|(:mark\[.*?\])|(:br\b)|(:indent\b)/g;
+function processInlineScholarly(rawText: string, inTable = false): string {
+  const regex = inTable
+    ? /([⟪《][^⟫⟩》]+[⟫⟩》](?:\s*\|\|?)?)|(:sig\[.*?\])|(:mark\[.*?\])|((?<!:):br(?![a-zA-Z_]))|((?<![\w:-]):indent(?!\w))/g
+    : /([⟪《][^⟫⟩》]+[⟫⟩》](?:\s*\|\|?)?)|(:sig\[.*?\])|(:mark\[.*?\])/g;
 
   let lastIndex = 0;
   let result = "";
@@ -625,7 +626,7 @@ export function convertMarkdownToTypst(
           for (const child of token.children) {
             switch (child.type) {
               case "text":
-                typstCode += processInlineScholarly(child.content);
+                typstCode += processInlineScholarly(child.content, inTable);
                 break;
               case "strong_open":
                 typstCode += "*";

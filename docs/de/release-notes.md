@@ -4,6 +4,12 @@ title: Release Notes
 
 # 🚀 Zentauri Release Notes
 
+### ZenTauri v1.7.1
+- **Upgrade auf markdown-it-extensible v1.4.2:** Aktualisierung der Parsing-Engine zur Unterstützung von Tabellenumbrüchen (`:br`) unmittelbar angrenzend an Wortzeichen und Sanskrit-Unicode-Klammern (z. B. `Wurzel:br⟪धाtu⟫`) sowie direkt vor Ziffern und Verbklassen (`:br5 P`). Wortbestandteile (`:breakfast`, `:br_var`) und Mehrfach-Doppelpunkte (`::br`) bleiben als Fließtext erhalten.
+- **Typst-PDF-Export Parität bei Tabellenumbrüchen:** Synchronisation des nativen Typst-PDF-Konverters mit der HTML-Tabellenspezifikation. Umbrüche (`\ `) und Einrückungen (`#h(2em)`) greifen ausschließlich innerhalb von Tabellenzellen (`inTable`), während Fließtext unverändert bleibt und Sonderzeichen typografisch sauber maskiert werden.
+
+---
+
 ### ZenTauri v1.7.0
 - **PDF-Start per Befehlszeile & Finder-Kontextmenü:** Direktes Öffnen von Zentauri mit PDF-Pfaden als Argumente oder per Finder-Kontextmenü („Öffnen mit …“). Bei 1 PDF wird die Datei in den linken Referenz-Slot (`[1] Ref`) geladen; bei 2 PDFs werden beide Slots (`[1] Ref` links, `[2] Comp` rechts) synchron belegt; ab dem 3. PDF werden überzählige Pfade verworfen.
 - **Systemweite Dateiverknüpfung (macOS Bundle):** Registrierung von `.pdf` (`com.adobe.pdf`) in den `fileAssociations` der `tauri.conf.json` mit Rolle `Viewer` für native Finder-Integration.
