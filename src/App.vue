@@ -1828,10 +1828,13 @@ async function handleOpenFile() {
       filters: [
         {
           name: "Markdown & Documents",
-          extensions: ["md", "markdown", "docx", "rtf", "epub", "pdf"],
+          extensions: ["md", "markdown", "docx", "odt", "rtf", "epub", "pdf"],
         },
         { name: "Markdown", extensions: ["md", "markdown"] },
-        { name: "Word Documents", extensions: ["docx"] },
+        {
+          name: "Word & Office Documents",
+          extensions: ["docx", "odt", "rtf"],
+        },
         { name: "All Files", extensions: ["*"] },
       ],
     });

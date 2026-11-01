@@ -346,3 +346,22 @@ fn test_docling_docx_ingest() {
     assert!(!md.contains('\u{00ad}')); // No soft hyphens
     assert!(!md.contains('\u{feff}')); // No BOM
 }
+
+#[test]
+fn test_docling_odt_ingest() {
+    use tauri_app_lib::ingest_document_impl;
+    let fixture_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("tests")
+        .join("fixtures")
+        .join("sample.odt");
+
+    assert!(fixture_path.exists(), "Sample odt fixture must exist");
+
+    let result = ingest_document_impl(fixture_path.to_str().unwrap());
+    assert!(result.is_ok(), "ODT Ingest must succeed: {:?}", result.err());
+
+    let md = result.unwrap();
+    assert!(!md.is_empty(), "Exported markdown must not be empty");
+    assert!(!md.contains('\u{00ad}'));
+    assert!(!md.contains('\u{feff}'));
+}

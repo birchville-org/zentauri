@@ -48,6 +48,11 @@
         "ext": ["docx"],
         "name": "Microsoft Word Document",
         "role": "Editor"
+      },
+      {
+        "ext": ["odt"],
+        "name": "OpenDocument Text",
+        "role": "Editor"
       }
     ]
   },

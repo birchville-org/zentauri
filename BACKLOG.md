@@ -168,9 +168,9 @@ Zentauri schlägt diese Brücke unter einem strikten Architekturprinzip: **Plain
 
 ### Implementierungsstand & Funktionen:
 
-1. **DOCX-Ingest (Nativ via `docling-rs` — Aktiv implementiert):**
-   - **Reine Rust-Pipeline ohne Pandoc/Python:** Drag & Drop, Finder-Kontextmenü oder Öffnen einer `.docx`-Datei wandelt diese unmittelbar im Rust-Backend über `docling` (`default-features = false`, OOXML-Parser) in sauberes, archivierbares Markdown um.
-   - **Sicherer Import-Puffer:** Die Originaldatei `.docx` wird niemals überschrieben; die erzeugte Markdown-Fassung wird als separater `.md`-Tab geöffnet und als ungespeichert (`isDirty`) markiert.
+1. **DOCX & ODT Ingest (Nativ via `docling-rs` — Aktiv implementiert):**
+   - **Reine Rust-Pipeline ohne Pandoc/Python:** Drag & Drop, Finder-Kontextmenü oder Öffnen einer `.docx`- oder `.odt`-Datei (OpenDocument Text) wandelt diese unmittelbar im Rust-Backend über `docling` (`default-features = false`, OOXML/ODF-Parser) in sauberes, archivierbares Markdown um.
+   - **Sicherer Import-Puffer:** Die Originaldatei (`.docx` / `.odt`) wird niemals überschrieben; die erzeugte Markdown-Fassung wird als separater `.md`-Tab geöffnet und als ungespeichert (`isDirty`) markiert.
    - **Formatierungs-Sanitization:** Automatisches Entfernen unsichtbarer Steuerzeichen (wie weicher Trennstriche `\u{00ad}`, Zero-Width Spaces `\u{200b}` und BOM `\u{feff}`).
    - **Unicode-Normalisierung (NFC):** Bereinigung von IAST-Diakritika und Devanāgarī-Zeichenfolgen über `unicode-normalization`.
    - **Track-Changes & Kommentare (Zukunftsschritt):** Konvertierung nativer Word-Änderungsverfolgungen in **CriticMarkup** (`{++neu++}`, `{--alt--}`) und Word-Kommentaren in `{>>Hinweis<<}`.

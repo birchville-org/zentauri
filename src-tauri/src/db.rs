@@ -279,9 +279,10 @@ fn index_single_entry(
     let is_md = (file_name.len() >= 3 && file_name[file_name.len() - 3..].eq_ignore_ascii_case(".md"))
         || (file_name.len() >= 9 && file_name[file_name.len() - 9..].eq_ignore_ascii_case(".markdown"));
     let is_docx = file_name.len() >= 5 && file_name[file_name.len() - 5..].eq_ignore_ascii_case(".docx");
+    let is_odt = file_name.len() >= 4 && file_name[file_name.len() - 4..].eq_ignore_ascii_case(".odt");
     let is_pdf = file_name.len() >= 4 && file_name[file_name.len() - 4..].eq_ignore_ascii_case(".pdf");
 
-    if !is_dir && !is_md && !is_docx && !is_pdf {
+    if !is_dir && !is_md && !is_docx && !is_odt && !is_pdf {
         return Ok(None);
     }
 
