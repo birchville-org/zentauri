@@ -135,3 +135,18 @@ devo viṣṇuḥ = ⟪देवो⟫ ⟪विष्णुः⟫ = „Viṣṇ
   border-left-color: #b45309 !important;
 }
 ```
+
+### 6. Office- & Dokumentenimport (DOCX & ODT)
+
+Zentauri verfügt über eine native, in Rust eingebettete Ingest-Engine auf Basis von `docling-rs`. Damit können existierende Manuskripte und Quelldokumente aus Microsoft Word (`.docx`) sowie LibreOffice/OpenOffice (`.odt`) ohne externe Hilfsprogramme (kein Python, kein Pandoc, kein LibreOffice) direkt in sauberes Markdown überführt werden.
+
+#### Importwege
+- **Drag & Drop:** Ziehen Sie eine `.docx`- oder `.odt`-Datei einfach aus dem Finder/Explorer direkt in das geöffnete ZenTauri-Fenster.
+- **Datei-Öffnen:** Über das Menü `File > Open File...` (`Cmd+O` / `Ctrl+O`) oder den Dateibaum.
+
+#### Hinweise zum Konvertierungsprozess
+Beim Import erscheint ein Bestätigungshinweis mit folgenden Merkmalen:
+1. **Wandlung in Markdown:** Der Textkörper, Überschriftenhierarchien, Standard-Formatierungen (Fett, Kursiv), Aufzählungen, Tabellen und Fußnoten werden in standardkonformes Markdown extrahiert.
+2. **Layoutdetails:** Spezifische Office-Layoutdetails (wie mehrspaltige Zeitungs-Layouts, verankerte Rahmen, absolute Positionierungen, WordArt, komplexe Tabellenbreiten und benutzerdefinierte Seitenränder) können in Markdown prinzipbedingt nicht 1:1 abgebildet werden. Die Textinhalte und semantischen Strukturen bleiben jedoch vollständig erhalten.
+3. **Reines Markdown-Speichern:** Das importierte Dokument wird als neuer Arbeitsreiter `<Dateiname>.md` geöffnet und als ungespeichert (`isDirty`) markiert. Zentauri speichert ausschließlich im Markdown-Format (`.md`).
+4. **Schutz der Originaldatei:** Ihre originale `.docx`- bzw. `.odt`-Binärdatei auf der Festplatte bleibt vollkommen unberührt und wird niemals überschrieben.

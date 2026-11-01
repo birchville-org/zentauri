@@ -135,3 +135,18 @@ Override colors, fonts, and container styles via `~/.config/zentauri/custom.css`
   border-left-color: #b45309 !important;
 }
 ```
+
+### 6. Office & Document Ingest (DOCX & ODT)
+
+ZenTauri incorporates a native, pure-Rust ingest engine powered by `docling-rs`. Existing manuscripts and source documents from Microsoft Word (`.docx`) and LibreOffice/OpenOffice (`.odt`) can be imported directly into clean Markdown without external dependencies (no Python, no Pandoc, no LibreOffice).
+
+#### Import Methods
+- **Drag & Drop:** Drag any `.docx` or `.odt` file directly from macOS Finder / file manager into the active ZenTauri window.
+- **Open File Menu:** Via `File > Open File...` (`Cmd+O` / `Ctrl+O`) or from the workspace file tree.
+
+#### Conversion Notice & Behaviors
+Upon selecting or dropping an office document, an informative confirmation prompt is presented:
+1. **Conversion to Markdown:** Body text, heading hierarchies, standard formatting (bold, italic), lists, tables, and footnotes are cleanly mapped into standard Markdown.
+2. **Layout Details:** Proprietary office layout specifics (such as multi-column desktop publishing layouts, floating text frames, absolute image offsets, WordArt, custom table cell widths, and non-standard page margins) cannot be represented in Markdown by design. All textual and semantic structures are completely preserved.
+3. **Markdown-Only Persistence:** The ingested document opens in a new editor tab `<Filename>.md` marked as unsaved (`isDirty`). ZenTauri exclusively saves documents in Markdown format (`.md`).
+4. **Source File Safety:** The original `.docx` or `.odt` binary file on disk remains untouched and will never be overwritten.

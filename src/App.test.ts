@@ -44,6 +44,7 @@ vi.mock("@tauri-apps/plugin-dialog", () => ({
   open: vi.fn().mockResolvedValue(null),
   save: vi.fn().mockResolvedValue(null),
   message: vi.fn().mockResolvedValue("Save"),
+  confirm: vi.fn().mockResolvedValue(true),
 }));
 
 vi.mock("@tauri-apps/plugin-opener", () => ({

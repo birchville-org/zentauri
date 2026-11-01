@@ -37,7 +37,7 @@ import { convertMarkdownToTypst } from "./lib/typstConverter";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
-import { message, open, save } from "@tauri-apps/plugin-dialog";
+import { confirm, message, open, save } from "@tauri-apps/plugin-dialog";
 import { mkdir, readTextFile, writeTextFile } from "@tauri-apps/plugin-fs";
 import { openUrl as tauriOpenUrl } from "@tauri-apps/plugin-opener";
 import debounce from "lodash.debounce";
@@ -1914,9 +1914,39 @@ async function loadFile(path: string) {
   const ext = path.split(".").pop()?.toLowerCase();
   const INGEST_FORMATS = ["docx", "rtf", "epub", "pptx", "xlsx", "odt"];
   if (ext && INGEST_FORMATS.includes(ext)) {
+    const filename = path.split(/[/\\]/).pop() || "Document";
+    const extUpper = ext.toUpperCase();
+    const noticeMessage = `Die Datei "${filename}" (${extUpper}) wird in reines Markdown gewandelt.
+
+Wichtige Hinweise zum Import:
+• Das Dokument wird in Markdown überführt; gewisse Layoutdetails (z. B. komplexe Spaltensätze, Rahmen, absolute Positionierungen) können nicht 1:1 abgebildet werden.
+• Das Dokument kann in Zentauri ausschließlich im Markdown-Format (.md) gespeichert werden.
+• Ihre Originaldatei bleibt auf der Festplatte unverändert erhalten.
+
+Möchten Sie das Dokument jetzt als Markdown importieren?`;
+
+    let proceed = true;
+    if (isTauri) {
+      try {
+        proceed = await confirm(noticeMessage, {
+          title: `${extUpper}-Dokument importieren`,
+          kind: "info",
+          okLabel: "In Markdown importieren",
+          cancelLabel: "Abbrechen",
+        });
+      } catch {
+        proceed = window.confirm(noticeMessage);
+      }
+    } else {
+      proceed = window.confirm(noticeMessage);
+    }
+
+    if (!proceed) {
+      return;
+    }
+
     try {
       const markdown = await invoke<string>("ingest_document", { path });
-      const filename = path.split(/[/\\]/).pop() || "Document";
       const mdFilename = `${filename.replace(/\.[^.]+$/, "")}.md`;
       const targetMdPath = path.replace(/\.[^.]+$/, ".md");
       openTab(mdFilename, targetMdPath, markdown);
@@ -1928,6 +1958,13 @@ async function loadFile(path: string) {
       return;
     } catch (err) {
       console.error("Failed to ingest document via Docling:", err);
+      if (isTauri) {
+        await message(`Fehler beim Konvertieren von "${filename}":\n${err}`, {
+          title: "Import fehlgeschlagen",
+          kind: "error",
+        });
+      }
+      return;
     }
   }
 

@@ -219,8 +219,30 @@ To return to Normal Mode from Insert or Visual mode, simply press the **\`Esc\`*
 > **Saving:** You can type \`:w\` and press Enter in Normal Mode to save your document, just like in a real Vim environment! Alternatively, \`Cmd+S\` (or \`Ctrl+S\`) always works.
 `;
 
+const officeContent = `# Office Document Import (DOCX & ODT)
+
+ZenTauri includes a native, pure-Rust document ingest engine powered by \`docling-rs\`.
+
+## Supported Formats
+- **Microsoft Word (.docx)**
+- **OpenDocument Text (.odt)**
+- **Rich Text Format (.rtf)**
+- **EPUB eBooks (.epub)**
+
+## How to Import
+- **Drag & Drop:** Simply drag and drop any \`.docx\` or \`.odt\` file into the active ZenTauri application window.
+- **Open File:** Use the top menu \`File > Open File...\` (\`Cmd+O\` / \`Ctrl+O\`) or select it from the workspace file tree.
+
+## Conversion Principles
+1. **Conversion to Plain Markdown:** Headers, bold/italic formatting, bulleted and numbered lists, tables, and footnotes are automatically extracted into clean, standard Markdown.
+2. **Layout Details:** Complex office layout features (such as multi-column desktop publishing layouts, floating text boxes, absolute image placements, and custom page margins) are intentionally discarded to produce clean, long-term archivable Markdown.
+3. **Markdown-Only Saving:** The imported document is opened as a new buffer (\`<filename>.md\`) marked as unsaved (\`isDirty\`). ZenTauri exclusively saves documents in Markdown format (\`.md\`).
+4. **Original File Preservation:** The original binary file on disk remains completely untouched and is never overwritten.
+`;
+
 export const HELP_CHAPTERS: HelpChapter[] = [
   { id: "welcome", title: "Welcome", content: welcomeContent },
+  { id: "office", title: "DOCX & ODT Import", content: officeContent },
   { id: "vim", title: "Vim Mode", content: vimContent },
   { id: "info_boxes", title: "Info Boxes", content: infoBoxesContent },
   { id: "scholarly", title: "Scholarly & Math", content: scholarlyContent },
