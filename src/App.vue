@@ -36,6 +36,7 @@ import { convertMarkdownToTypst } from "./lib/typstConverter";
 
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { message, open, save } from "@tauri-apps/plugin-dialog";
 import { mkdir, readTextFile, writeTextFile } from "@tauri-apps/plugin-fs";
 import { openUrl as tauriOpenUrl } from "@tauri-apps/plugin-opener";
@@ -768,6 +769,46 @@ async function handleIncomingPaths(paths: string[]) {
   }
 }
 
+function handleWindowDragOver(e: DragEvent) {
+  e.preventDefault();
+  if (e.dataTransfer) {
+    e.dataTransfer.dropEffect = "copy";
+  }
+}
+
+async function handleWindowDrop(e: DragEvent) {
+  e.preventDefault();
+  if (isTauri) {
+    // In Tauri, full OS paths are received via getCurrentWebview().onDragDropEvent
+    return;
+  }
+  const files = e.dataTransfer?.files;
+  if (!files || files.length === 0) return;
+
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    const name = file.name;
+    const ext = name.split(".").pop()?.toLowerCase();
+
+    if (ext === "md" || ext === "txt" || ext === "json") {
+      const text = await file.text();
+      openTab(name, `untitled://${Date.now()}_${name}`, text);
+      if (activeTabIndex.value >= 0 && tabs.value[activeTabIndex.value]) {
+        tabs.value[activeTabIndex.value].isDirty = true;
+      }
+    } else if (
+      ext === "docx" ||
+      ext === "odt" ||
+      ext === "rtf" ||
+      ext === "epub"
+    ) {
+      console.warn(
+        "DOCX/Office-Ingest erfordert die native Desktop-Umgebung mit Docling-Backend.",
+      );
+    }
+  }
+}
+
 async function handleIncomingPath(path: string) {
   if (isTauri) {
     try {
@@ -949,8 +990,26 @@ onMounted(() => {
   }
 
   window.addEventListener("beforeunload", handleBeforeUnload);
+  window.addEventListener("dragover", handleWindowDragOver);
+  window.addEventListener("drop", handleWindowDrop);
 
   if (isTauri) {
+    getCurrentWebview()
+      .onDragDropEvent((event) => {
+        if (event.payload.type === "drop") {
+          const paths = event.payload.paths;
+          if (paths && paths.length > 0) {
+            handleIncomingPaths(paths);
+          }
+        }
+      })
+      .then((unlisten) => {
+        unlistenFns.push(unlisten);
+      })
+      .catch((err) => {
+        console.error("Failed to setup drag-drop listener:", err);
+      });
+
     listen<string[]>("open-files-batch", (event) => {
       if (event.payload && event.payload.length > 0) {
         handleIncomingPaths(event.payload);
@@ -1142,6 +1201,8 @@ onBeforeUnmount(() => {
   if (htmlCopyTimer) clearTimeout(htmlCopyTimer);
   window.removeEventListener("keydown", handleGlobalKeydown);
   window.removeEventListener("beforeunload", handleBeforeUnload);
+  window.removeEventListener("dragover", handleWindowDragOver);
+  window.removeEventListener("drop", handleWindowDrop);
   if (autoSave) {
     autoSave.flush();
   }

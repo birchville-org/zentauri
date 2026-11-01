@@ -26,6 +26,12 @@ vi.mock("@tauri-apps/api/event", () => ({
     }),
 }));
 
+vi.mock("@tauri-apps/api/webview", () => ({
+  getCurrentWebview: vi.fn().mockReturnValue({
+    onDragDropEvent: vi.fn().mockResolvedValue(() => {}),
+  }),
+}));
+
 vi.mock("@tauri-apps/plugin-fs", () => ({
   readDir: vi.fn().mockResolvedValue([]),
   readTextFile: vi.fn().mockResolvedValue(""),
