@@ -37,7 +37,7 @@ ZenTauri addresses these challenges through four foundational principles:
 3. **Plain Text First & Interoperability (Compilation over Manual Tagging):**
    Scholars never type raw TEI-P5 XML or unstable OOXML binary schemas by hand.
    - **DOCX files** are automatically ingested and sanitized into clean Markdown via a native Rust/Pandoc pipeline.
-   - **Publisher DOCX manuscripts** (*Gentium Plus* / *Noto Serif Devanagari*), **standard TEI-P5 XML**, **Typst academic PDFs**, and **web synopses** are compiled on-demand as downstream distribution targets.
+   - **Publisher DOCX manuscripts** (*STIX Two Text* / *Gentium Plus* / *Noto Serif Devanagari*), **standard TEI-P5 XML**, **Typst academic PDFs**, and **web synopses** are compiled on-demand as downstream distribution targets.
 
 4. **Rust-First Desktop Core:**
    Zentauri ships as a lightweight ~30 MB native binary on macOS, launching instantaneously without heavy Node.js or Chromium runtime overhead. PDF rendering is vector-based SVG (`hayro_svg`), and workspace indexing runs on an embedded SQLite database.
@@ -74,7 +74,7 @@ This manual is organized into six comprehensive parts. Active features are immed
 
 ### Part V: Interoperability & Word Workflows
 - **Chapter 17: DOCX Ingest (Import & Sanitization)** *(Conceived)* (Stripping Word styling debris, Unicode NFC normalization)
-- **Chapter 18: DOCX Export (Publisher Manuscripts)** *(Conceived)* (Scholarly Reference Template with *Gentium Plus* & footnotes)
+- **Chapter 18: DOCX Export (Publisher Manuscripts)** *(Conceived)* (Scholarly Reference Template with *STIX Two Text* / *Gentium Plus* & footnotes)
 - **Chapter 19: Track Changes & CriticMarkup** *(Conceived)* (Visual editorial reviews via `{++added++}`, `{--deleted--}`, `{>>notes<<}`)
 
 ### Part VI: Configuration & Reference

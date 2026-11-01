@@ -385,7 +385,7 @@ function processInlineScholarly(rawText: string, inTable = false): string {
         if (pipe) {
           danda = ` ${pipe.trim() === "||" ? "॥" : "।"}`;
         }
-        result += `#text(font: ("Kohinoor Devanagari", "Noto Sans Devanagari", "Noto Serif Devanagari", "Devanagari MT"), fill: rgb("#b22222"))[${escapeTypst(content)}${danda}]`;
+        result += `#text(font: ("Noto Serif Devanagari", "Kohinoor Devanagari", "Noto Sans Devanagari", "Devanagari MT"), fill: rgb("#b22222"))[${escapeTypst(content)}${danda}]`;
       } else {
         result += escapeTypst(matchedStr);
       }
@@ -442,7 +442,7 @@ export function convertMarkdownToTypst(
   numbering: "${numbering}",
 )
 #set text(
-  font: ("Linux Libertine", "Times New Roman", "Kohinoor Devanagari", "Noto Sans Devanagari", "Noto Serif Devanagari", "Devanagari MT"),
+  font: ("STIX Two Text", "Gentium Plus", "Noto Serif Devanagari", "Kohinoor Devanagari", "Devanagari MT"),
   size: ${fontSize}pt,
 )
 #set par(justify: true)

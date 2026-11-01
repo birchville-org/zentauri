@@ -159,23 +159,23 @@ Zentauri unterscheidet strikt zwischen zwei Texttypen:
 
 ## 7. DOCX-Interoperabilität & CriticMarkup Track-Changes (Word-Brücke)
 
-- **Status:** Backlog / Konzipiert (Oktober 2026)
-- **Komponenten:** `src-tauri/src/docx_engine.rs` (Rust/Pandoc-Bridge), `src/lib/critic-markup.ts`, CodeMirror 6 Visual Extensions
+- **Status:** In Progress / Native Ingest aktiv via `docling-rs` (November 2026)
+- **Komponenten:** `src-tauri/src/lib.rs` (`ingest_document` via `docling.rs`), `src/App.vue` (`loadFile`), `src/lib/critic-markup.ts`, CodeMirror 6 Visual Extensions
 
 ### Hintergrund & Motivation
 In der akademischen Philologie und Editionsarbeit fordern Verlage (Brill, Harrassowitz, De Gruyter) und Koautoren standardmäßig `.docx`-Dokumente. Word scheitert zwar bei philologischen Kernaufgaben (mehrstufige Apparate, Ligaturen, Diakritika-Encoding), bleibt aber das dominierende Austauschformat.
 Zentauri schlägt diese Brücke unter einem strikten Architekturprinzip: **Plain Text First (Markdown als kanonische Single Source of Truth)**. `.docx` wird niemals direkt editiert oder als Speicherformat genutzt, sondern fungiert ausschließlich als **Ingest-** (Import) und **Distributions-Format** (Export).
 
-### Geplante Funktionen:
+### Implementierungsstand & Funktionen:
 
-1. **DOCX-Ingest (Import & semantische Befreiung):**
-   - **Pandoc/Rust Konvertierung:** Drag & Drop oder Öffnen einer `.docx`-Datei wandelt diese unmittelbar in sauberes, archivierbares Markdown um.
-   - **Formatierungs-Sanitization:** Entfernen von Word-Formatierungsmüll, unsichtbaren Steuerzeichen (wie weichen Trennstrichen `\u00ad` und Zero-Width Spaces) und zerstückelten XML-Spans.
-   - **Unicode-Normalisierung (NFC):** Bereinigung von IAST-Diakritika und Devanāgarī-Zeichenfolgen.
-   - **Fußnoten-Mapping:** Verlustfreie Überführung von Word-Fußnoten in den `[^1]`-Standard.
-   - **Track-Changes & Kommentare:** Konvertierung nativer Word-Änderungsverfolgungen in **CriticMarkup** (`{++neu++}`, `{--alt--}`) und Word-Kommentaren in `{>>Hinweis<<}`.
+1. **DOCX-Ingest (Nativ via `docling-rs` — Aktiv implementiert):**
+   - **Reine Rust-Pipeline ohne Pandoc/Python:** Drag & Drop, Finder-Kontextmenü oder Öffnen einer `.docx`-Datei wandelt diese unmittelbar im Rust-Backend über `docling` (`default-features = false`, OOXML-Parser) in sauberes, archivierbares Markdown um.
+   - **Sicherer Import-Puffer:** Die Originaldatei `.docx` wird niemals überschrieben; die erzeugte Markdown-Fassung wird als separater `.md`-Tab geöffnet und als ungespeichert (`isDirty`) markiert.
+   - **Formatierungs-Sanitization:** Automatisches Entfernen unsichtbarer Steuerzeichen (wie weicher Trennstriche `\u{00ad}`, Zero-Width Spaces `\u{200b}` und BOM `\u{feff}`).
+   - **Unicode-Normalisierung (NFC):** Bereinigung von IAST-Diakritika und Devanāgarī-Zeichenfolgen über `unicode-normalization`.
+   - **Track-Changes & Kommentare (Zukunftsschritt):** Konvertierung nativer Word-Änderungsverfolgungen in **CriticMarkup** (`{++neu++}`, `{--alt--}`) und Word-Kommentaren in `{>>Hinweis<<}`.
 
-2. **DOCX-Export (Verlags-Kompilierung):**
+2. **DOCX-Export (Verlags-Kompilierung — Konzipiert):**
    - On-the-Fly-Kompilierung von Markdown zu `.docx` über ein vordefiniertes *Scholarly Reference Template* (`scholarly-reference.docx`).
    - Feste Zuordnung philologischer Font-Hierarchien (*Gentium Plus* für IAST/Fließtext, *Noto Serif Devanagari* für Devanāgarī), sodass Verlage und Gutachter ein typografisch einwandfreies Dokument ohne Zeilensprünge erhalten.
    - Rücküberführung von Markdown-Fußnoten in native Word-Fußnoten.

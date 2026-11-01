@@ -326,3 +326,23 @@ fn test_vidyut_transliteration() {
     assert_eq!(toggle_transliteration_impl("dharmakSetre", "hk"), "धर्मक्षेत्रे");
     assert_eq!(toggle_transliteration_impl("धर्मक्षेत्रे", "hk"), "dharmakSetre");
 }
+
+#[test]
+fn test_docling_docx_ingest() {
+    use tauri_app_lib::ingest_document_impl;
+    let fixture_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("tests")
+        .join("fixtures")
+        .join("sample.docx");
+
+    assert!(fixture_path.exists(), "Sample docx fixture must exist");
+
+    let result = ingest_document_impl(fixture_path.to_str().unwrap());
+    assert!(result.is_ok(), "Ingest must succeed: {:?}", result.err());
+
+    let md = result.unwrap();
+    assert!(!md.is_empty(), "Exported markdown must not be empty");
+    // Verify Unicode NFC normalization and sanitize
+    assert!(!md.contains('\u{00ad}')); // No soft hyphens
+    assert!(!md.contains('\u{feff}')); // No BOM
+}

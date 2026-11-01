@@ -43,6 +43,11 @@
         "ext": ["pdf"],
         "name": "PDF Document",
         "role": "Viewer"
+      },
+      {
+        "ext": ["docx"],
+        "name": "Microsoft Word Document",
+        "role": "Editor"
       }
     ]
   },

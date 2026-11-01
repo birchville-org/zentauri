@@ -278,8 +278,10 @@ fn index_single_entry(
 
     let is_md = (file_name.len() >= 3 && file_name[file_name.len() - 3..].eq_ignore_ascii_case(".md"))
         || (file_name.len() >= 9 && file_name[file_name.len() - 9..].eq_ignore_ascii_case(".markdown"));
+    let is_docx = file_name.len() >= 5 && file_name[file_name.len() - 5..].eq_ignore_ascii_case(".docx");
+    let is_pdf = file_name.len() >= 4 && file_name[file_name.len() - 4..].eq_ignore_ascii_case(".pdf");
 
-    if !is_dir && !is_md {
+    if !is_dir && !is_md && !is_docx && !is_pdf {
         return Ok(None);
     }
 
@@ -320,7 +322,7 @@ fn index_single_entry(
         params![&file_path, parent_path_str, file_name, is_dir, modified_at, size_bytes],
     )?;
 
-    if !is_dir && needs_metadata_reparse {
+    if is_md && needs_metadata_reparse {
         tx.execute("DELETE FROM markdown_metadata WHERE file_path = ?1", params![&file_path])?;
         tx.execute("DELETE FROM markdown_links WHERE source_path = ?1", params![&file_path])?;
 

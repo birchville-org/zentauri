@@ -14,7 +14,7 @@ We've extended the standard markdown parser to support unique semantic blocks cr
 
 - **Scholarly Containers:** Core Payer-v2 containers (`::: grammar-box`, `::: warning-box`, `::: verse-box`, and `::: note-box`).
 - **Footnotes & Definition Lists:** Complete academic footnoting (`[^1]` and `[^1]: Note`) and multi-line definition lists (`Term\n: Definition`).
-- **Inline Sanskrit Typography:** Support for Devanāgarī `《...》`, IAST `⟪...⟫`, and danda punctuation (`|`, `||`) mapping to the scholarly font stack (Gentium Plus, Noto Serif Devanagari).
+- **Inline Sanskrit Typography:** Support for Devanāgarī `《...》`, IAST `⟪...⟫`, and danda punctuation (`|`, `||`) mapping to the scholarly font stack (STIX Two Text, Gentium Plus, Noto Serif Devanagari).
 - **Visual Signals:** Direct inline highlights using `:sig[Signal]` and `:mark[Highlight]`.
 - **Math & Equations:** Native MathJax/KaTeX syntax `$e^{i\pi} + 1 = 0$` mapped to Typst math environments.
 - **Mermaid Diagrams:** Fully supported in the editor live preview.

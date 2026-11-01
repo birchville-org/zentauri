@@ -1765,7 +1765,12 @@ async function handleOpenFile() {
     const selected = await open({
       multiple: false,
       filters: [
+        {
+          name: "Markdown & Documents",
+          extensions: ["md", "markdown", "docx", "rtf", "epub", "pdf"],
+        },
         { name: "Markdown", extensions: ["md", "markdown"] },
+        { name: "Word Documents", extensions: ["docx"] },
         { name: "All Files", extensions: ["*"] },
       ],
     });
@@ -1839,6 +1844,27 @@ async function loadFile(path: string) {
 
   if (path.startsWith("untitled://")) {
     return;
+  }
+
+  // Ingest Office & rich text formats into Markdown via native Docling pipeline
+  const ext = path.split(".").pop()?.toLowerCase();
+  const INGEST_FORMATS = ["docx", "rtf", "epub", "pptx", "xlsx", "odt"];
+  if (ext && INGEST_FORMATS.includes(ext)) {
+    try {
+      const markdown = await invoke<string>("ingest_document", { path });
+      const filename = path.split(/[/\\]/).pop() || "Document";
+      const mdFilename = `${filename.replace(/\.[^.]+$/, "")}.md`;
+      const targetMdPath = path.replace(/\.[^.]+$/, ".md");
+      openTab(mdFilename, targetMdPath, markdown);
+      if (activeTabIndex.value >= 0 && tabs.value[activeTabIndex.value]) {
+        tabs.value[activeTabIndex.value].isDirty = true;
+      }
+      showExplorerView();
+      focusEditor();
+      return;
+    } catch (err) {
+      console.error("Failed to ingest document via Docling:", err);
+    }
   }
 
   try {
@@ -2076,7 +2102,6 @@ async function handleCopyHtml() {
               @click="setViewMode('source')" 
               class="w-7 h-7 flex items-center justify-center rounded transition-colors cursor-pointer bg-app-bg"
               :class="viewMode === 'source' ? 'text-amber-600 dark:text-amber-400 font-semibold shadow-xs ring-1 ring-amber-500/30' : 'text-app-text-muted hover:text-app-text hover:bg-app-bg-hover'"
-              title="Source Code Editor"
               aria-label="Source Mode"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -2100,7 +2125,6 @@ async function handleCopyHtml() {
               @click="setViewMode('split')" 
               class="w-7 h-7 flex items-center justify-center rounded transition-colors cursor-pointer bg-app-bg"
               :class="viewMode === 'split' ? 'text-amber-600 dark:text-amber-400 font-semibold shadow-xs ring-1 ring-amber-500/30' : 'text-app-text-muted hover:text-app-text hover:bg-app-bg-hover'"
-              title="Split Mode (Editor + Preview)"
               aria-label="Split Mode"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -2124,7 +2148,6 @@ async function handleCopyHtml() {
               @click="setViewMode('pdf-qa')" 
               class="w-7 h-7 flex items-center justify-center rounded transition-colors cursor-pointer bg-app-bg"
               :class="viewMode === 'pdf-qa' ? 'text-amber-600 dark:text-amber-400 font-semibold shadow-xs ring-1 ring-amber-500/30' : 'text-app-text-muted hover:text-app-text hover:bg-app-bg-hover'"
-              title="Dual PDF QA Comparison (Cmd/Ctrl+3)"
               aria-label="Dual PDF QA Mode"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -2156,8 +2179,7 @@ async function handleCopyHtml() {
               @click="cycleSyncMode"
               class="h-7 px-1.5 flex items-center justify-center gap-1 rounded transition-colors cursor-pointer bg-app-bg"
               :class="syncMode !== 'off' ? 'text-amber-600 dark:text-amber-400 font-semibold shadow-xs ring-1 ring-amber-500/30' : 'text-app-text-muted hover:text-app-text hover:bg-app-bg-hover'"
-              :title="`Scroll-Sync: ${syncMode === 'header' ? 'Header Matching' : syncMode === 'percentage' ? 'Percentage' : 'Off'}`"
-              aria-label="Scroll Synchronization"
+              :aria-label="`Scroll Synchronization: ${syncMode === 'header' ? 'Header Matching' : syncMode === 'percentage' ? 'Percentage' : 'Off'}`"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
@@ -2189,8 +2211,7 @@ async function handleCopyHtml() {
               @click="toggleVimMode"
               class="w-7 h-7 flex items-center justify-center rounded transition-colors cursor-pointer bg-app-bg"
               :class="vimMode ? 'text-amber-600 dark:text-amber-400 font-bold shadow-xs ring-1 ring-amber-500/30' : 'text-app-text-muted hover:text-app-text hover:bg-app-bg-hover'"
-              :title="vimMode ? 'Vim Mode: Active' : 'Vim Mode: Inactive'"
-              aria-label="Vim Mode"
+              :aria-label="vimMode ? 'Vim Mode: Active' : 'Vim Mode: Inactive'"
             >
               <span class="font-mono font-bold text-xs select-none leading-none">V</span>
             </button>
@@ -2209,7 +2230,6 @@ async function handleCopyHtml() {
             <button
               @click="toggleTheme"
               class="w-7 h-7 flex items-center justify-center rounded transition-colors cursor-pointer bg-app-bg text-app-text-muted hover:text-amber-500 hover:bg-app-bg-hover active:scale-95"
-              :title="isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'"
               :aria-label="isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'"
             >
               <!-- Sun icon when isDark is true -->

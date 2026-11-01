@@ -929,6 +929,45 @@ fn toggle_transliteration_scheme(text: String, scheme: String) -> String {
     toggle_transliteration_impl(&text, &scheme)
 }
 
+#[tauri::command]
+async fn ingest_document(path: String) -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        ingest_document_impl(&path)
+    })
+    .await
+    .map_err(|e| format!("Join error during document ingest: {e}"))?
+}
+
+pub fn ingest_document_impl(path: &str) -> Result<String, String> {
+    use docling::{DocumentConverter, SourceDocument};
+    use unicode_normalization::UnicodeNormalization;
+
+    let path_obj = std::path::Path::new(path);
+    if !path_obj.exists() {
+        return Err(format!("Source document does not exist: {path}"));
+    }
+
+    let source = SourceDocument::from_file(path_obj)
+        .map_err(|e| format!("Failed to read source document '{path}': {e}"))?;
+    let converter = DocumentConverter::new();
+    let result = converter
+        .convert(source)
+        .map_err(|e| format!("Docling conversion failed for '{path}': {e}"))?;
+
+    let raw_md = result.document.export_to_markdown();
+
+    // Normalize Unicode to NFC (vital for Sanskrit IAST diacritics and Devanāgarī ligatures)
+    let nfc_md: String = raw_md.nfc().collect();
+
+    // Sanitize invisible Word/office artifacts (soft hyphens, zero-width spaces, BOM)
+    let sanitized = nfc_md
+        .replace('\u{00ad}', "") // Soft hyphen
+        .replace('\u{200b}', "") // Zero-width space
+        .replace('\u{feff}', ""); // BOM
+
+    Ok(sanitized)
+}
+
 static IS_QUITTING: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
 
 #[tauri::command]
@@ -1012,7 +1051,8 @@ pub fn run() {
             render_pdf_page_svg,
             exit_app,
             transliterate_sanskrit,
-            toggle_transliteration_scheme
+            toggle_transliteration_scheme,
+            ingest_document
         ])
         .setup(|app| {
             // Process initial CLI args on launch

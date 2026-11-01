@@ -14,7 +14,7 @@ Der Markdown-Parser unterstützt didaktische und linguistische Blöcke:
 
 - **Scholarly Container:** Payer-v2 Kernset (`::: grammar-box`, `::: warning-box`, `::: verse-box` und `::: note-box`).
 - **Fußnoten & Definitionslisten:** Vollständige wissenschaftliche Fußnoten (`[^1]` und `[^1]: Notiz`) und mehrzeilige Definitionslisten (`Begriff\n: Definition`).
-- **Inline Sanskrit-Typografie:** Syntax wie Devanāgarī `《...》`, IAST `⟪...⟫` und Dandas (`|`, `||`) mit Schriftartenkaskade (`Gentium Plus`, `Noto Serif Devanagari`).
+- **Inline Sanskrit-Typografie:** Syntax wie Devanāgarī `《...》`, IAST `⟪...⟫` und Dandas (`|`, `||`) mit Schriftartenkaskade (`STIX Two Text`, `Gentium Plus`, `Noto Serif Devanagari`).
 - **Signal-Markierungen:** Direkte Inline-Hervorhebungen via `:sig[Signal]` und `:mark[Highlight]`.
 - **Formelsatz & Gleichungen:** Native KaTeX/MathJax-Syntax `$e^{i\pi} + 1 = 0$` nahtlos in der Vorschau gerendert.
 - **Mermaid-Diagramme:** Interaktive Architektur- und Ablaufdiagramme direkt im Editor.

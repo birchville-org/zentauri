@@ -97,6 +97,6 @@ Dieses Dokument erfasst geplante Ausbau-Features, Architekturkonzepte und vorlä
 
 ### Architektur:
 - **Plain Text als Kanon:** Markdown ist die persistente *Single Source of Truth*. `.docx` dient ausschließlich als Ingest- und Exportformat.
-- **DOCX-Ingest:** Automatische Rust/Pandoc-Konvertierung zur Entfernung von Word-Formatierungsballast, Normalisierung von Unicode-Diakritika, Übernahme von Fußnoten und Wandlung von Word Track-Changes in CriticMarkup (`{++eingefügt++}`, `{--gelöscht--}`).
-- **Scholarly Export-Template:** Kompilierung nach `.docx` über eine konfigurierte Vorlage mit festen Schriftarten (*Gentium Plus*, *Noto Serif Devanagari*).
+- **DOCX-Ingest:** Automatische native Rust-Konvertierung (via `docling-rs`) zur Entfernung von Word-Formatierungsballast, Normalisierung von Unicode-Diakritika, Übernahme von Fußnoten und Wandlung von Word Track-Changes in CriticMarkup (`{++eingefügt++}`, `{--gelöscht--}`).
+- **Scholarly Export-Template:** Kompilierung nach `.docx` über eine konfigurierte Vorlage mit festen Schriftarten (*STIX Two Text*, *Gentium Plus*, *Noto Serif Devanagari*).
 - **In-Editor CriticMarkup:** Visuelles Rendering von Inline-Änderungen und Lektorenkommentaren in CodeMirror 6 mit 1-Klick Accept/Reject-Steuerung.

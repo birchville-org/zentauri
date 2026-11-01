@@ -97,8 +97,8 @@ This document provides transparent tracking of features currently in development
 
 ### Architecture:
 - **Plain Text as Canon:** Markdown is the persistent Single Source of Truth. `.docx` is strictly an ingest and export format.
-- **DOCX Ingest:** Automatic Rust/Pandoc conversion removing Word XML styling, normalizing Unicode diacritics, mapping footnotes to `[^1]`, and converting native Word Track Changes to CriticMarkup (`{++inserted++}`, `{--deleted--}`).
-- **Scholarly Export Template:** Compilation to `.docx` using a pre-configured reference template guaranteeing correct academic font hierarchies (*Gentium Plus*, *Noto Serif Devanagari*).
+- **DOCX Ingest:** Automatic native Rust conversion (via `docling-rs`) removing Word XML styling, normalizing Unicode diacritics, mapping footnotes to `[^1]`, and converting native Word Track Changes to CriticMarkup (`{++inserted++}`, `{--deleted--}`).
+- **Scholarly Export Template:** Compilation to `.docx` using a pre-configured reference template guaranteeing correct academic font hierarchies (*STIX Two Text*, *Gentium Plus*, *Noto Serif Devanagari*).
 - **In-Editor CriticMarkup:** Visual rendering of inline edits and comments in CodeMirror 6 with 1-click accept/reject controls.
 
 

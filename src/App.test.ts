@@ -86,12 +86,12 @@ describe("App Component Integration", () => {
       },
     });
 
-    const vimBtn = wrapper.find("button[aria-label='Vim Mode']");
+    const vimBtn = wrapper.find("button[aria-label*='Vim Mode']");
     expect(vimBtn.exists()).toBe(true);
-    expect(vimBtn.attributes("title")).toBe("Vim Mode: Inactive");
+    expect(vimBtn.attributes("aria-label")).toBe("Vim Mode: Inactive");
 
     await vimBtn.trigger("click");
-    expect(vimBtn.attributes("title")).toBe("Vim Mode: Active");
+    expect(vimBtn.attributes("aria-label")).toBe("Vim Mode: Active");
   });
 
   it("enforces maximum width constraint of 480px on sidebar container", () => {
@@ -196,7 +196,9 @@ describe("App Component Integration", () => {
       expect(editorScrollToFractionalLine).not.toHaveBeenCalled();
 
       // Cycle sync mode to percentage mode
-      const syncBtn = wrapper.find("button[title*='Scroll-Sync']");
+      const syncBtn = wrapper.find(
+        "button[aria-label*='Scroll Synchronization']",
+      );
       expect(syncBtn.exists()).toBe(true);
       await syncBtn.trigger("click"); // header -> percentage
 

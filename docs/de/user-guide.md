@@ -37,7 +37,7 @@ ZenTauri löst diese Herausforderungen durch vier architektonische Grundsätze:
 3. **Plain Text First & Interoperabilität (Kompilieren statt Hand-Taggen):**
    Zentauri zwingt den Autor niemals dazu, rohes TEI-P5 XML oder instabiles OOXML von Hand zu tippen.
    - **DOCX-Dateien** werden beim Import automatisch über eine Rust/Pandoc-Pipeline in sauberes, bereinigtes Markdown überführt.
-   - **Verlags-DOCX-Manuskripte** (*Gentium Plus* / *Noto Serif Devanagari*), **standardkonformes TEI-P5 XML**, **Typst-Druck-PDFs** und **Web-Synopsen** werden vollautomatisch als nachgelagerte Kompilierungsziele (*Distribution Targets*) generiert.
+   - **Verlags-DOCX-Manuskripte** (*STIX Two Text* / *Gentium Plus* / *Noto Serif Devanagari*), **standardkonformes TEI-P5 XML**, **Typst-Druck-PDFs** und **Web-Synopsen** werden vollautomatisch als nachgelagerte Kompilierungsziele (*Distribution Targets*) generiert.
 
 4. **Nativer Rust/Tauri-Unterbau:**
    Zentauri wiegt ca. 30 MB, startet in Millisekunden und arbeitet ohne schwere Browser- oder Node.js-Abhängigkeiten. Das PDF-Rendering geschieht nativ als Vektor-SVG (`hayro_svg`), die Datei- und Workspace-Indizierung erfolgt über eingebettetes SQLite.
@@ -74,7 +74,7 @@ Dieses Handbuch ist in sechs methodische Hauptteile untergliedert. Aktive Funkti
 
 ### Teil V: Interoperabilität & Verlags-Workflow
 - **Kapitel 17: DOCX-Ingest (Import & Veredelung)** *(Konzipiert)* (Befreiung von Word-Ballast, Unicode-Normalisierung)
-- **Kapitel 18: DOCX-Export (Verlags-Manuskripte)** *(Konzipiert)* (Scholarly Reference Template mit *Gentium Plus* & Fußnoten)
+- **Kapitel 18: DOCX-Export (Verlags-Manuskripte)** *(Konzipiert)* (Scholarly Reference Template mit *STIX Two Text* / *Gentium Plus* & Fußnoten)
 - **Kapitel 19: Korrekturverfolgung & CriticMarkup** *(Konzipiert)* (Lektorat mit `{++hinzu++}`, `{--gelöscht--}`, `{>>Kommentar<<}`)
 
 ### Teil VI: Konfiguration & Referenz

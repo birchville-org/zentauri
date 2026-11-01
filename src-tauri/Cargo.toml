@@ -42,5 +42,7 @@ hayro-syntax = "0.8.0"
 hayro-svg = "0.8.0"
 hayro-interpret = "0.8.0"
 vidyut-lipi = "0.2.0"
+docling = { version = "2.55", default-features = false }
+unicode-normalization = "0.1"
 
 
