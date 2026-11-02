@@ -21,6 +21,9 @@ ZenTauri deliberately provides a focused, media-neutral set of scholarly syntax 
 ## Shortcuts
 - **Settings:** Click the ⚙️ icon to change themes or font sizes.
 - **Help:** Click the ? icon to open this guide.
+- **Duplicate Active File:** \`⌘⇧D\` / \`Ctrl+Shift+D\`
+- **Repeat Last Command / Redo:** \`⌘Y\` / \`Ctrl+Y\`
+- **Bold / Italic:** \`⌘B\` / \`Ctrl+B\`, \`⌘I\` / \`Ctrl+I\`
 - **Vim Mode:** Toggle Vim mode from the toolbar if you prefer keyboard navigation.
 - **Cheatsheet:** A quick reference to standard and scholarly Markdown.
 - **Transliteration (IAST ⇄ Devanāgarī):** \`⌥⌘D\` / \`Ctrl+Alt+D\` or \`F4\`

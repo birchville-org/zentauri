@@ -328,7 +328,7 @@ const contextMenuItems = computed(() => {
   return [
     { label: "New File", action: "new-file" },
     { label: "New Folder", action: "new-folder" },
-    ...(!isDir ? [{ label: "Duplicate Note", action: "duplicate" }] : []),
+    ...(!isDir ? [{ label: "Duplicate File", action: "duplicate" }] : []),
     { divider: true },
     { label: "Rename", action: "rename" },
     { label: "Delete", action: "delete" },
@@ -371,9 +371,14 @@ async function onContextAction(action: string) {
     case "duplicate":
       try {
         if (isTauri) {
-          await invoke("duplicate_file_item", { sourcePath: node.path });
+          const newPath = await invoke<string>("duplicate_file_item", {
+            sourcePath: node.path,
+          });
+          await loadRoot();
+          if (newPath) {
+            emit("select", newPath);
+          }
         }
-        await loadRoot();
       } catch (err) {
         alert(`Duplicate failed: ${err}`);
       }

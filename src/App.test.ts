@@ -301,4 +301,51 @@ describe("App Component Integration", () => {
 
     (window as any).__TAURI_INTERNALS__ = undefined;
   });
+
+  it("handles duplicate_file menu event by duplicating active file and opening it", async () => {
+    const { invoke } = await import("@tauri-apps/api/core");
+    (invoke as any).mockImplementation(async (cmd: string, args: any) => {
+      if (cmd === "duplicate_file_item") {
+        return `${args.sourcePath.replace(/\.md$/, "")}_copy.md`;
+      }
+      return [];
+    });
+
+    const wrapper = mount(App, {
+      global: {
+        stubs: {
+          Editor: true,
+          Preview: true,
+          Cheatsheet: true,
+          HelpSystem: true,
+          Settings: true,
+          SearchPanel: true,
+          UpdateNotification: true,
+          StatusBar: true,
+          FileTree: true,
+        },
+      },
+    });
+
+    const menuHandler = listeners["menu-event"];
+    expect(menuHandler).toBeDefined();
+
+    (wrapper.vm as any).tabs = [
+      {
+        id: "1",
+        title: "note.md",
+        path: "/workspace/note.md",
+        content: "# Note",
+        isDirty: false,
+      },
+    ];
+    (wrapper.vm as any).activeTabIndex = 0;
+
+    await menuHandler({ payload: "duplicate_file" });
+    await nextTick();
+
+    expect(invoke).toHaveBeenCalledWith("duplicate_file_item", {
+      sourcePath: "/workspace/note.md",
+    });
+  });
 });

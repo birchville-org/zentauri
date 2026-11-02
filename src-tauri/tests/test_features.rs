@@ -365,3 +365,32 @@ fn test_docling_odt_ingest() {
     assert!(!md.contains('\u{00ad}'));
     assert!(!md.contains('\u{feff}'));
 }
+
+#[test]
+fn test_duplicate_file_item() {
+    use tauri_app_lib::duplicate_file_item_impl;
+    let temp_dir = std::env::temp_dir().join("zentauri_test_duplicate");
+    let _ = fs::remove_dir_all(&temp_dir);
+    fs::create_dir_all(&temp_dir).unwrap();
+
+    let orig_file = temp_dir.join("lesson01.md");
+    fs::write(&orig_file, "# Lesson 1\nSanskrit Introduction").unwrap();
+
+    // 1. First duplicate: should create lesson01_copy.md
+    let copy1_res = duplicate_file_item_impl(orig_file.to_str().unwrap());
+    assert!(copy1_res.is_ok(), "First duplicate must succeed: {:?}", copy1_res.err());
+    let copy1_path = std::path::PathBuf::from(copy1_res.unwrap());
+    assert!(copy1_path.exists());
+    assert_eq!(copy1_path.file_name().unwrap(), "lesson01_copy.md");
+    assert_eq!(fs::read_to_string(&copy1_path).unwrap(), "# Lesson 1\nSanskrit Introduction");
+
+    // 2. Second duplicate: should create lesson01_copy_2.md
+    let copy2_res = duplicate_file_item_impl(orig_file.to_str().unwrap());
+    assert!(copy2_res.is_ok(), "Second duplicate must succeed: {:?}", copy2_res.err());
+    let copy2_path = std::path::PathBuf::from(copy2_res.unwrap());
+    assert!(copy2_path.exists());
+    assert_eq!(copy2_path.file_name().unwrap(), "lesson01_copy_2.md");
+
+    // Cleanup
+    let _ = fs::remove_dir_all(&temp_dir);
+}

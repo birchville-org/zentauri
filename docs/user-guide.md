@@ -107,6 +107,11 @@ devo viṣṇuḥ = ⟪देवो⟫ ⟪विष्णुः⟫ = "Viṣṇu 
 - Backward-compatibility aliases: `grammar-box2` (secondary paradigm), `important` (`warning-box`), `literatur-box` (`note-box`), `compact` (`verse-box`).
 
 ### 3. Sanskrit Typography & Hotkeys (Mode 1)
+- **File Operations & Command Hotkeys:**
+  - `⌘⇧D` / `Ctrl+Shift+D`: Duplicate active file (*Duplicate File*).
+  - `⌘Y` / `Ctrl+Y`: Repeat last command or Redo after an Undo.
+  - `⌘B` / `Ctrl+B`: Format selection as bold (`**...**`).
+  - `⌘I` / `Ctrl+I`: Format selection as italic (`*...*`).
 - **Devanāgarī CJK Brackets:** Any text enclosed in `《धर्मक्षेत्रे कुरुक्षेत्रे》` or `⟪...⟫` is highlighted and rendered in the Devanāgarī font stack.
 - **Bidirectional Transliteration:**
   - `⌥⌘D` (Option+Cmd+D): Toggle selection between **IAST** (`kṛṣṇaḥ`) and **Devanāgarī** (`कृष्णः`).

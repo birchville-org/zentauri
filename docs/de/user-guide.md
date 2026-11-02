@@ -107,6 +107,11 @@ devo viṣṇuḥ = ⟪देवो⟫ ⟪विष्णुः⟫ = „Viṣṇ
 - Abwärtskompatible Aliase: `grammar-box2` (sekundäre Schemata), `important` (`warning-box`), `literatur-box` (`note-box`), `compact` (`verse-box`).
 
 ### 3. Sanskrit-Typografie & Transliterations-Shortcuts (Modus 1)
+- **Datei- & Befehls-Shortcuts:**
+  - `⌘⇧D` / `Ctrl+Shift+D`: Aktive Datei duplizieren (*Duplicate File*).
+  - `⌘Y` / `Ctrl+Y`: Letzten Befehl wiederholen (*Repeat Last Command*) bzw. Redo nach Rückgängigmachen.
+  - `⌘B` / `Ctrl+B`: Fett formatieren (`**...**`).
+  - `⌘I` / `Ctrl+I`: Kursiv formatieren (`*...*`).
 - **Devanāgarī-Brackets:** Text in CJK-Doppelklammern wie `《धर्मक्षेत्रे कुरुक्षेत्रे》` oder `⟪...⟫` wird automatisch im Devanāgarī-Font gerendert und farblich hervorgehoben.
 - **Bidirektionale Transliteration:**
   - `⌥⌘D` (Option+Cmd+D): Markierten Text zwischen **IAST** (`kṛṣṇaḥ`) und **Devanāgarī** (`कृष्णः`) umschalten.

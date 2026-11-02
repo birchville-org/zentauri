@@ -4,6 +4,7 @@ import { CHEAT_SHEET, type SyntaxItem } from "../lib/syntax-cheatsheet";
 const emit = defineEmits<{
   (e: "insert-snippet", item: SyntaxItem): void;
   (e: "toggle-transliteration", scheme: "iast" | "hk"): void;
+  (e: "repeat-last-command"): void;
 }>();
 
 function insert(before: string, after = "", label = "", desc = "") {
@@ -29,14 +30,14 @@ const typographyActions = [
     label: "B",
     before: "**",
     after: "**",
-    desc: "Bold (**)",
+    desc: "Bold (**) · ⌘B / Ctrl+B",
     class: "font-bold font-serif text-sm",
   },
   {
     label: "I",
     before: "*",
     after: "*",
-    desc: "Italic (*)",
+    desc: "Italic (*) · ⌘I / Ctrl+I",
     class: "italic font-serif text-sm",
   },
   {
@@ -117,7 +118,7 @@ const boxSnippets = [
 
       <div class="w-px h-4 bg-app-border shrink-0 mx-0.5"></div>
 
-      <!-- Group 2: Typography (B, I, S, Code) -->
+      <!-- Group 2: Typography (B, I, S, Code) & Repeat -->
       <div class="flex items-center gap-0.5 shrink-0 bg-app-bg rounded p-0.5 border border-app-border/60">
         <button
           v-for="t in typographyActions"
@@ -129,6 +130,17 @@ const boxSnippets = [
           :class="t.class"
         >
           {{ t.label }}
+        </button>
+        <button
+          type="button"
+          @click="$emit('repeat-last-command')"
+          title="Repeat Last Command / Redo (⌘Y / Ctrl+Y)"
+          class="h-6 w-6 rounded hover:bg-app-bg-hover text-app-text flex items-center justify-center transition-colors text-xs"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 7v6h-6"/>
+            <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7"/>
+          </svg>
         </button>
       </div>
 

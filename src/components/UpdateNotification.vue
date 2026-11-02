@@ -293,18 +293,18 @@ defineExpose({
 
           <!-- STATE: UP-TO-DATE -->
           <div v-else-if="status === 'up-to-date'" class="flex flex-col gap-4">
-            <div class="flex items-start gap-3 p-3.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-800 dark:text-emerald-300">
+            <div class="flex items-start gap-3 p-3.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30">
               <div class="h-6 w-6 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0 mt-0.5 text-emerald-600 dark:text-emerald-400">
                 <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
                 </svg>
               </div>
               <div class="flex-1">
-                <h4 class="text-sm font-semibold text-emerald-900 dark:text-emerald-200">
+                <h4 class="text-sm font-semibold text-app-text">
                   ZenTauri is up to date
                 </h4>
-                <p class="text-xs text-emerald-800/80 dark:text-emerald-300/80 mt-0.5">
-                  Version <strong>v{{ currentVersion }}</strong> is currently the latest version.
+                <p class="text-xs text-app-text-muted mt-0.5">
+                  Version <strong class="text-app-text font-semibold">v{{ currentVersion }}</strong> is currently the latest version.
                 </p>
               </div>
             </div>
@@ -318,7 +318,7 @@ defineExpose({
                 <button
                   type="button"
                   @click="showCurrentNotes = !showCurrentNotes"
-                  class="text-[11px] text-amber-700 dark:text-amber-400 hover:underline cursor-pointer"
+                  class="text-[11px] text-amber-700 dark:text-amber-400 hover:underline cursor-pointer font-medium"
                 >
                   {{ showCurrentNotes ? 'Hide' : 'Show' }}
                 </button>
@@ -334,20 +334,20 @@ defineExpose({
 
           <!-- STATE: AVAILABLE -->
           <div v-else-if="status === 'available'" class="flex flex-col gap-4">
-            <div class="flex items-start gap-3 p-3.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-900 dark:text-amber-200">
+            <div class="flex items-start gap-3 p-3.5 rounded-lg bg-amber-500/10 border border-amber-500/30">
               <div class="h-6 w-6 rounded-full bg-amber-500/20 flex items-center justify-center shrink-0 mt-0.5 text-amber-600 dark:text-amber-400">
                 <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                 </svg>
               </div>
               <div class="flex-1">
-                <h4 class="text-sm font-semibold text-amber-900 dark:text-amber-100 flex items-center gap-1.5 flex-wrap">
+                <h4 class="text-sm font-semibold text-app-text flex items-center gap-1.5 flex-wrap">
                   <span>New update available:</span>
-                  <span class="inline-flex items-center rounded-md bg-amber-500/20 px-2 py-0.5 text-xs font-mono font-bold text-amber-800 dark:text-amber-300">
+                  <span class="inline-flex items-center rounded-md bg-amber-500/20 border border-amber-500/40 px-2 py-0.5 text-xs font-mono font-bold text-amber-700 dark:text-amber-400">
                     v{{ updateVersion }}
                   </span>
                 </h4>
-                <p class="text-xs text-amber-800/80 dark:text-amber-300/80 mt-0.5">
+                <p class="text-xs text-app-text-muted mt-0.5 font-medium">
                   A newer version of ZenTauri is available (Installed: v{{ currentVersion }}).
                 </p>
               </div>
@@ -359,7 +359,7 @@ defineExpose({
                 <button
                   type="button"
                   @click="showNotes = !showNotes"
-                  class="text-xs font-medium text-amber-700 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-300 flex items-center gap-1 cursor-pointer transition-colors"
+                  class="text-xs font-medium text-amber-700 dark:text-amber-400 hover:underline flex items-center gap-1 cursor-pointer transition-colors"
                 >
                   <span>{{ showNotes ? 'Hide release notes' : 'What\'s new in v' + updateVersion + '?' }}</span>
                 </button>
@@ -404,17 +404,17 @@ defineExpose({
 
           <!-- STATE: ERROR -->
           <div v-else-if="status === 'error'" class="flex flex-col gap-3">
-            <div class="flex items-start gap-3 p-3.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-800 dark:text-rose-300">
+            <div class="flex items-start gap-3 p-3.5 rounded-lg bg-rose-500/10 border border-rose-500/30">
               <div class="h-6 w-6 rounded-full bg-rose-500/20 flex items-center justify-center shrink-0 mt-0.5 text-rose-600 dark:text-rose-400">
                 <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                 </svg>
               </div>
               <div class="flex-1">
-                <h4 class="text-sm font-semibold text-rose-900 dark:text-rose-200">
+                <h4 class="text-sm font-semibold text-app-text">
                   Update check failed
                 </h4>
-                <p class="text-xs text-rose-800/80 dark:text-rose-300/80 mt-1">
+                <p class="text-xs text-rose-600 dark:text-rose-400 mt-1">
                   {{ errorMessage || 'Could not connect to GitHub Releases servers.' }}
                 </p>
               </div>
@@ -432,7 +432,7 @@ defineExpose({
           <button
             type="button"
             @click="handleManualDownload"
-            class="text-xs text-amber-700 dark:text-amber-400 hover:underline flex items-center gap-1 cursor-pointer font-medium"
+            class="text-xs text-amber-700 dark:text-amber-400 hover:underline flex items-center gap-1 cursor-pointer font-medium transition-colors"
             title="Open GitHub Releases in Browser"
           >
             <span>Browser-Download (GitHub) ↗</span>

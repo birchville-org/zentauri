@@ -1,5 +1,10 @@
 <script setup lang="ts">
-import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
+import {
+  defaultKeymap,
+  history,
+  historyKeymap,
+  redo,
+} from "@codemirror/commands";
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { languages } from "@codemirror/language-data";
 import { highlightSelectionMatches } from "@codemirror/search";
@@ -44,7 +49,20 @@ const emit = defineEmits<{
   (e: "cursor-change", info: CursorInfo): void;
 }>();
 
-function insertText(text: string) {
+interface LastCommand {
+  type: "wrap" | "insert" | "transliteration";
+  before?: string;
+  after?: string;
+  text?: string;
+  scheme?: TransliterationScheme;
+}
+
+let lastCommand: LastCommand | null = null;
+
+function insertText(text: string, record = true) {
+  if (record) {
+    lastCommand = { type: "insert", text };
+  }
   if (!view) return;
   const selection = view.state.selection.main;
 
@@ -85,7 +103,10 @@ function insertText(text: string) {
   view.focus();
 }
 
-function wrapSelection(before: string, after: string) {
+function wrapSelection(before: string, after: string, record = true) {
+  if (record) {
+    lastCommand = { type: "wrap", before, after };
+  }
   if (!view) return;
   const selection = view.state.selection.main;
   const selectedText = view.state.sliceDoc(selection.from, selection.to);
@@ -143,7 +164,13 @@ function wrapSelection(before: string, after: string) {
   view.focus();
 }
 
-async function toggleTransliteration(scheme: TransliterationScheme = "iast") {
+async function toggleTransliteration(
+  scheme: TransliterationScheme = "iast",
+  record = true,
+) {
+  if (record) {
+    lastCommand = { type: "transliteration", scheme };
+  }
   if (!view) return;
   const state = view.state;
   const docText = state.doc.toString();
@@ -180,6 +207,39 @@ async function toggleTransliteration(scheme: TransliterationScheme = "iast") {
     userEvent: "input.transliterate",
   });
   view.focus();
+}
+
+function repeatLastCommand(): boolean {
+  if (!view) return false;
+
+  // 1. If an undo was performed, redo has priority (Word / CodeMirror redo behaviour)
+  if (redo(view)) {
+    return true;
+  }
+
+  // 2. Otherwise repeat the last explicit editor command
+  if (!lastCommand) return false;
+
+  if (
+    lastCommand.type === "wrap" &&
+    lastCommand.before !== undefined &&
+    lastCommand.after !== undefined
+  ) {
+    wrapSelection(lastCommand.before, lastCommand.after, false);
+    return true;
+  }
+
+  if (lastCommand.type === "insert" && lastCommand.text !== undefined) {
+    insertText(lastCommand.text, false);
+    return true;
+  }
+
+  if (lastCommand.type === "transliteration" && lastCommand.scheme) {
+    toggleTransliteration(lastCommand.scheme, false);
+    return true;
+  }
+
+  return false;
 }
 
 function focus() {
@@ -418,6 +478,8 @@ defineExpose({
   toggleTransliteration,
   toggleIastTransliteration: () => toggleTransliteration("iast"),
   toggleHkTransliteration: () => toggleTransliteration("hk"),
+  repeatLastCommand,
+  getLastCommand: () => lastCommand,
   getScrollInfo,
   scrollToFractionalLine,
   scrollToRatio,
@@ -439,6 +501,42 @@ onMounted(() => {
       lineNumbers(),
       history(),
       keymap.of([
+        {
+          key: "Mod-y",
+          run: () => repeatLastCommand(),
+        },
+        {
+          key: "Mod-Y",
+          run: () => repeatLastCommand(),
+        },
+        {
+          key: "Mod-b",
+          run: () => {
+            wrapSelection("**", "**");
+            return true;
+          },
+        },
+        {
+          key: "Mod-B",
+          run: () => {
+            wrapSelection("**", "**");
+            return true;
+          },
+        },
+        {
+          key: "Mod-i",
+          run: () => {
+            wrapSelection("*", "*");
+            return true;
+          },
+        },
+        {
+          key: "Mod-I",
+          run: () => {
+            wrapSelection("*", "*");
+            return true;
+          },
+        },
         ...defaultKeymap,
         ...historyKeymap,
         {

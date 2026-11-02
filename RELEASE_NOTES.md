@@ -1,3 +1,28 @@
+# Release Notes — ZenTauri v1.8.1
+
+ZenTauri v1.8.1 is an authoring and usability release adding native file duplication across context menus, the application menu, and keyboard shortcuts (`⌘⇧D`), command repetition (`⌘Y` / `Ctrl+Y`), and high-contrast accessibility enhancements in the software update dialog.
+
+## Fixes & Enhancements (v1.8.1)
+
+### 📄 Duplicate File Workflow & Native Tauri Integration
+* **Multi-Entry Context & Menu Integration:** Added „Duplicate File“ to the file explorer tree context menu, editor tab header context menu, and the native Tauri `File` application menu.
+* **Keyboard Shortcut (`⌘⇧D` / `Ctrl+Shift+D`):** Instantly duplicates the currently active file buffer.
+* **Auto-Save Buffer Flush:** Any unwritten editor modifications in dirty tabs (`isDirty: true`) are flushed to disk before duplicating.
+* **Pure-Rust File Duplication Engine:** Native Rust IPC handler `duplicate_file_item` with incremental collision resolution (`<name>_copy.<ext>`, `<name>_copy_2.<ext>`), strict system/root path protection (`is_system_or_user_root`), workspace SQLite index sync, and automatic file tree reload.
+
+### ⌨️ Repeat Last Command & Redo (`⌘Y` / `Ctrl+Y`)
+* **Dual-Action Command Repeat:** Pressing `⌘Y` / `Ctrl+Y` or clicking the toolbar repeat button executes `redo(view)` if previous actions were undone; otherwise repeats the last explicit wrap, snippet insertion, or transliteration action with recursion guards.
+* **Formatting Hotkeys:** Added native CodeMirror keymap bindings for `⌘B` / `Ctrl+B` (Bold) and `⌘I` / `Ctrl+I` (Italic).
+
+### 🎨 Software Update Dialog High-Contrast Accessibility
+* **Theme-Semantic Color Tokens:** Replaced fixed amber and light-yellow text tokens with semantic tokens `text-app-text` and `text-app-text-muted`, guaranteeing WCAG AAA contrast across all light/dark themes and OS appearance combinations.
+* **Version Badge Styling:** Restyled version chips with clean borders and high-contrast amber accents.
+
+### 🛡️ System Path Guarding
+* **Path Sanitization:** Added non-string type guards to `isProtectedSystemPath` in `src/App.vue`.
+
+---
+
 # Release Notes — ZenTauri v1.8.0
 
 ZenTauri v1.8.0 integrates a native pure-Rust document ingest engine powered by `docling-rs`, enabling direct conversion of Microsoft Word (`.docx`), OpenDocument Text (`.odt`), and rich text formats into clean, archivable Markdown with window drag-and-drop, import notice dialogues, and the STIX Two Text scholarly fontstack.

@@ -45,8 +45,18 @@ describe("EditorRibbon", () => {
       label: "B",
       before: "**",
       after: "**",
-      desc: "Bold (**)",
+      desc: "Bold (**) · ⌘B / Ctrl+B",
     });
+  });
+
+  it("emits repeat-last-command when repeat button is clicked", async () => {
+    const wrapper = mount(EditorRibbon);
+    const repeatBtn = wrapper
+      .findAll("button")
+      .find((b) => b.attributes("title")?.includes("Repeat Last Command"));
+    expect(repeatBtn).toBeDefined();
+    await repeatBtn?.trigger("click");
+    expect(wrapper.emitted("repeat-last-command")).toBeTruthy();
   });
 
   it("emits toggle-transliteration on transliteration buttons", async () => {

@@ -309,6 +309,10 @@ fn move_file_item(source_path: &str, target_dir_path: &str) -> Result<String, St
 
 #[tauri::command]
 fn duplicate_file_item(source_path: &str) -> Result<String, String> {
+    duplicate_file_item_impl(source_path)
+}
+
+pub fn duplicate_file_item_impl(source_path: &str) -> Result<String, String> {
     use std::fs;
     use std::path::Path;
 
@@ -319,11 +323,11 @@ fn duplicate_file_item(source_path: &str) -> Result<String, String> {
     if is_system_or_user_root(source) {
         return Err("Cannot duplicate system or root items".to_string());
     }
-    if !is_within_known_workspace(source) {
-        return Err("Cannot duplicate items outside of the active workspace".to_string());
+    let parent = source.parent().ok_or_else(|| "Invalid parent dir".to_string())?;
+    if is_system_or_user_root(parent) {
+        return Err("Cannot duplicate system or root items".to_string());
     }
 
-    let parent = source.parent().ok_or_else(|| "Invalid parent dir".to_string())?;
     let stem = source.file_stem().unwrap_or_default().to_string_lossy();
     let ext = source.extension().map(|e| e.to_string_lossy().to_string()).unwrap_or_default();
 
@@ -348,7 +352,16 @@ fn duplicate_file_item(source_path: &str) -> Result<String, String> {
 
     fs::copy(&source, &destination).map_err(|e| format!("Failed to copy file: {}", e))?;
 
-    Ok(destination.to_string_lossy().to_string())
+    let dest_str = destination.to_string_lossy().to_string();
+    let root = find_workspace_root(&dest_str);
+    if !is_system_or_user_root(&root) {
+        if let Ok(mut conn) = db::init_db(&root.to_string_lossy()) {
+            let parent_str = parent.to_string_lossy().to_string();
+            let _ = db::sync_directory(&mut conn, &parent_str);
+        }
+    }
+
+    Ok(dest_str)
 }
 
 #[tauri::command]
@@ -1082,6 +1095,7 @@ pub fn run() {
                     &PredefinedMenuItem::separator(app)?,
                     &MenuItem::with_id(app, "save", "Save", true, Some("CmdOrCtrl+S"))?,
                     &MenuItem::with_id(app, "save_as", "Save As...", true, Some("CmdOrCtrl+Shift+S"))?,
+                    &MenuItem::with_id(app, "duplicate_file", "Duplicate File", true, Some("CmdOrCtrl+Shift+D"))?,
                     &PredefinedMenuItem::separator(app)?,
                     &MenuItem::with_id(app, "export_pdf", "Export PDF via Typst...", true, Some("CmdOrCtrl+P"))?,
                     &MenuItem::with_id(app, "export_html", "Export Standalone HTML...", true, Some("CmdOrCtrl+Shift+H"))?,
@@ -1197,6 +1211,7 @@ pub fn run() {
                     | "close_folder"
                     | "save"
                     | "save_as"
+                    | "duplicate_file"
                     | "print"
                     | "export_pdf"
                     | "export_html"

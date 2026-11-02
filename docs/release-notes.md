@@ -4,6 +4,15 @@ title: Release Notes
 
 # 🚀 Zentauri Release Notes
 
+### ZenTauri v1.8.1
+- **Duplicate File Workflow & Native Integration:** Added „Duplicate File“ in the file explorer context menu, tab header context menu, and desktop application `File` menu, mapped to `⌘⇧D` / `Ctrl+Shift+D`. Pending buffer edits are flushed before duplicating.
+- **Pure-Rust Duplication Engine:** Backend handler `duplicate_file_item` with automatic sequential suffixing (`_copy`, `_copy_2`), system/root safeguards (`is_system_or_user_root`), SQLite index updates, and automatic file tree reload.
+- **Repeat Last Command / Redo (`⌘Y` / `Ctrl+Y`):** Prioritizes redo after undo; otherwise repeats formatting wrap, snippet insert, or transliteration with recursion protection. Added `⌘B` and `⌘I` keymaps.
+- **Software Update Dialog High-Contrast Accessibility:** Semantic tokens `text-app-text` and `text-app-text-muted` replace low-contrast amber text in the update modal for full contrast across light and dark modes.
+- **System Path Guarding:** Hardened `isProtectedSystemPath` against non-string arguments.
+
+---
+
 ### ZenTauri v1.8.0
 - **Native DOCX & ODT Document Ingest (`docling-rs`):** Integrated the pure-Rust `docling` engine (v2.55, without Python/Pandoc/LibreOffice dependencies). Existing manuscripts from Microsoft Word (`.docx`), OpenDocument Text (`.odt`), and `.rtf`, `.epub`, `.pptx`, `.xlsx` are parsed and converted directly into clean, archivable Markdown in the Rust backend (`src-tauri`).
 - **Safe Import Buffer & Source Preservation:** Ingested documents open in a new editor tab (`<filename>.md`) marked as unsaved (`isDirty: true`). The original file on disk is never modified or overwritten.

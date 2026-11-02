@@ -219,7 +219,7 @@ watch(
 );
 
 function isProtectedSystemPath(dirPath: string): boolean {
-  if (!dirPath) return true;
+  if (!dirPath || typeof dirPath !== "string") return true;
   const norm = dirPath.replace(/\\/g, "/").replace(/\/+$/, "").toLowerCase();
 
   // Root paths
@@ -1023,7 +1023,9 @@ onMounted(() => {
       });
 
     const debouncedFsRefresh = debounce(() => {
-      fileTreeRef.value?.triggerWorkspaceRefresh();
+      if (typeof fileTreeRef.value?.triggerWorkspaceRefresh === "function") {
+        fileTreeRef.value.triggerWorkspaceRefresh();
+      }
     }, 300);
 
     listen<{ kind: string; paths: string[] }>("workspace-fs-changed", () => {
@@ -1082,6 +1084,9 @@ onMounted(() => {
           break;
         case "save_as":
           handleSaveAs();
+          break;
+        case "duplicate_file":
+          handleDuplicateActiveFile();
           break;
         case "print":
           handlePrint();
@@ -1254,6 +1259,22 @@ function handleGlobalKeydown(e: KeyboardEvent) {
   } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "g") {
     e.preventDefault();
     handleJumpToLinePrompt();
+  } else if (
+    (e.metaKey || e.ctrlKey) &&
+    !e.altKey &&
+    !e.shiftKey &&
+    (e.code === "KeyY" || e.key.toLowerCase() === "y")
+  ) {
+    e.preventDefault();
+    editorRef.value?.repeatLastCommand();
+  } else if (
+    (e.metaKey || e.ctrlKey) &&
+    e.shiftKey &&
+    !e.altKey &&
+    (e.code === "KeyD" || e.key.toLowerCase() === "d")
+  ) {
+    e.preventDefault();
+    handleDuplicateActiveFile();
   } else if (
     ((e.metaKey || e.ctrlKey) &&
       e.altKey &&
@@ -1677,6 +1698,12 @@ const tabContextMenuItems = computed(() => {
     },
     { divider: true },
     {
+      label: "Duplicate File",
+      action: "duplicate",
+      disabled: !isRealFile,
+    },
+    { divider: true },
+    {
       label: "Copy Path",
       action: "copy-path",
       disabled: !isRealFile,
@@ -1721,6 +1748,11 @@ async function handleTabContextMenuAction(action: string) {
         } catch (err) {
           console.error("Failed to copy path:", err);
         }
+      }
+      break;
+    case "duplicate":
+      if (tab?.path && !tab.path.startsWith("untitled:")) {
+        await duplicateFile(tab.path);
       }
       break;
     case "reveal":
@@ -2028,6 +2060,42 @@ async function handleNewFolder() {
       fileTreeRef.value?.triggerNewRootFolder();
     });
   }
+}
+
+async function duplicateFile(sourcePath: string) {
+  if (!sourcePath) return;
+
+  const matchingTab = tabs.value.find((t) => t.path === sourcePath);
+  if (matchingTab?.isDirty) {
+    await saveTabToFile(matchingTab, true);
+  }
+
+  if (isTauri) {
+    try {
+      const newPath = await invoke<string>("duplicate_file_item", {
+        sourcePath,
+      });
+      if (typeof fileTreeRef.value?.triggerWorkspaceRefresh === "function") {
+        fileTreeRef.value.triggerWorkspaceRefresh();
+      }
+      if (newPath) {
+        await loadFile(newPath);
+      }
+    } catch (err) {
+      console.error("Failed to duplicate file:", err);
+      await message(`Failed to duplicate file: ${err}`, {
+        title: "Duplicate File",
+        kind: "error",
+      });
+    }
+  }
+}
+
+async function handleDuplicateActiveFile() {
+  const tab = tabs.value[activeTabIndex.value];
+  if (!tab || tab.isWeb || !tab.path || tab.path.startsWith("untitled://"))
+    return;
+  await duplicateFile(tab.path);
 }
 
 function handleSettingsUpdate(settings: any) {
@@ -2478,6 +2546,7 @@ async function handleCopyHtml() {
               <EditorRibbon
                 @insert-snippet="handleInsertSnippet"
                 @toggle-transliteration="handleToggleTransliteration"
+                @repeat-last-command="() => editorRef?.repeatLastCommand()"
               />
 
               <!-- CodeMirror Editor -->

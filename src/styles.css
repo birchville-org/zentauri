@@ -2,6 +2,7 @@
 @import "tailwindcss";
 @import "./payer-theme.css";
 @plugin "@tailwindcss/typography";
+@custom-variant dark (&:where(.dark, .dark *));
 
 body,
 input,
