@@ -8,3 +8,16 @@ declare module "*.vue" {
   const component: DefineComponent<{}, {}, any>;
   export default component;
 }
+
+declare module "@indic-transliteration/sanscript" {
+  export interface SanscriptStatic {
+    t(
+      text: string,
+      from: string,
+      to: string,
+      options?: Record<string, unknown>,
+    ): string;
+  }
+  const Sanscript: SanscriptStatic;
+  export default Sanscript;
+}

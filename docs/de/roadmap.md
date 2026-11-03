@@ -12,27 +12,33 @@ Dieses Dokument erfasst geplante Ausbau-Features, Architekturkonzepte und vorlä
 
 | Funktion | Aktueller Status | Zielversion | Beschreibung |
 | :--- | :--- | :--- | :--- |
-| **QA Reference Dual-Pane** | 📋 **Backlog / Pausiert (v1.3.0)** | v2.2.0 | Textbasierter 2-Spalten-Vergleich (in v1.3.0 zugunsten von Modus 3: Dual PDF QA zurückgestellt) |
+| **Nativer Typst-PDF-Export** | ✅ **Aktiv (v1.7.0+)** | v1.7.0 | Reiner Rust-Typst-Satz im Backend (`typst-as-lib`, `typst-pdf`, STIX Two Text Fontstack) |
+| **Office- & DOCX-Ingest** | ✅ **Aktiv (v1.8.0)** | v1.8.0 | Pure-Rust Ingest (`docling-rs`) für `.docx`, `.odt`, `.rtf`, `.epub` mit Unicode NFC-Normalisierung |
+| **Dual PDF QA Vektor-Viewer** | ✅ **Aktiv (v1.7.0+)** | v1.7.0 | Rust-First Vektor-Synchron-Viewer (`hayro_svg`, %/Seiten-Lockstep, SWAP, Dateiverknüpfungen) |
+| **Editor-Trenner & Soft-Wrap** | ✅ **Aktiv (v1.8.2)** | v1.8.2 | Verschiebbare Split-Trennlinie (50/50-Reset) & CodeMirror 6 automatischer Zeilenumbruch |
+| **Datei duplizieren & Befehl wiederholen** | ✅ **Aktiv (v1.8.1)** | v1.8.1 | Native Dateiduplizierung (`⌘⇧D`) und Befehlswiederholung (`⌘Y` / `Ctrl+Y`) mit Undo-Synchronisation |
 | **Harvard-Kyoto & IAST Shortcuts** | ✅ **Aktiv (v1.2.0)** | v1.2.0 | Bidirektionale Tastenkürzel `⌥⌘D` & `⌥⌘H` mit Tag-geschützter Transliteration |
 | **Wissenschaftliche Fußnoten & Deflists** | ✅ **Aktiv (v1.2.0)** | v1.2.0 | Standard `[^1]` Fußnoten und `Begriff\n: Definition` Definitionslisten |
-| **Nativer Typst-PDF-Compiler** | ⏳ **In Entwicklung** | v2.0.0 | Direkter Typst-Satz im Rust-Backend (`src-tauri`) ohne Browser-Drucker |
-| **Dual PDF QA & Proofing (Modus 3)** | 📋 **Backlog / Konzipiert** | v2.0.0 | Dual-Vektor-PDF-Viewer mit Bounding-Box-Annotationen & KI-Korrektur-Prompt |
+| **Dual PDF QA Annotationen & KI** | 📋 **Backlog / Konzipiert** | v2.0.0 | Bounding-Box Overlays auf SVG-Seiten & 1-Klick Clipboard-Prompt für Web-LLMs |
+| **In-Editor Live-IME (Stufe 2)** | 📋 **Backlog / Konzipiert** | v2.0.0 | CodeMirror-Echtzeitwandlung in `《...》` und Compose-Sequenzen im Fließtext |
+| **Wissensgraph & Wikilinks** | 📋 **Backlog / Pausiert** | v2.0.0 | Re-Integration des Graphen, `[[`-Autovervollständigung und Cmd+Klick-Navigation |
+| **Synchrone Diagramme (Pele)** | 📋 **Backlog / Evaluation** | v2.0.0 | Verzögerungsfreier, synchroner Mermaid-kompatibler Renderer via `pele.run` (~2,5 MB Ersparnis) |
+| **DOCX-Export & CriticMarkup** | 📋 **Backlog / Konzipiert** | v2.1.0 | Akademisches `.docx`-Verlags-Exporttemplate und CodeMirror CriticMarkup Track-Changes |
 | **Synoptischer Master-JSON (Modus 2)** | 📋 **Backlog / Konzipiert** | v2.1.0 | Split-Pane-Editor für historische Editionen (`book.json` AST-Format nach Bṛhadāraṇyaka) |
-| **DOCX-Brücke & CriticMarkup** | 📋 **Backlog / Konzipiert** | v2.1.0 | Pandoc-gestützter DOCX-Ingest, akademisches Verlags-Template und Track-Changes |
-| **In-Editor Live-IME (Stufe 2)** | 📋 **Backlog / Konzipiert** | v2.0.0 | Echtzeit-Wandlung in `《...》` und Compose-Sequenzen im Fließtext |
-| **Wissensgraph & Wikilinks** | 📋 **Backlog / Pausiert** | v2.0.0 | Re-Integration des Graphen, `[[`-Autovervollständigung und Cmd+Klick |
+| **QA Reference Dual-Pane** | 📋 **Backlog / Pausiert (v1.3.0)** | v2.2.0 | Textbasierter 2-Spalten-Vergleich (in v1.3.0 zugunsten von Modus 3: Dual PDF QA zurückgestellt) |
 
 ---
 
 ## 1. Nativer Typst-PDF-Compiler
 
-- **Status:** In Entwicklung (`src-tauri` via `typst`- und `typst-pdf`-Crates)
-- **Ziel:** Vollständige Ablösung der WebKit-basierten Druckfunktion durch blitzschnellen, nativen PDF-Satz direkt über die Typst-Compiler-Engine in Rust.
+- **Status:** ✅ **Aktiv / Implementiert** (`src-tauri` via `typst-as-lib` & `typst-pdf`; STIX Two Text Standard in v1.8.0)
+- **Ziel:** Vollständige Ablösung der WebKit-basierten Druckfunktion durch blitzschnellen, nativen PDF-Satz direkt über die Typst-Compiler-Engine in Rust (`⌘P`).
 
-### Meilensteine:
-1. **Direktes AST-Mapping:** Übersetzung von Markdown-Elementen in semantischen Typst-Code.
-2. **Akademisches Satzlayout:** Automatische Paginierung, Ränder, Fußnoten und Devanāgarī-Schriftartenkaskaden.
-3. **Plattformunabhängig & leicht:** Keine Chromium- oder Node.js-Abhängigkeiten.
+### Umgesetzte Meilensteine:
+1. **Direktes AST-Mapping (✅ Aktiv):** Übersetzung von Markdown-Elementen, Payer-Containerboxen, KaTeX-Formeln, Tabellen und Fußnoten in semantischen Typst-Code.
+2. **Akademisches Satzlayout & Fontstacks (✅ Aktiv):** Automatische Paginierung, Ränder, Fußnoten und der Birchville Scholarly Fontstack (*STIX Two Text*, *Gentium Plus*, *Noto Serif Devanagari*).
+3. **Plattformunabhängig & leicht (✅ Aktiv):** Keine Chromium- oder Node.js-Abhängigkeiten.
+4. **Zukunftserweiterungen (📋 Ziel: v2.0.0):** Benutzerdefinierte Typst-Vorlagenauswahl und mehrstufiger textkritischer Apparat.
 
 ---
 
@@ -68,10 +74,15 @@ Dieses Dokument erfasst geplante Ausbau-Features, Architekturkonzepte und vorlä
 
 ## 4. Dual PDF QA & Proofing (Work-Mode 3)
 
-- **Status:** Backlog / Konzipiert
+- **Status:** ✅ **Kern-Vektor-Viewer Aktiv (v1.7.0+)** / 📋 **Visuelles Proofing & KI-Bridge im Backlog (v2.0.0)**
 - **Ziel:** Synchronisierter 2-Spalten-Vektor-PDF-Vergleich von Neusatz-Ausgaben gegen historische Druckscans mit KI-unterstützter Korrekturführung.
 
-### Geplante Phasen:
+### Aktive Kernfunktionen (v1.7.0+):
+- **Hochpräzises Vektor-Rendering:** Direkter SVG-Satz von PDF-Seiten via `hayro_svg` in Rust mit ID-Scoping und randscharfem Zoom.
+- **Synchroner Dual-Viewer:** Prozentuales Scrollen und Seiten-Lockstep, SWAP-Seitentausch und Breitenanpassung.
+- **Systemintegration:** Dateiverknüpfungen und Direktstart via macOS Finder („Öffnen mit...“) sowie Terminal-CLI.
+
+### Geplante Proofing-Erweiterungen (Ziel: v2.0.0):
 1. **Normalisiertes Bounding-Box Overlay:** Klick- und Zieh-Markierungen auf den gerenderten SVG-Vektorseiten (`hayro_svg`) mit relativen Prozent-Koordinaten.
 2. **Web-First KI-Prompt-Generator:** 1-Klick-Übernahme eines strukturierten Markdown-Prompts (Quelltext + Korrekturtabelle) ins Clipboard für Claude, ChatGPT und Gemini Web.
 3. **Annotierter PDF-Export & Automation:** Export als visuell eingebranntes PDF sowie optionale lokale Ollama-Diff-Korrektur.
@@ -92,11 +103,28 @@ Dieses Dokument erfasst geplante Ausbau-Features, Architekturkonzepte und vorlä
 
 ## 6. DOCX-Interoperabilität & CriticMarkup (Word-Brücke)
 
-- **Status:** Backlog / Konzipiert
+- **Status:** ✅ **Ingest Aktiv (v1.8.0 via `docling-rs`)** / 📋 **Export & CriticMarkup auf Roadmap (v2.1.0)**
 - **Ziel:** Verlustfreie Brücke zu Microsoft Word-zentrierten Verlagen und Gutachtern unter dem strikten Prinzip **Plain Text First**.
 
-### Architektur:
+### Implementierte Ingest-Architektur (v1.8.0):
 - **Plain Text als Kanon:** Markdown ist die persistente *Single Source of Truth*. `.docx` dient ausschließlich als Ingest- und Exportformat.
-- **DOCX-Ingest:** Automatische native Rust-Konvertierung (via `docling-rs`) zur Entfernung von Word-Formatierungsballast, Normalisierung von Unicode-Diakritika, Übernahme von Fußnoten und Wandlung von Word Track-Changes in CriticMarkup (`{++eingefügt++}`, `{--gelöscht--}`).
-- **Scholarly Export-Template:** Kompilierung nach `.docx` über eine konfigurierte Vorlage mit festen Schriftarten (*STIX Two Text*, *Gentium Plus*, *Noto Serif Devanagari*).
-- **In-Editor CriticMarkup:** Visuelles Rendering von Inline-Änderungen und Lektorenkommentaren in CodeMirror 6 mit 1-Klick Accept/Reject-Steuerung.
+- **Reine Rust-Pipeline ohne Pandoc:** Nativer Parser via `docling-rs` für `.docx`, `.odt`, `.rtf`, `.epub`, `.pptx` und `.xlsx`.
+- **Sicherer Import-Puffer:** Konvertierte Dokumente öffnen in einem neuen ungespeicherten Tab (`<name>.md`), sodass Originaldateien niemals überschrieben werden.
+- **Sanitization & Unicode NFC:** Bereinigung unsichtbarer Steuerzeichen (weiche Trenner, Zero-Width Spaces, BOM) und NFC-Normalisierung für IAST-Diakritika.
+
+### Geplante Verlags-Erweiterungen (Ziel: v2.1.0):
+1. **Scholarly Export-Template:** Kompilierung nach `.docx` über eine konfigurierte Vorlage mit festen Schriftarten (*STIX Two Text*, *Gentium Plus*, *Noto Serif Devanagari*).
+2. **In-Editor CriticMarkup:** Visuelles Rendering von Inline-Änderungen und Lektorenkommentaren in CodeMirror 6 (`{++eingefügt++}`, `{--gelöscht--}`, `{>>Hinweis<<}`) mit 1-Klick Accept/Reject-Steuerung.
+
+---
+
+## 7. Synchroner Diagramm-Renderer via Pele (`pele.run`)
+
+- **Status:** 📋 **Backlog / Evaluation** (Ziel: v2.0.0)
+- **Ziel:** Ersatz von asynchronem Mermaid (v11/12) durch einen abhängigkeitsfreien, synchronen Renderer zur Beseitigung von Render-Verzögerungen und massiven Einsparung von Bundle-Größe.
+
+### Kernvorteile:
+1. **Verzögerungsfreier synchroner Satz:** Beseitigt Debounce-Timer und asynchrone DOM-Mutationen in der Vorschau durch direktes Rendern in `markdown-it`.
+2. **Bundle-Verschlankung:** Reduktion des Anwendungs-Bundles um ~2,5 MB durch Wegfall des Mermaid-Chunk-Graphen.
+3. **Birchville-Theming:** Steuerung über native CSS-Custom-Properties (`--pele-bg`, `--pele-fg`, `--pele-accent`) für verzögerungsfreien Hell/Dunkel-Wechsel.
+4. **Vektor-Embedding im HTML-Export:** Einbettung nativer Vektor-SVGs in Standalone-HTML-Dateien unter Beibehaltung einer strikten `script-src 'none'` Content Security Policy.

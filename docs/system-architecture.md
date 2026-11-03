@@ -71,9 +71,9 @@ The indexing process leverages Rust's `regex` and `serde_yaml` crates for high-s
 
 ---
 
-## 4. Native PDF Export (Roadmap / Architecture Plan)
+## 4. Native PDF Export (Active)
 
-Zentauri's architectural roadmap drops heavy Chromium/Playwright dependencies in favor of native Rust rendering. We have planned the integration of **Typst** (`typst-as-lib`) directly inside the Tauri backend for v2.0.0 (see [Roadmap & Backlog](./roadmap)). The Vue frontend will generate a Typst AST string from the Markdown document, passing it via IPC to Rust, which compiles an academic PDF in milliseconds without external toolchains.
+Zentauri drops heavy Chromium/Playwright dependencies in favor of native Rust rendering. We integrate **Typst** (`typst-as-lib`, `typst-pdf`) directly inside the Tauri backend (`export_pdf` IPC command, `⌘P`). The Vue frontend generates a Typst AST string from the Markdown document, passing it via IPC to Rust, which compiles an academic publication-grade PDF in milliseconds without external toolchains or Node.js dependencies, incorporating the STIX Two Text and Noto Serif Devanagari fontstacks.
 
 ---
 
@@ -96,10 +96,10 @@ To prevent feature bloat while meeting all demands of scholarly edition projects
 1. **Mode 1: Markdown Authoring (Active)**
    - Single-file and split-pane text authoring (CodeMirror 6).
    - Sanskrit bracket highlighting, KaTeX formulas, and Typst AST compilation.
-2. **Mode 2: Synoptic Master-JSON Edition (Roadmap)**
+2. **Mode 2: Synoptic Master-JSON Edition (Roadmap v2.1.0)**
    - Specialized split-pane editor for historical editions (`book.json` / AST format as in `brhadaranyaka`).
    - Pairs page scans (PDF) with segmented field inputs (Devanāgarī, IAST, translation, critical apparatus) for automated compilation into TEI-P5 XML and Typst-PDF.
-3. **Mode 3: Dual PDF QA & Proofing (In Development)**
-   - Side-by-side vector PDF comparison (`hayro_svg`) with synchronized scroll-lockstep.
-   - Normalized bounding-box annotations, 1-click clipboard prompt for LLM proofing, and flattened annotated PDF export.
+3. **Mode 3: Dual PDF QA & Proofing (Active Core / Roadmap v2.0.0)**
+   - Side-by-side vector PDF comparison (`hayro_svg`) with synchronized scroll-lockstep, SWAP, and Finder/CLI launch.
+   - Normalized bounding-box annotations, 1-click clipboard prompt for LLM proofing, and flattened annotated PDF export planned for v2.0.0.
 

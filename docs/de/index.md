@@ -32,8 +32,9 @@ Zentauri verbindet fokussiertes Markdown-Authoring mit strukturierter Korpus-Edi
 | 🦀 **Rust-First Architektur** | Tauri v2, Rust, SQLite | **Aktiv** — Maximale Performance, minimaler Speicherverbrauch und native OS-Integration |
 | 📝 **Scholarly Editing (Modus 1)** | Vue 3, CodeMirror 6, markdown-it-extensible | **Aktiv** — Split-Pane Authoring, Payer-v2 Container, Fußnoten, Silent Auto-Repair und Metadaten |
 | 📜 **Synoptische Edition (Modus 2)** | Master-JSON (`book.json`), Scan Split-Pane | **Roadmap (v2.1.0)** — Segmentbasierte Bearbeitung historischer Drucke und Scans |
-| 🔍 **Dual PDF QA (Modus 3)** | `hayro_svg`, Bounding-Boxes, KI-Prompt | **Aktiv / Roadmap (v2.0.0)** — 2-spaltiger Vektor-PDF-Vergleich und visuelles Proofing |
-| 🖨️ **Nativer PDF-Export** | Typst (`typst-as-lib`) | **Roadmap** — Direkter akademischer Buchsatz nativ in Rust ohne Chromium oder Node.js |
+| 🔍 **Dual PDF QA (Modus 3)** | `hayro_svg`, Bounding-Boxes, KI-Prompt | **Aktiv Kern / Roadmap (v2.0.0)** — 2-spaltiger Vektor-PDF-Vergleich (aktiv) und visuelles Bounding-Box-Proofing (v2.0.0) |
+| 🖨️ **Nativer PDF-Export** | Typst (`typst-as-lib`, `typst-pdf`) | **Aktiv (v1.7.0+)** — Direkter akademischer Buchsatz nativ in Rust ohne Chromium oder Node.js (`⌘P`) |
+| 📥 **Office- & Dokument-Ingest** | `docling-rs`, Pure Rust | **Aktiv (v1.8.0)** — Null-Abhängigkeiten Import per Drag & Drop für `.docx`, `.odt`, `.rtf`, `.epub` mit Unicode-NFC-Bereinigung |
 | 🕸️ **Knowledge Graph** | SQLite Indexing, `v-network-graph` | **Backlog** — Visuelle Darstellung von Verknüpfungen (Indexierung aktiv, UI-Ansicht geparkt) |
 
 ---

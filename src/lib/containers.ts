@@ -36,18 +36,20 @@ export const BLOCK_CONTAINERS: ReadonlyArray<ContainerDefinition> = [
   { name: "deletemebox", className: "deleteme-box" },
 
   // ── User-definierbare Dummy-Container (custom.css Erweiterungen) ──
-  { name: "custom1", className: "custom1 custom-block" },
-  { name: "custom2", className: "custom2 custom-block" },
-  { name: "custom3", className: "custom3 custom-block" },
-  { name: "custom4", className: "custom4 custom-block" },
-  { name: "custom5", className: "custom5 custom-block" },
+  { name: "custom1", className: "custom1" },
+  { name: "custom2", className: "custom2" },
+  { name: "custom3", className: "custom3" },
+  { name: "custom4", className: "custom4" },
+  { name: "custom5", className: "custom5" },
 
   // ── VitePress Standard-Container ──
-  { name: "info", className: "info custom-block" },
-  { name: "tip", className: "tip custom-block" },
-  { name: "warning", className: "warning custom-block" },
-  { name: "danger", className: "danger custom-block" },
-  { name: "details", className: "details custom-block" },
+  { name: "info", className: "info" },
+  { name: "info-box", className: "info-box info" },
+  { name: "infobox", className: "info-box info" },
+  { name: "tip", className: "tip" },
+  { name: "warning", className: "warning" },
+  { name: "danger", className: "danger" },
+  { name: "details", className: "details" },
 ];
 
 export const REGISTERED_CONTAINER_NAMES: ReadonlySet<string> = new Set(

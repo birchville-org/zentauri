@@ -87,7 +87,8 @@ Dieses Handbuch ist in sechs methodische Hauptteile untergliedert. Aktive Funkti
 
 ### 1. Benutzeroberfläche & Navigation (Teil I)
 - **ActivityBar (Linke Randleiste):** Bietet schnellen Wechsel zwischen Explorer, Suche, Cheatsheet und den Work-Modes.
-- **Split-Pane:** Synchronisierte Ansicht mit CodeMirror 6 auf der linken Seite und der Live-Vorschau auf der rechten Seite.
+- **Split-Pane & flexibler Trenner:** Synchronisierte Ansicht mit CodeMirror 6 auf der linken Seite und der Live-Vorschau auf der rechten Seite. Die vertikale Trennlinie lässt sich per Drag & Drop stufenlos verschieben (Doppelklick setzt das Breitenverhältnis auf 50/50 zurück).
+- **Automatischer Zeilenumbruch (Soft-Wrap):** Der Text im Editor bricht standardmäßig dynamisch an der aktuellen Pane-Breite um. Dies kann in den Einstellungen (⚙️) nach Bedarf ein- oder ausgeschaltet werden.
 - **Dateibaum:** Inline-Umbenennen und Anlegen von Notizen ohne störende Modaldialoge (`Enter` bestätigt, `Escape` bricht ab).
 
 ### 2. Wissenschaftliche Container-Boxen (Modus 1)

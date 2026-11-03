@@ -489,7 +489,10 @@ export function convertMarkdownToTypst(
         } else if (name.includes("verse") || name === "compact") {
           color = 'rgb("fcfbf9")';
           strokeColor = 'rgb("cbd5e1")';
-        } else if (name === "info" || name.includes("custom1")) {
+        } else if (
+          ["info", "info-box", "infobox"].includes(name) ||
+          name.includes("custom1")
+        ) {
           color = 'rgb("f0fdfa")'; // teal
           strokeColor = 'rgb("14b8a6")';
         }

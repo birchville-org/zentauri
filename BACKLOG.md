@@ -44,8 +44,9 @@ Um den Editor so schlank, fokussiert und ressourceneffizient wie möglich zu hal
 
 ## 2. Nativer Typst PDF-Export (Roadmap-Abgleich)
 
-- **Status:** In Entwicklung / Nativ im Rust-Backend (`src-tauri` via `typst` & `typst-pdf`).
-- **Ziel:** Vollständiger Ersatz von Headless-Browser-basierten Rendering-Engines durch blitzschnellen, nativen Typst-Compiler-Durchlauf ohne Chromium-Abhängigkeiten.
+- **Status:** Aktiv implementiert (v1.7.0+) / Nativ im Rust-Backend (`src-tauri` via `typst-as-lib` & `typst-pdf`, Shortcut `⌘P`).
+- **Implementierungsstand:** Vollständiger nativer Typst-Compiler-Durchlauf ohne Chromium- oder Node.js-Abhängigkeiten. STIX Two Text und Noto Serif Devanagari Fontstacks direkt eingebettet.
+- **Geplante Ausbaustufen (v2.1.0):** Konfigurierbare akademische Satz-Templates (Monografie, Aufsatz, synoptischer Editionstext), mehrstufige textkritische Fußnotenapparate und automatische YAML-Frontmatter-Metadatenübernahme in den Typst-Header.
 
 ---
 

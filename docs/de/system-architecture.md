@@ -64,9 +64,9 @@ Zentauri verwaltet eine lokale SQLite-Datenbank (`.zentauri/index.db`) innerhalb
 
 ---
 
-## 4. Nativer Typst PDF-Export (Roadmap / Architekturplan)
+## 4. Nativer Typst PDF-Export (Aktiv)
 
-Zentauris Architektur-Roadmap verzichtet vollständig auf Headless-Chromium-Engines zugunsten eines nativen Rust-Satzes. Für Version 2.0.0 ist die Einbindung von **Typst** (`typst-as-lib`) direkt im Tauri-Backend geplant (siehe [Roadmap & Backlog](./roadmap)). Das Vue-Frontend generiert aus dem Markdown einen Typst-AST, übergibt diesen per IPC an Rust, und der native Typst-Compiler erzeugt blitzschnell ein akademisch gesetztes PDF ohne externe Toolchains.
+Zentauri verzichtet vollständig auf Headless-Chromium-Engines oder Node.js-DTP-Werkzeuge zugunsten eines nativen Rust-Satzes. Über **Typst** (`typst-as-lib`, `typst-pdf`) im Tauri-Backend (`export_pdf`-IPC-Kommando, Tastaturkürzel `⌘P`) wird aus dem Markdown-Quelltext ein Typst-Dokument generiert und in Millisekunden direkt zu einem druckfertigen PDF mit STIX Two Text und Noto Serif Devanagari kompiliert – ohne externe CLI-Abhängigkeiten.
 
 ---
 
@@ -79,3 +79,19 @@ Für indologische Mischtexte (Deutsch/Englisch + IAST/Devanāgarī) verfolgt Zen
 3. **Post-Hoc Tooling (Aktiv):** Globale Tastaturkürzel (`⌥⌘D`, `⌥⌘H`) und Toolbar-Schalter mit tag-sicherem Parsing zur schnellen Wandlung markierter Abschnitte.
 
 Ausführliche Spezifikation und Entscheidungsmatrix siehe: [Sanskrit-Eingabearchitektur](./scholarly-input-architecture.md) und [Roadmap & Backlog](./roadmap).
+
+---
+
+## 6. Work-Modes Architektur (Philologische Desktop-Suite)
+
+Um Feature-Creep im Kern-Editor zu vermeiden und gleichzeitig den vielfältigen Anforderungen von Editionsprojekten gerecht zu werden, gliedert sich Zentauri in drei zuschaltbare **Work-Modes** in der Activity-Bar:
+
+1. **Modus 1: Markdown Authoring (Aktiv)**
+   - Einzelfenster- und Split-Pane-Textverfassung (CodeMirror 6).
+   - Sanskrit-Klammer-Hervorhebung, KaTeX-Formeln und nativer Typst-PDF-Export.
+2. **Modus 2: Synoptische Master-JSON Edition (Roadmap v2.1.0)**
+   - Spezialisierter Split-Pane-Editor für historische Editionen (`book.json` / AST-Format wie in `brhadaranyaka`).
+   - Kopplung von Scan-PDFs mit segmentierten Eingabefeldern (Devanāgarī, IAST, Übersetzung, Apparat) zur automatischen Kompilierung nach TEI-P5 XML und Typst-PDF.
+3. **Modus 3: Dual PDF QA & Proofing (Aktiv Kern / Roadmap v2.0.0)**
+   - 2-spaltiger Vektor-PDF-Vergleich (`hayro_svg`) mit synchronem Scroll-Lockstep, SWAP-Seitenwechsel und CLI-/Finder-Integration.
+   - Visuelle Bounding-Box-Annotationen, 1-Klick-Review-Prompt für KIs und annotierter PDF-Export geplant für Version 2.0.0.

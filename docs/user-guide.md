@@ -87,7 +87,8 @@ This manual is organized into six comprehensive parts. Active features are immed
 
 ### 1. User Interface & File Tree (Part I)
 - **Activity Bar:** Quickly switch between File Explorer, Workspace Search, Cheatsheet, and Work-Modes.
-- **Split-Pane:** Synchronized live preview pairing CodeMirror 6 with the rendered HTML output.
+- **Split-Pane & Resizable Divider:** Synchronized live preview pairing CodeMirror 6 with the rendered HTML output. Drag the vertical divider to adjust pane widths (double-click resets to 50/50).
+- **Editor Line Wrapping (Soft-Wrap):** Editor text dynamically wraps to adapt to the pane width by default. Can be toggled on or off in Settings (⚙️).
 - **Inline Renaming:** Rename notes and folders inline in the tree without popups (`Enter` commits, `Escape` cancels).
 
 ### 2. Scholarly Container Blocks (Mode 1)

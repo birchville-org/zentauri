@@ -6,6 +6,7 @@ import {
   findSanskritWordRange,
   hkToDevanagari,
   iastToDevanagari,
+  jsTransliterate,
   toggleHkTransliteration,
   toggleSchemeTransliteration,
   toggleTransliteration,
@@ -185,6 +186,16 @@ describe("transliteration", () => {
     expect(await toggleHkTransliteration(":sig[कृष्णः]")).toBe(":sig[kRSNaH]");
   });
 
+  it("preserves nested brackets inside directives without breaking directive boundaries", async () => {
+    const res = await iastToDevanagari(
+      "dharmaḥ :sig[dharma [kṛṣṇa] vidyā] śāntiḥ",
+    );
+    expect(res).toBe("धर्मः :sig[धर्म [कृष्ण] विद्या] शान्तिः");
+
+    const back = await devanagariToIast("धर्मः :sig[धर्म [कृष्ण] विद्या] शान्तिः");
+    expect(back).toBe("dharmaḥ :sig[dharma [kṛṣṇa] vidyā] śāntiḥ");
+  });
+
   it("converts mixed text with directives correctly without corrupting tags or dropping outer text", async () => {
     expect(await iastToDevanagari("dharmaḥ :sig[kṛṣṇaḥ] śāntiḥ")).toBe(
       "धर्मः :sig[कृष्णः] शान्तिः",
@@ -215,5 +226,20 @@ describe("transliteration", () => {
     // Cursor at punctuation / whitespace
     const range3 = findSanskritWordRange(doc, doc.length - 1); // '.'
     expect(range3).toBeNull();
+
+    // Cursor at end of word (EOF)
+    const rangeEof = findSanskritWordRange("dharma", 6);
+    expect(rangeEof).toEqual({ from: 0, to: 6 });
+
+    // Cursor at whitespace directly following word
+    const rangeAfterWord = findSanskritWordRange(doc, 15); // right after kṛṣṇaḥ on space
+    expect(rangeAfterWord).toEqual({ from: 9, to: 15 });
+  });
+
+  it("performs JS Sanscript fallback correctly", async () => {
+    expect(await toggleSchemeTransliteration("dharma", "iast")).toBe("धर्म");
+    expect(await toggleSchemeTransliteration("धर्म", "iast")).toBe("dharma");
+    expect(await toggleSchemeTransliteration("dharmaH", "hk")).toBe("धर्मः");
+    expect(await toggleSchemeTransliteration("धर्मः", "hk")).toBe("dharmaH");
   });
 });

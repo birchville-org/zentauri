@@ -32,8 +32,9 @@ Zentauri combines focused Markdown text authoring with structured corpus edition
 | 🦀 **Rust-First Architecture** | Tauri v2, Rust, SQLite | **Active** — Maximum responsiveness, minimal memory footprint, and native OS integration |
 | 📝 **Scholarly Editing (Mode 1)** | Vue 3, CodeMirror 6, markdown-it-extensible | **Active** — Split-pane authoring, Payer-v2 containers, footnotes, silent auto-repair, and philological metadata |
 | 📜 **Synoptic Edition (Mode 2)** | Master-JSON (`book.json`), Scan Split-Pane | **Roadmap (v2.1.0)** — Segment-based edition of historical prints and scans |
-| 🔍 **Dual PDF QA (Mode 3)** | `hayro_svg`, Bounding-Boxes, AI-Prompt | **Active / Roadmap (v2.0.0)** — Side-by-side vector PDF collation and visual proofing |
-| 🖨️ **Native PDF Export** | Typst (`typst-as-lib`) | **Roadmap** — Instantaneous, high-precision academic PDF typesetting natively in Rust without Chromium |
+| 🔍 **Dual PDF QA (Mode 3)** | `hayro_svg`, Bounding-Boxes, AI-Prompt | **Active Core / Roadmap (v2.0.0)** — Side-by-side vector PDF collation (active) and visual proofing annotations (v2.0.0) |
+| 🖨️ **Native PDF Export** | Typst (`typst-as-lib`, `typst-pdf`) | **Active (v1.7.0+)** — Instantaneous, high-precision academic PDF typesetting compiled natively in Rust (`⌘P`) |
+| 📥 **Office & Document Ingest** | `docling-rs`, Pure Rust | **Active (v1.8.0)** — Zero-dependency drag-and-drop import for `.docx`, `.odt`, `.rtf`, `.epub` with Unicode sanitization |
 | 🕸️ **Knowledge Graph** | SQLite Indexing, `v-network-graph` | **Backlog** — Visual constellation of bidirectional cross-references (indexing active, UI parked) |
 
 ---

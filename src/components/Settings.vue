@@ -23,6 +23,7 @@ const autoSave = ref(true);
 const vimMode = ref(false);
 const syncScroll = ref(true);
 const pdfPaper = ref<"a4" | "us-letter">("a4");
+const lineWrapping = ref(true);
 
 const appVersion = ref(
   typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "1.5.0",
@@ -49,6 +50,7 @@ onMounted(async () => {
       if (s.vimMode !== undefined) vimMode.value = s.vimMode;
       if (s.syncScroll !== undefined) syncScroll.value = s.syncScroll;
       if (s.pdfPaper) pdfPaper.value = s.pdfPaper;
+      if (s.lineWrapping !== undefined) lineWrapping.value = s.lineWrapping;
     } catch (e) {}
   }
   applySettings();
@@ -63,18 +65,30 @@ onUnmounted(() => {
   window.removeEventListener("keydown", handleKeydown);
 });
 
-watch([currentTheme, fontSize, autoSave, vimMode, syncScroll, pdfPaper], () => {
-  const s = {
-    theme: currentTheme.value,
-    fontSize: fontSize.value,
-    autoSave: autoSave.value,
-    vimMode: vimMode.value,
-    syncScroll: syncScroll.value,
-    pdfPaper: pdfPaper.value,
-  };
-  localStorage.setItem("zentauri-settings", JSON.stringify(s));
-  applySettings();
-});
+watch(
+  [
+    currentTheme,
+    fontSize,
+    autoSave,
+    vimMode,
+    syncScroll,
+    pdfPaper,
+    lineWrapping,
+  ],
+  () => {
+    const s = {
+      theme: currentTheme.value,
+      fontSize: fontSize.value,
+      autoSave: autoSave.value,
+      vimMode: vimMode.value,
+      syncScroll: syncScroll.value,
+      pdfPaper: pdfPaper.value,
+      lineWrapping: lineWrapping.value,
+    };
+    localStorage.setItem("zentauri-settings", JSON.stringify(s));
+    applySettings();
+  },
+);
 
 function applySettings() {
   applyTheme(currentTheme.value, fontSize.value);
@@ -86,6 +100,7 @@ function applySettings() {
     vimMode: vimMode.value,
     syncScroll: syncScroll.value,
     pdfPaper: pdfPaper.value,
+    lineWrapping: lineWrapping.value,
   };
   emit("update", s);
 }
@@ -154,6 +169,19 @@ function handleManualDownload() {
           <input 
             type="checkbox" 
             v-model="autoSave"
+            class="h-4 w-4 rounded border-app-border text-amber-600 focus:ring-amber-500 bg-app-bg cursor-pointer"
+          />
+        </div>
+
+        <!-- Line Wrapping (Soft Wrap) -->
+        <div class="flex items-center justify-between">
+          <div>
+            <label class="text-sm font-medium text-app-text block">Line Wrapping</label>
+            <span class="text-xs text-app-text-muted">Soft-wrap lines to fit the editor window width</span>
+          </div>
+          <input 
+            type="checkbox" 
+            v-model="lineWrapping"
             class="h-4 w-4 rounded border-app-border text-amber-600 focus:ring-amber-500 bg-app-bg cursor-pointer"
           />
         </div>

@@ -4,6 +4,17 @@ title: Release Notes
 
 # 🚀 Zentauri Release Notes
 
+### ZenTauri v1.8.2
+- **macOS Option Shortcut Resilience:** Hardened global keyboard shortcuts (`⌘⌥P`, `⌘⌥D`, `⌘⌥H`) by checking physical keycodes (`KeyP`, `KeyD`, `KeyH`) alongside `e.key`, preventing macOS Alt/Option character mapping (e.g. `π`, `∂`) from breaking PDF-QA toggle and Sanskrit transliteration shortcuts.
+- **Isolated Undo/Redo & History State:** Restricted global `⌘Z` / `⌘⇧Z` / `⌘Y` shortcuts to fire only when focus is outside active text inputs, textareas, and the CodeMirror instance. Tab switching and buffer reloads now reset history tracking deterministically.
+- **Transliteration Directive Parser Hardening:** Replaced greedy regular expressions in `transformPreservingDirectives` with a balanced bracket scanner. Sanskrit annotations with nested brackets (e.g. `:sig[dharma [kṛṣṇa] vidyā]`) are parsed without boundary destruction.
+- **Unified Transliteration Engine & Error Logging:** Consolidated IAST and Harvard-Kyoto transliteration wrappers into a single core handler with transparent `console.warn` logging on Tauri IPC fallbacks.
+- **Word-Level Sanskrit Selection in Vim/Normal Mode:** Improved cursor word boundary detection to support instantaneous bidirectional transliteration of the current Sanskrit word without manual visual highlighting.
+- **Container Cleanup & Auto-Brackets:** Aligned container definitions with VitePress defaults, resolved redundant `.custom-block` class duplication, and enabled automatic bracket `[]` insertion for custom container snippets in ribbon and cheat sheet.
+- **Typst PDF Export Parity:** Constrained container style matching in `typstConverter.ts` to exact name tokens, preventing false-positive styling on composite container names.
+
+---
+
 ### ZenTauri v1.8.1
 - **Duplicate File Workflow & Native Integration:** Added „Duplicate File“ in the file explorer context menu, tab header context menu, and desktop application `File` menu, mapped to `⌘⇧D` / `Ctrl+Shift+D`. Pending buffer edits are flushed before duplicating.
 - **Pure-Rust Duplication Engine:** Backend handler `duplicate_file_item` with automatic sequential suffixing (`_copy`, `_copy_2`), system/root safeguards (`is_system_or_user_root`), SQLite index updates, and automatic file tree reload.

@@ -142,6 +142,31 @@ function onCursorChange(info: CursorInfo) {
   cursorInfo.value = info;
 }
 
+const editorHistory = ref({
+  canUndo: false,
+  canRedo: false,
+  canRepeat: false,
+});
+
+function handleHistoryChange(status: {
+  canUndo: boolean;
+  canRedo: boolean;
+  canRepeat: boolean;
+}) {
+  editorHistory.value = status;
+}
+
+watch(
+  () => activeTabIndex.value,
+  () => {
+    nextTick(() => {
+      if (typeof editorRef.value?.resetHistoryStatus === "function") {
+        editorRef.value.resetHistoryStatus();
+      }
+    });
+  },
+);
+
 const wordCount = computed(() => {
   const text = markdownSource.value || "";
   return text.trim() ? text.trim().match(/\S+/g)?.length || 0 : 0;
@@ -187,10 +212,28 @@ function getInitialSidebarWidth(): number {
   return 256;
 }
 
+function getInitialEditorSplitPercent(): number {
+  if (typeof window === "undefined" || typeof localStorage === "undefined")
+    return 50;
+  try {
+    const saved = localStorage.getItem("zentauri-editor-split-percent");
+    if (saved) {
+      const p = Number.parseFloat(saved);
+      if (!Number.isNaN(p)) {
+        return Math.min(Math.max(15, p), 85);
+      }
+    }
+  } catch {}
+  return 50;
+}
+
 const workspaceRoot = ref<string | null>(null);
 const workspaceRoots = ref<string[]>([]);
 const sidebarWidth = ref(getInitialSidebarWidth());
 const isResizingSidebar = ref(false);
+const editorSplitPercent = ref(getInitialEditorSplitPercent());
+const isResizingEditorSplit = ref(false);
+const editorSplitContainerRef = ref<HTMLElement | null>(null);
 
 function saveWorkspaceRoots() {
   localStorage.setItem(
@@ -383,6 +426,53 @@ function startSidebarResize(e: MouseEvent) {
   window.addEventListener("mouseup", onMouseUp);
 }
 
+function startEditorSplitResize(e: MouseEvent) {
+  e.preventDefault();
+  isResizingEditorSplit.value = true;
+  document.body.style.userSelect = "none";
+  document.body.style.cursor = "col-resize";
+
+  function onMouseMove(moveEvent: MouseEvent) {
+    if (!editorSplitContainerRef.value) return;
+    const rect = editorSplitContainerRef.value.getBoundingClientRect();
+    if (rect.width <= 0) return;
+    const offsetX = moveEvent.clientX - rect.left;
+    const percent = (offsetX / rect.width) * 100;
+    const minPercent = Math.max(15, (200 / rect.width) * 100);
+    const maxPercent = Math.min(85, ((rect.width - 200) / rect.width) * 100);
+    if (minPercent < maxPercent) {
+      editorSplitPercent.value = Math.min(
+        Math.max(minPercent, percent),
+        maxPercent,
+      );
+    }
+  }
+
+  function onMouseUp() {
+    isResizingEditorSplit.value = false;
+    document.body.style.userSelect = "";
+    document.body.style.cursor = "";
+    window.removeEventListener("mousemove", onMouseMove);
+    window.removeEventListener("mouseup", onMouseUp);
+    try {
+      localStorage.setItem(
+        "zentauri-editor-split-percent",
+        editorSplitPercent.value.toFixed(1),
+      );
+    } catch {}
+  }
+
+  window.addEventListener("mousemove", onMouseMove);
+  window.addEventListener("mouseup", onMouseUp);
+}
+
+function resetEditorSplit() {
+  editorSplitPercent.value = 50;
+  try {
+    localStorage.setItem("zentauri-editor-split-percent", "50");
+  } catch {}
+}
+
 type ViewMode = "source" | "split" | "live" | "pdf-qa";
 const rawStoredMode = localStorage.getItem("zentauri-view-mode");
 const viewMode = ref<ViewMode>(
@@ -418,6 +508,7 @@ let htmlExportTimer: ReturnType<typeof setTimeout> | null = null;
 let htmlCopyTimer: ReturnType<typeof setTimeout> | null = null;
 const autoSaveEnabled = ref(true);
 const pdfPaper = ref<"a4" | "us-letter">("a4");
+const lineWrapping = ref(true);
 
 const isMac =
   typeof navigator !== "undefined" &&
@@ -443,6 +534,9 @@ if (initialSettingsStr) {
     }
     if (parsedSettings.vimMode !== undefined) {
       vimMode.value = parsedSettings.vimMode;
+    }
+    if (parsedSettings.lineWrapping !== undefined) {
+      lineWrapping.value = Boolean(parsedSettings.lineWrapping);
     }
     if (parsedSettings.theme) {
       currentTheme.value = parsedSettings.theme;
@@ -1219,21 +1313,26 @@ onBeforeUnmount(() => {
 });
 
 function handleGlobalKeydown(e: KeyboardEvent) {
-  if ((e.metaKey || e.ctrlKey) && e.key === "s") {
+  if (e.defaultPrevented) return;
+
+  const key = e.key.toLowerCase();
+  const code = e.code;
+  const isMod = e.metaKey || e.ctrlKey;
+  const activeEl =
+    typeof document !== "undefined" ? document.activeElement : null;
+  const isInputOrEditor =
+    activeEl instanceof HTMLInputElement ||
+    activeEl instanceof HTMLTextAreaElement ||
+    activeEl?.getAttribute("contenteditable") === "true" ||
+    Boolean(activeEl?.closest(".cm-editor"));
+
+  if (isMod && key === "s") {
     e.preventDefault();
     forceSave();
-  } else if (
-    (e.metaKey || e.ctrlKey) &&
-    e.altKey &&
-    (e.code === "KeyP" || e.key.toLowerCase() === "p")
-  ) {
+  } else if (isMod && e.altKey && (key === "p" || code === "KeyP")) {
     e.preventDefault();
     setViewMode(viewMode.value === "pdf-qa" ? "split" : "pdf-qa");
-  } else if (
-    (e.metaKey || e.ctrlKey) &&
-    !e.altKey &&
-    e.key.toLowerCase() === "p"
-  ) {
+  } else if (isMod && !e.altKey && (key === "p" || code === "KeyP")) {
     e.preventDefault();
     if (e.shiftKey) {
       handlePrint();
@@ -1241,52 +1340,76 @@ function handleGlobalKeydown(e: KeyboardEvent) {
       handleExportPdf();
     }
   } else if (
-    (e.metaKey || e.ctrlKey) &&
+    isMod &&
     e.shiftKey &&
     !e.altKey &&
-    e.key.toLowerCase() === "c"
+    (key === "c" || code === "KeyC")
   ) {
     e.preventDefault();
     handleCopyHtml();
   } else if (
-    (e.metaKey || e.ctrlKey) &&
+    isMod &&
     e.shiftKey &&
     !e.altKey &&
-    e.key.toLowerCase() === "h"
+    (key === "h" || code === "KeyH")
   ) {
     e.preventDefault();
     handleExportHtml();
-  } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "g") {
+  } else if (isMod && (key === "g" || code === "KeyG")) {
     e.preventDefault();
     handleJumpToLinePrompt();
   } else if (
-    (e.metaKey || e.ctrlKey) &&
+    !isInputOrEditor &&
+    isMod &&
     !e.altKey &&
     !e.shiftKey &&
-    (e.code === "KeyY" || e.key.toLowerCase() === "y")
+    key === "z"
   ) {
     e.preventDefault();
-    editorRef.value?.repeatLastCommand();
+    if (editorRef.value && typeof editorRef.value.undo === "function") {
+      editorRef.value.undo();
+    }
   } else if (
-    (e.metaKey || e.ctrlKey) &&
+    !isInputOrEditor &&
+    isMod &&
+    !e.altKey &&
+    e.shiftKey &&
+    key === "z"
+  ) {
+    e.preventDefault();
+    if (editorRef.value && typeof editorRef.value.redo === "function") {
+      editorRef.value.redo();
+    }
+  } else if (
+    !isInputOrEditor &&
+    isMod &&
+    !e.altKey &&
+    !e.shiftKey &&
+    key === "y"
+  ) {
+    e.preventDefault();
+    if (
+      editorRef.value &&
+      typeof editorRef.value.repeatLastCommand === "function"
+    ) {
+      editorRef.value.repeatLastCommand();
+    }
+  } else if (
+    isMod &&
     e.shiftKey &&
     !e.altKey &&
-    (e.code === "KeyD" || e.key.toLowerCase() === "d")
+    (key === "d" || code === "KeyD")
   ) {
     e.preventDefault();
     handleDuplicateActiveFile();
   } else if (
-    ((e.metaKey || e.ctrlKey) &&
-      e.altKey &&
-      (e.code === "KeyD" || e.key.toLowerCase() === "d")) ||
+    (isMod && e.altKey && (key === "d" || code === "KeyD")) ||
     (e.key === "F4" && !e.shiftKey)
   ) {
     e.preventDefault();
     editorRef.value?.toggleTransliteration("iast");
   } else if (
-    ((e.metaKey || e.ctrlKey) &&
-      e.altKey &&
-      (e.code === "KeyH" || e.key.toLowerCase() === "h")) ||
+    (isMod && e.altKey && (key === "h" || code === "KeyH")) ||
     (e.key === "F4" && e.shiftKey)
   ) {
     e.preventDefault();
@@ -2107,6 +2230,8 @@ function handleSettingsUpdate(settings: any) {
     autoSaveEnabled.value = settings.autoSave;
   if (settings.vimMode !== undefined) vimMode.value = settings.vimMode;
   if (settings.pdfPaper !== undefined) pdfPaper.value = settings.pdfPaper;
+  if (settings.lineWrapping !== undefined)
+    lineWrapping.value = Boolean(settings.lineWrapping);
   if (settings.syncMode !== undefined) {
     syncMode.value = settings.syncMode;
   } else if (settings.syncScroll !== undefined) {
@@ -2529,7 +2654,10 @@ async function handleCopyHtml() {
         </div>
         
         <!-- Editor/Preview/QA Split Container -->
-        <div class="flex-1 flex overflow-hidden print:block print:overflow-visible print:h-auto">
+        <div
+          ref="editorSplitContainerRef"
+          class="flex-1 flex overflow-hidden print:block print:overflow-visible print:h-auto relative"
+        >
           <!-- Dual PDF QA Viewer Pane -->
           <PdfDualViewer
             v-show="viewMode === 'pdf-qa'"
@@ -2541,12 +2669,21 @@ async function handleCopyHtml() {
           <!-- Standard Markdown Editor & Preview Panes -->
           <template v-if="viewMode !== 'pdf-qa'">
             <!-- Editor Pane (Center/Left) -->
-            <div class="flex-1 h-full min-w-0 flex flex-col border-r border-app-border print:hidden">
+            <div
+              :class="showPreview ? 'flex-none border-r border-app-border' : 'flex-1 border-r-0'"
+              :style="showPreview ? { width: `${editorSplitPercent}%` } : {}"
+              class="h-full min-w-[200px] flex flex-col print:hidden"
+            >
               <!-- Editor Formatting Ribbon -->
               <EditorRibbon
+                :can-undo="editorHistory.canUndo"
+                :can-redo="editorHistory.canRedo"
+                :can-repeat="editorHistory.canRepeat"
+                @undo="() => editorRef?.undo()"
+                @redo="() => editorRef?.redo()"
+                @repeat-last-command="() => editorRef?.repeatLastCommand()"
                 @insert-snippet="handleInsertSnippet"
                 @toggle-transliteration="handleToggleTransliteration"
-                @repeat-last-command="() => editorRef?.repeatLastCommand()"
               />
 
               <!-- CodeMirror Editor -->
@@ -2556,15 +2693,30 @@ async function handleCopyHtml() {
                   v-model="markdownSource"
                   :vimMode="vimMode"
                   :livePreview="isLivePreview"
+                  :lineWrapping="lineWrapping"
                   @scroll="onEditorScroll"
                   @user-interaction="onEditorUserInteraction"
                   @cursor-change="onCursorChange"
+                  @history-change="handleHistoryChange"
                 />
               </div>
             </div>
 
+            <!-- Resizable Boundary Handle between Editor and Preview -->
+            <div
+              v-if="showPreview"
+              @mousedown="startEditorSplitResize"
+              @dblclick="resetEditorSplit"
+              class="w-1.5 -ml-1 -mr-0.5 flex-none bg-transparent hover:bg-amber-500/50 active:bg-amber-600 cursor-col-resize select-none transition-colors h-full z-30"
+              title="Drag to resize editor/preview split (Double-click for 50/50)"
+            />
+
             <!-- Preview Pane (Right) -->
-            <div v-show="showPreview" class="flex-1 h-full bg-app-bg min-w-0 print:!block print:w-full print:h-auto print:overflow-visible print:bg-white">
+            <div
+              v-show="showPreview"
+              :class="{ 'pointer-events-none select-none': isResizingEditorSplit }"
+              class="flex-1 h-full bg-app-bg min-w-[200px] print:!block print:w-full print:h-auto print:overflow-visible print:bg-white"
+            >
               <Preview
                 ref="previewRef"
                 :source="markdownSource"

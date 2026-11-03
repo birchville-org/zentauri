@@ -310,4 +310,19 @@ Ausseres Fazit
       '<span class="sanskrit-dev" translate="no" lang="sa">rāmaḥ &amp; sītā</span>',
     );
   });
+
+  it("renders info and info-box containers with proper custom-block classes", () => {
+    const infoHtml = renderMarkdown("::: info\nWichtige Information\n:::");
+    expect(infoHtml).toContain('class="info custom-block"');
+    expect(infoHtml).toContain("Wichtige Information");
+
+    const infoBoxHtml = renderMarkdown("::: info-box\nZusatznotiz\n:::");
+    expect(infoBoxHtml).toContain('class="info-box info custom-block"');
+    expect(infoBoxHtml).toContain("Zusatznotiz");
+
+    const typst = convertMarkdownToTypst("::: info\nTypst Info\n:::");
+    expect(typst).toContain(
+      '#rect(width: 100%, fill: rgb("f0fdfa"), stroke: (left: 4pt + rgb("14b8a6"))',
+    );
+  });
 });

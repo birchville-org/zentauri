@@ -87,4 +87,30 @@ describe("Settings Component - Update Flow & Layout", () => {
     );
     expect(document.documentElement.classList.contains("dark")).toBe(true);
   });
+
+  it("persists and emits lineWrapping setting", async () => {
+    const wrapper = mount(Settings, {
+      props: { isOpen: true },
+    });
+
+    const checkboxes = wrapper.findAll<HTMLInputElement>(
+      "input[type='checkbox']",
+    );
+    const lineWrapCheckbox = checkboxes.find((c) =>
+      c.element.parentElement?.textContent?.includes("Line Wrapping"),
+    );
+    expect(lineWrapCheckbox).toBeDefined();
+    expect(lineWrapCheckbox!.element.checked).toBe(true);
+
+    await lineWrapCheckbox!.setValue(false);
+    expect(wrapper.emitted("update")).toBeTruthy();
+    const lastUpdate = wrapper.emitted("update")!.pop()![0] as Record<
+      string,
+      unknown
+    >;
+    expect(lastUpdate.lineWrapping).toBe(false);
+
+    const saved = JSON.parse(localStorage.getItem("zentauri-settings") || "{}");
+    expect(saved.lineWrapping).toBe(false);
+  });
 });

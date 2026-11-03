@@ -1,3 +1,30 @@
+# Release Notes — ZenTauri v1.8.2
+
+ZenTauri v1.8.2 is a reliability and authoring refinement release delivering macOS Option shortcut resilience, isolated undo/redo scoping, robust transliteration nested bracket handling, and VitePress container syntax alignments.
+
+## Fixes & Enhancements (v1.8.2)
+
+### ⌨️ macOS Option Shortcut Resilience
+* **Physical Keycode Fallback:** Checked physical keyboard event codes (`KeyP`, `KeyD`, `KeyH`) in `handleGlobalKeydown`, preventing macOS Option diacritic symbol mapping (e.g. `π`, `∂`) from dropping `⌘⌥P`, `⌘⌥D`, and `⌘⌥H`.
+
+### 🛡️ Undo / Redo Scoping & State Reset
+* **Input-Aware Global Keymap:** Global undo/redo and repeat shortcuts are strictly suppressed when focus resides within active `<input>`, `<textarea>`, or CodeMirror instances, preventing unintentional buffer rollbacks.
+* **Deterministic Tab Cache Invalidation:** Editor tab switches and buffer updates deterministically reset `lastHistoryStatus` to eliminate stale history synchronization.
+
+### 🕉️ Transliteration Engine Hardening
+* **Nested Bracket Depth Scanner:** Replaced lazy regular expressions in `transformPreservingDirectives` with a depth counter to parse nested directives like `:sig[dharma [kṛṣṇa] vidyā]` without corrupting inner tags or outer text.
+* **Unified Transliteration Wrapper:** Consolidated IAST and Harvard-Kyoto transliteration into a single internal handler and added non-silent `console.warn` diagnostics for Tauri IPC fallback scenarios.
+* **Word Boundary Detection:** Automatic Sanskrit word detection under the cursor for instant bidirectional transliteration in Vim and standard editing modes.
+
+### 📦 Container Alignment & Snippet Bar
+* **VitePress Container Parity:** Aligned custom container tokens with standard VitePress containers and eliminated duplicated `.custom-block` class inheritance.
+* **Automatic Bracket Insertion:** Container snippet insertions from the editor ribbon and markdown cheat sheet automatically insert title brackets `[]`.
+
+### 📄 Typst PDF Export Parity
+* **Exact Container Token Matching:** Scoped info-box style mappings in `typstConverter.ts` to exact name tokens, preventing unintended styling of compound container names.
+
+---
+
 # Release Notes — ZenTauri v1.8.1
 
 ZenTauri v1.8.1 is an authoring and usability release adding native file duplication across context menus, the application menu, and keyboard shortcuts (`⌘⇧D`), command repetition (`⌘Y` / `Ctrl+Y`), and high-contrast accessibility enhancements in the software update dialog.

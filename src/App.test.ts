@@ -1,11 +1,26 @@
 import { mount } from "@vue/test-utils";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { defineComponent, h, nextTick, ref } from "vue";
 import App from "./App.vue";
 import Editor from "./components/Editor.vue";
 import FileTree from "./components/FileTree.vue";
 
 const listeners: Record<string, (event: any) => void> = {};
+const activeWrappers: Array<ReturnType<typeof mount>> = [];
+
+afterEach(() => {
+  for (const w of activeWrappers) {
+    w.unmount();
+  }
+  activeWrappers.length = 0;
+  localStorage.clear();
+});
+
+function mountApp(options?: any) {
+  const w = mount(App, options);
+  activeWrappers.push(w);
+  return w;
+}
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: vi.fn().mockImplementation(async (cmd) => {
@@ -53,7 +68,7 @@ vi.mock("@tauri-apps/plugin-opener", () => ({
 
 describe("App Component Integration", () => {
   it("mounts Editor and FileTree as real components on startup", async () => {
-    const wrapper = mount(App, {
+    const wrapper = mountApp({
       global: {
         stubs: {
           Editor: true, // we verify Editor resolves as a component, not unresolvable custom element
@@ -78,7 +93,7 @@ describe("App Component Integration", () => {
   });
 
   it("toggles Vim mode when clicking the toolbar Vim button", async () => {
-    const wrapper = mount(App, {
+    const wrapper = mountApp({
       global: {
         stubs: {
           Editor: true,
@@ -103,7 +118,7 @@ describe("App Component Integration", () => {
 
   it("enforces maximum width constraint of 480px on sidebar container", () => {
     localStorage.setItem("zentauri-sidebar-width", "999");
-    const wrapper = mount(App, {
+    const wrapper = mountApp({
       global: {
         stubs: {
           Editor: true,
@@ -157,7 +172,7 @@ describe("App Component Integration", () => {
         "zentauri-settings",
         JSON.stringify({ syncMode: "header" }),
       );
-      const wrapper = mount(App, {
+      const wrapper = mountApp({
         global: {
           stubs: {
             Editor: MockEditor,
@@ -251,7 +266,7 @@ describe("App Component Integration", () => {
       },
     });
 
-    const wrapper = mount(App, {
+    const wrapper = mountApp({
       global: {
         stubs: {
           Editor: true,
@@ -311,7 +326,7 @@ describe("App Component Integration", () => {
       return [];
     });
 
-    const wrapper = mount(App, {
+    const wrapper = mountApp({
       global: {
         stubs: {
           Editor: true,
@@ -347,5 +362,128 @@ describe("App Component Integration", () => {
     expect(invoke).toHaveBeenCalledWith("duplicate_file_item", {
       sourcePath: "/workspace/note.md",
     });
+  });
+
+  it("renders editor-preview split resizer in split view and supports percentage adjustment", async () => {
+    const wrapper = mountApp({
+      global: {
+        stubs: {
+          Editor: true,
+          Preview: true,
+          Cheatsheet: true,
+          HelpSystem: true,
+          Settings: true,
+          SearchPanel: true,
+          UpdateNotification: true,
+          StatusBar: true,
+          FileTree: true,
+        },
+      },
+    });
+
+    (wrapper.vm as any).viewMode = "split";
+    await nextTick();
+
+    expect((wrapper.vm as any).editorSplitPercent).toBe(50);
+    const splitHandle = wrapper.find(
+      "div[title*='resize editor/preview split']",
+    );
+    expect(splitHandle.exists()).toBe(true);
+
+    // Double-click resets to 50%
+    (wrapper.vm as any).editorSplitPercent = 35;
+    await splitHandle.trigger("dblclick");
+    expect((wrapper.vm as any).editorSplitPercent).toBe(50);
+    wrapper.unmount();
+  });
+
+  it("handles Cmd-Z as undo and Cmd-Y as repeat without cross-contamination or double-dispatch", async () => {
+    localStorage.setItem("zentauri-view-mode", "split");
+    const mockUndo = vi.fn();
+    const mockRedo = vi.fn();
+    const mockRepeat = vi.fn();
+
+    const MockEditor = defineComponent({
+      name: "Editor",
+      setup(_, { expose }) {
+        expose({
+          undo: mockUndo,
+          redo: mockRedo,
+          repeatLastCommand: mockRepeat,
+        });
+        return () => h("div", { class: "mock-editor" });
+      },
+    });
+
+    const wrapper = mountApp({
+      global: {
+        stubs: {
+          Editor: MockEditor,
+          Preview: true,
+          Cheatsheet: true,
+          HelpSystem: true,
+          Settings: true,
+          SearchPanel: true,
+          UpdateNotification: true,
+          StatusBar: true,
+          FileTree: true,
+        },
+      },
+    });
+
+    (wrapper.vm as any).tabs = [
+      {
+        id: "tab-1",
+        title: "note.md",
+        path: "/workspace/note.md",
+        content: "sample",
+        isDirty: false,
+        isBinary: false,
+      },
+    ];
+    (wrapper.vm as any).activeTabIndex = 0;
+    await nextTick();
+
+    const editorComp = wrapper.findComponent(MockEditor);
+    expect(editorComp.exists()).toBe(true);
+    activeWrappers.push(wrapper);
+
+    // 1. Cmd-Z (with e.code='KeyY' as happens on German QWERTZ keyboards) should ONLY trigger undo
+    const cmdZEvent = new KeyboardEvent("keydown", {
+      key: "z",
+      code: "KeyY", // physical location on QWERTZ
+      metaKey: true,
+      bubbles: true,
+      cancelable: true,
+    });
+    window.dispatchEvent(cmdZEvent);
+
+    expect(mockUndo).toHaveBeenCalledTimes(1);
+    expect(mockRepeat).not.toHaveBeenCalled();
+
+    // 2. Cmd-Y should trigger repeatLastCommand
+    const cmdYEvent = new KeyboardEvent("keydown", {
+      key: "y",
+      code: "KeyZ", // physical location on QWERTZ
+      metaKey: true,
+      bubbles: true,
+      cancelable: true,
+    });
+    window.dispatchEvent(cmdYEvent);
+
+    expect(mockRepeat).toHaveBeenCalledTimes(1);
+
+    // 3. Already defaultPrevented event should be ignored (no double execution)
+    const preventedEvent = new KeyboardEvent("keydown", {
+      key: "y",
+      metaKey: true,
+      bubbles: true,
+      cancelable: true,
+    });
+    preventedEvent.preventDefault();
+    window.dispatchEvent(preventedEvent);
+
+    // Still 1 call, not 2
+    expect(mockRepeat).toHaveBeenCalledTimes(1);
   });
 });

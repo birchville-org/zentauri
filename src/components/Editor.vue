@@ -4,6 +4,9 @@ import {
   history,
   historyKeymap,
   redo,
+  redoDepth,
+  undo,
+  undoDepth,
 } from "@codemirror/commands";
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { languages } from "@codemirror/language-data";
@@ -37,17 +40,62 @@ export interface CursorInfo {
   totalLines: number;
 }
 
-const props = defineProps<{
-  modelValue: string;
-  vimMode?: boolean;
-  livePreview?: boolean;
-}>();
+const props = withDefaults(
+  defineProps<{
+    modelValue: string;
+    vimMode?: boolean;
+    livePreview?: boolean;
+    lineWrapping?: boolean;
+  }>(),
+  {
+    vimMode: false,
+    livePreview: false,
+    lineWrapping: true,
+  },
+);
 const emit = defineEmits<{
   (e: "update:modelValue", value: string): void;
   (e: "scroll", info: ScrollInfo): void;
   (e: "user-interaction"): void;
   (e: "cursor-change", info: CursorInfo): void;
+  (
+    e: "history-change",
+    status: { canUndo: boolean; canRedo: boolean; canRepeat: boolean },
+  ): void;
 }>();
+
+const lastHistoryStatus = { canUndo: false, canRedo: false, canRepeat: false };
+
+function emitHistoryStatus() {
+  if (!view) return;
+  const uDepth = undoDepth(view.state);
+  const rDepth = redoDepth(view.state);
+  const currentCanUndo = uDepth > 0;
+  const currentCanRedo = rDepth > 0;
+  const currentCanRepeat = lastCommand !== null;
+  if (
+    currentCanUndo !== lastHistoryStatus.canUndo ||
+    currentCanRedo !== lastHistoryStatus.canRedo ||
+    currentCanRepeat !== lastHistoryStatus.canRepeat
+  ) {
+    lastHistoryStatus.canUndo = currentCanUndo;
+    lastHistoryStatus.canRedo = currentCanRedo;
+    lastHistoryStatus.canRepeat = currentCanRepeat;
+    emit("history-change", {
+      canUndo: currentCanUndo,
+      canRedo: currentCanRedo,
+      canRepeat: currentCanRepeat,
+    });
+  }
+}
+
+function resetHistoryStatus() {
+  lastCommand = null;
+  lastHistoryStatus.canUndo = false;
+  lastHistoryStatus.canRedo = false;
+  lastHistoryStatus.canRepeat = false;
+  emitHistoryStatus();
+}
 
 interface LastCommand {
   type: "wrap" | "insert" | "transliteration";
@@ -62,6 +110,7 @@ let lastCommand: LastCommand | null = null;
 function insertText(text: string, record = true) {
   if (record) {
     lastCommand = { type: "insert", text };
+    emitHistoryStatus();
   }
   if (!view) return;
   const selection = view.state.selection.main;
@@ -106,6 +155,7 @@ function insertText(text: string, record = true) {
 function wrapSelection(before: string, after: string, record = true) {
   if (record) {
     lastCommand = { type: "wrap", before, after };
+    emitHistoryStatus();
   }
   if (!view) return;
   const selection = view.state.selection.main;
@@ -137,11 +187,13 @@ function wrapSelection(before: string, after: string, record = true) {
         const targetLineNum = Math.min(line.number, newDoc.lines);
         const newLine = newDoc.line(targetLineNum);
         const newBase = Math.min(newLine.to, newLine.from + col);
-        const newAnchor = Math.min(newDoc.length, newBase + before.length);
-        const newHead = Math.min(
-          newDoc.length,
-          newAnchor + selectedText.length,
-        );
+        let newAnchor = Math.min(newDoc.length, newBase + before.length);
+        let newHead = Math.min(newDoc.length, newAnchor + selectedText.length);
+        if (selectedText.length === 0 && before.includes("[]")) {
+          const bracketIndex = before.indexOf("[]");
+          newAnchor = Math.min(newDoc.length, newBase + bracketIndex + 1);
+          newHead = newAnchor;
+        }
         view.dispatch({
           selection: { anchor: newAnchor, head: newHead },
         });
@@ -153,11 +205,19 @@ function wrapSelection(before: string, after: string, record = true) {
     }
   }
 
+  let anchor = selection.from + before.length;
+  let head = anchor + selectedText.length;
+  if (selectedText.length === 0 && before.includes("[]")) {
+    const bracketIndex = before.indexOf("[]");
+    anchor = selection.from + bracketIndex + 1;
+    head = anchor;
+  }
+
   view.dispatch({
     changes: { from: selection.from, to: selection.to, insert: replacement },
     selection: {
-      anchor: selection.from + before.length,
-      head: selection.from + before.length + selectedText.length,
+      anchor,
+      head,
     },
     scrollIntoView: true,
   });
@@ -170,6 +230,7 @@ async function toggleTransliteration(
 ) {
   if (record) {
     lastCommand = { type: "transliteration", scheme };
+    emitHistoryStatus();
   }
   if (!view) return;
   const state = view.state;
@@ -195,30 +256,26 @@ async function toggleTransliteration(
 
   if (rangesToUpdate.length === 0) return;
 
-  const changes = await Promise.all(
-    rangesToUpdate.map(async ({ from, to, text }) => {
-      const transformed = await toggleSchemeTransliteration(text, scheme);
-      return { from, to, insert: transformed };
-    }),
-  );
+  try {
+    const changes = await Promise.all(
+      rangesToUpdate.map(async ({ from, to, text }) => {
+        const transformed = await toggleSchemeTransliteration(text, scheme);
+        return { from, to, insert: transformed };
+      }),
+    );
 
-  view.dispatch({
-    changes,
-    userEvent: "input.transliterate",
-  });
-  view.focus();
+    view.dispatch({
+      changes,
+      userEvent: "input.transliterate",
+    });
+    view.focus();
+  } catch (err) {
+    console.error("Transliteration error:", err);
+  }
 }
 
 function repeatLastCommand(): boolean {
-  if (!view) return false;
-
-  // 1. If an undo was performed, redo has priority (Word / CodeMirror redo behaviour)
-  if (redo(view)) {
-    return true;
-  }
-
-  // 2. Otherwise repeat the last explicit editor command
-  if (!lastCommand) return false;
+  if (!view || !lastCommand) return false;
 
   if (
     lastCommand.type === "wrap" &&
@@ -240,6 +297,16 @@ function repeatLastCommand(): boolean {
   }
 
   return false;
+}
+
+function undoAction(): boolean {
+  if (!view) return false;
+  return undo(view);
+}
+
+function redoAction(): boolean {
+  if (!view) return false;
+  return redo(view);
 }
 
 function focus() {
@@ -480,6 +547,16 @@ defineExpose({
   toggleHkTransliteration: () => toggleTransliteration("hk"),
   repeatLastCommand,
   getLastCommand: () => lastCommand,
+  getText: () => view?.state.doc.toString() ?? "",
+  setSelection: (anchor: number, head?: number) => {
+    view?.dispatch({ selection: { anchor, head: head ?? anchor } });
+  },
+  undo: undoAction,
+  redo: redoAction,
+  resetHistoryStatus,
+  canUndo: () => (view ? undoDepth(view.state) > 0 : false),
+  canRedo: () => (view ? redoDepth(view.state) > 0 : false),
+  canRepeat: () => lastCommand !== null,
   getScrollInfo,
   scrollToFractionalLine,
   scrollToRatio,
@@ -491,6 +568,7 @@ const container = ref<HTMLElement>();
 let view: EditorView | null = null;
 const vimCompartment = new Compartment();
 const livePreviewCompartment = new Compartment();
+const lineWrappingCompartment = new Compartment();
 
 onMounted(() => {
   if (!container.value) return;
@@ -635,6 +713,9 @@ onMounted(() => {
 
       vimCompartment.of(props.vimMode ? vim() : []),
       livePreviewCompartment.of(props.livePreview ? livePreviewExtension : []),
+      lineWrappingCompartment.of(
+        props.lineWrapping ? EditorView.lineWrapping : [],
+      ),
       EditorView.updateListener.of((update) => {
         if (update.docChanged) {
           emit("update:modelValue", update.state.doc.toString());
@@ -642,6 +723,7 @@ onMounted(() => {
         if (update.selectionSet || update.docChanged) {
           emit("cursor-change", extractCursorInfo(update.view));
         }
+        emitHistoryStatus();
       }),
       directiveGuidelines,
     ],
@@ -653,6 +735,7 @@ onMounted(() => {
   });
 
   emit("cursor-change", extractCursorInfo(view));
+  emitHistoryStatus();
 
   const scroller = view.scrollDOM;
   scroller.addEventListener("scroll", handleScroll, { passive: true });
@@ -675,6 +758,7 @@ watch(
         changes: { from: 0, to: view.state.doc.length, insert: newVal },
         selection: { anchor: targetAnchor, head: targetHead },
       });
+      resetHistoryStatus();
     }
   },
 );
@@ -697,6 +781,19 @@ watch(
       view.dispatch({
         effects: livePreviewCompartment.reconfigure(
           newVal ? livePreviewExtension : [],
+        ),
+      });
+    }
+  },
+);
+
+watch(
+  () => props.lineWrapping,
+  (newVal) => {
+    if (view) {
+      view.dispatch({
+        effects: lineWrappingCompartment.reconfigure(
+          newVal ? EditorView.lineWrapping : [],
         ),
       });
     }
