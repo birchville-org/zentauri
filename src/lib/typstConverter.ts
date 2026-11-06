@@ -442,7 +442,7 @@ export function convertMarkdownToTypst(
   numbering: "${numbering}",
 )
 #set text(
-  font: ("STIX Two Text", "Gentium Plus", "Noto Serif Devanagari", "Kohinoor Devanagari", "Devanagari MT"),
+  font: ("STIX Two Text", "Murty Sanskrit", "Noto Serif Devanagari", "Kohinoor Devanagari", "Devanagari MT"),
   size: ${fontSize}pt,
 )
 #set par(justify: true)

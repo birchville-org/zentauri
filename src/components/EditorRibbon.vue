@@ -300,54 +300,20 @@ const boxSnippets = [
 
       <div class="w-px h-4 bg-app-border shrink-0 mx-0.5"></div>
 
-      <!-- Group 4: Scholarly Callouts & Math -->
-      <div class="flex items-center gap-1 shrink-0">
-        <!-- Box Buttons -->
-        <div class="hidden md:flex items-center gap-1 bg-app-bg rounded p-0.5 border border-app-border/60">
-          <button
-            v-for="box in boxSnippets"
-            :key="box.label"
-            type="button"
-            @mousedown.prevent
-            @click="insert(box.before, box.after, box.label, box.desc)"
-            :title="box.desc"
-            class="h-6 px-1.5 rounded hover:bg-app-bg-hover text-[11px] transition-colors whitespace-nowrap"
-            :class="box.class"
-          >
-            {{ box.label }}
-          </button>
-        </div>
-
-        <!-- Sanskrit Chevrons & Inline Directives -->
-        <div class="flex items-center gap-0.5 bg-app-bg rounded p-0.5 border border-app-border/60">
-          <button
-            type="button"
-            @mousedown.prevent
-            @click="insert('《', '》', '《Skt》', 'Sanskrit Citation (《...》)')"
-            title="Sanskrit Chevron (《...》)"
-            class="h-6 px-1.5 rounded hover:bg-app-bg-hover text-red-600 dark:text-red-400 font-bold text-xs transition-colors"
-          >
-            《Skt》
-          </button>
-          <button
-            type="button"
-            @mousedown.prevent
-            @click="insert(':sig[', ']', ':sig', 'Signal Highlight')"
-            title="Signal Red Highlight (:sig[...])"
-            class="h-6 px-1 rounded hover:bg-app-bg-hover text-red-600 dark:text-red-400 font-mono text-[11px] transition-colors"
-          >
-            :sig
-          </button>
-          <button
-            type="button"
-            @mousedown.prevent
-            @click="insert('$', '$', '$Math$', 'KaTeX Inline Math ($...$)')"
-            title="KaTeX Math Formula ($...$)"
-            class="h-6 px-1.5 rounded hover:bg-app-bg-hover text-emerald-600 dark:text-emerald-400 font-mono font-semibold text-xs transition-colors"
-          >
-            $x$
-          </button>
-        </div>
+      <!-- Group 4: Scholarly Callouts -->
+      <div class="hidden xl:flex items-center gap-1 bg-app-bg rounded p-0.5 border border-app-border/60 shrink-0">
+        <button
+          v-for="box in boxSnippets"
+          :key="box.label"
+          type="button"
+          @mousedown.prevent
+          @click="insert(box.before, box.after, box.label, box.desc)"
+          :title="box.desc"
+          class="h-6 px-1.5 rounded hover:bg-app-bg-hover text-[11px] transition-colors whitespace-nowrap"
+          :class="box.class"
+        >
+          {{ box.label }}
+        </button>
       </div>
 
       <div class="w-px h-4 bg-app-border shrink-0 mx-0.5"></div>
@@ -373,14 +339,48 @@ const boxSnippets = [
       </div>
     </div>
 
-    <!-- Right Ribbon: Transliteration Toggles -->
+    <!-- Right Ribbon: Sanskrit Tools & Transliteration Toggles -->
     <div class="flex items-center gap-1 shrink-0 ml-auto pl-1 border-l border-app-border/60">
+      <!-- Sanskrit Chevrons & Inline Directives (Always visible, unclipped) -->
+      <div class="flex items-center gap-0.5 bg-app-bg rounded p-0.5 border border-app-border/60 shrink-0">
+        <button
+          type="button"
+          @mousedown.prevent
+          @click="insert('《', '》', '《Skt》', 'Sanskrit Citation (《...》)')"
+          title="Sanskrit Chevron (《...》)"
+          class="h-6 px-1.5 rounded hover:bg-app-bg-hover text-red-600 dark:text-red-400 font-bold text-xs transition-colors whitespace-nowrap shrink-0"
+        >
+          《Skt》
+        </button>
+        <button
+          type="button"
+          @mousedown.prevent
+          @click="insert(':sig[', ']', ':sig', 'Signal Highlight')"
+          title="Signal Red Highlight (:sig[...])"
+          class="h-6 px-1.5 rounded hover:bg-app-bg-hover text-red-600 dark:text-red-400 font-mono text-[11px] transition-colors whitespace-nowrap shrink-0"
+        >
+          :sig
+        </button>
+        <button
+          type="button"
+          @mousedown.prevent
+          @click="insert('$', '$', '$Math$', 'KaTeX Inline Math ($...$)')"
+          title="KaTeX Math Formula ($...$)"
+          class="h-6 px-1.5 rounded hover:bg-app-bg-hover text-emerald-600 dark:text-emerald-400 font-mono font-semibold text-xs transition-colors whitespace-nowrap shrink-0"
+        >
+          $x$
+        </button>
+      </div>
+
+      <div class="w-px h-4 bg-app-border shrink-0 mx-0.5"></div>
+
+      <!-- Transliteration Toggles -->
       <button
         type="button"
         @mousedown.prevent
         @click="$emit('toggle-transliteration', 'iast')"
         title="IAST ⇄ Devanāgarī Toggle (Cmd+Alt+D / F4)"
-        class="flex items-center gap-1 h-6 px-2 rounded bg-app-bg hover:bg-app-bg-hover border border-app-border/80 text-[11px] font-mono transition-colors whitespace-nowrap cursor-pointer shadow-2xs active:scale-95 text-app-text"
+        class="flex items-center gap-1 h-6 px-2 rounded bg-app-bg hover:bg-app-bg-hover border border-app-border/80 text-[11px] font-mono transition-colors whitespace-nowrap cursor-pointer shadow-2xs active:scale-95 text-app-text shrink-0"
       >
         <span class="text-amber-600 dark:text-amber-400 font-semibold">IAST</span>
         <span class="text-app-text-muted">⇄</span>
@@ -393,7 +393,7 @@ const boxSnippets = [
         @mousedown.prevent
         @click="$emit('toggle-transliteration', 'hk')"
         title="Harvard-Kyoto ⇄ Devanāgarī Toggle (Cmd+Alt+H / Shift+F4)"
-        class="flex items-center gap-1 h-6 px-2 rounded bg-app-bg hover:bg-app-bg-hover border border-app-border/80 text-[11px] font-mono transition-colors whitespace-nowrap cursor-pointer shadow-2xs active:scale-95 text-app-text"
+        class="flex items-center gap-1 h-6 px-2 rounded bg-app-bg hover:bg-app-bg-hover border border-app-border/80 text-[11px] font-mono transition-colors whitespace-nowrap cursor-pointer shadow-2xs active:scale-95 text-app-text shrink-0"
       >
         <span class="text-emerald-600 dark:text-emerald-400 font-semibold">HK</span>
         <span class="text-app-text-muted">⇄</span>

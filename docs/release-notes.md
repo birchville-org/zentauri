@@ -4,6 +4,16 @@ title: Release Notes
 
 # 🚀 Zentauri Release Notes
 
+### ZenTauri v1.9.0
+- **Bidirectional Transliteration Toggles & Anti-Nesting Logic:** The ribbon commands for Sanskrit citations (`《Skt》`), signal highlights (`:sig[...]`), math formulas (`$...$`), and inline styling (`**bold**`, `*italic*`) now support smart toggling. Applying a format to already wrapped text or with a collapsed cursor inside the delimiters cleanly unwraps the content without duplicate nestings.
+- **Balanced Delimiter Scanner:** Built a left-to-right paired line scanner for symmetrical delimiters (`**`, `$`, `` ` ``, `~~`), ensuring reliable unwrapping and cursor detection across multiple formatted blocks on a single line.
+- **Non-Closing Snippet Guard:** Restricted inline toggle unwrapping strictly to paired containers (`after.length > 0`), ensuring prefixes such as `# `, `> `, and tables insert cleanly at cursor position without accidental word unwrapping.
+- **Birchville Scholarly Synthesis 3-Pillar Fontstack:** Fully harmonized font hierarchies across editor panes, previews, documentation portals, and standalone HTML exports using `STIX Two Text` for IAST and running text, paired with `Murty Sanskrit` and `Noto Serif Devanagari` fallbacks, `Inter` for UI, and monospace for code.
+- **Bundled Offline Fonts:** Integrated `@fontsource/stix-two-text` weights (400, 400i, 600, 600i, 700, 700i) directly into the app bundle for full offline readability.
+- **Security & Secret Guards:** Added standard `.gitignore` credential filters (`.env*`, `*.pem`, `*.key`, `*.token`, `credentials.json`, `id_rsa*`) and connected client-side Gitleaks pre-commit validation.
+
+---
+
 ### ZenTauri v1.8.2
 - **macOS Option Shortcut Resilience:** Hardened global keyboard shortcuts (`⌘⌥P`, `⌘⌥D`, `⌘⌥H`) by checking physical keycodes (`KeyP`, `KeyD`, `KeyH`) alongside `e.key`, preventing macOS Alt/Option character mapping (e.g. `π`, `∂`) from breaking PDF-QA toggle and Sanskrit transliteration shortcuts.
 - **Isolated Undo/Redo & History State:** Restricted global `⌘Z` / `⌘⇧Z` / `⌘Y` shortcuts to fire only when focus is outside active text inputs, textareas, and the CodeMirror instance. Tab switching and buffer reloads now reset history tracking deterministically.

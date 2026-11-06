@@ -158,12 +158,13 @@ function wrapSelection(before: string, after: string, record = true) {
     emitHistoryStatus();
   }
   if (!view) return;
+  const docText = view.state.doc.toString();
   const selection = view.state.selection.main;
   const selectedText = view.state.sliceDoc(selection.from, selection.to);
-  const replacement = `${before}${selectedText}${after}`;
 
+  // 1. Block container logic (:::)
   if (before.includes(":::")) {
-    const docText = view.state.doc.toString();
+    const replacement = `${before}${selectedText}${after}`;
     const docWithReplacement =
       docText.slice(0, selection.from) +
       replacement +
@@ -205,6 +206,209 @@ function wrapSelection(before: string, after: string, record = true) {
     }
   }
 
+  // 2. Inline Toggle & Anti-Duplicate Unwrap Logic (e.g. 《...》, :sig[...], $...$, **...**)
+  // Only applies to non-block containers with closing delimiters (after.length > 0)
+  if (!before.includes(":::") && after.length > 0) {
+    // 2A. Active selection: selection itself is already wrapped in before & after
+    if (
+      selectedText.length >= before.length + after.length &&
+      selectedText.startsWith(before) &&
+      selectedText.endsWith(after)
+    ) {
+      const unwrapped = selectedText.slice(
+        before.length,
+        selectedText.length - after.length,
+      );
+      view.dispatch({
+        changes: {
+          from: selection.from,
+          to: selection.to,
+          insert: unwrapped,
+        },
+        selection: {
+          anchor: selection.from,
+          head: selection.from + unwrapped.length,
+        },
+        scrollIntoView: true,
+      });
+      view.focus();
+      return;
+    }
+
+    // 2B. Active selection: selection is directly surrounded by before and after in doc
+    if (
+      selection.from >= before.length &&
+      selection.to + after.length <= docText.length &&
+      docText.slice(selection.from - before.length, selection.from) ===
+        before &&
+      docText.slice(selection.to, selection.to + after.length) === after
+    ) {
+      view.dispatch({
+        changes: [
+          { from: selection.to, to: selection.to + after.length, insert: "" },
+          {
+            from: selection.from - before.length,
+            to: selection.from,
+            insert: "",
+          },
+        ],
+        selection: {
+          anchor: selection.from - before.length,
+          head: selection.to - before.length,
+        },
+        scrollIntoView: true,
+      });
+      view.focus();
+      return;
+    }
+
+    // 2C. Collapsed cursor: check if cursor is between empty wrapper (e.g. 《|》 or :sig[|])
+    if (selection.empty) {
+      const pos = selection.from;
+      if (
+        pos >= before.length &&
+        pos + after.length <= docText.length &&
+        docText.slice(pos - before.length, pos) === before &&
+        docText.slice(pos, pos + after.length) === after
+      ) {
+        view.dispatch({
+          changes: {
+            from: pos - before.length,
+            to: pos + after.length,
+            insert: "",
+          },
+          selection: {
+            anchor: pos - before.length,
+            head: pos - before.length,
+          },
+          scrollIntoView: true,
+        });
+        view.focus();
+        return;
+      }
+
+      // Check if cursor is inside an existing wrapper on current line
+      const line = view.state.doc.lineAt(pos);
+      const lineText = line.text;
+      const col = pos - line.from;
+
+      let matchedRange: { start: number; end: number; inner: string } | null =
+        null;
+
+      if (before === after) {
+        // Symmetrical delimiters (e.g. **, *, $, `, ~~)
+        let searchIdx = 0;
+        while (searchIdx < lineText.length) {
+          const openIdx = lineText.indexOf(before, searchIdx);
+          if (openIdx === -1) break;
+          const closeIdx = lineText.indexOf(after, openIdx + before.length);
+          if (closeIdx === -1) break;
+          const segStart = openIdx;
+          const segEnd = closeIdx + after.length;
+          if (col >= segStart && col <= segEnd) {
+            matchedRange = {
+              start: line.from + segStart,
+              end: line.from + segEnd,
+              inner: lineText.slice(openIdx + before.length, closeIdx),
+            };
+            break;
+          }
+          searchIdx = segEnd;
+        }
+      } else {
+        // Asymmetrical delimiters (e.g. 《...》, :sig[...])
+        let searchIdx = 0;
+        while (searchIdx < lineText.length) {
+          const openIdx = lineText.indexOf(before, searchIdx);
+          if (openIdx === -1) break;
+          const closeIdx = lineText.indexOf(after, openIdx + before.length);
+          if (closeIdx === -1) break;
+          const segStart = openIdx;
+          const segEnd = closeIdx + after.length;
+          if (col >= segStart && col <= segEnd) {
+            matchedRange = {
+              start: line.from + segStart,
+              end: line.from + segEnd,
+              inner: lineText.slice(openIdx + before.length, closeIdx),
+            };
+            break;
+          }
+          searchIdx = openIdx + before.length;
+        }
+      }
+
+      if (matchedRange) {
+        view.dispatch({
+          changes: {
+            from: matchedRange.start,
+            to: matchedRange.end,
+            insert: matchedRange.inner,
+          },
+          selection: {
+            anchor: matchedRange.start,
+            head: matchedRange.start + matchedRange.inner.length,
+          },
+          scrollIntoView: true,
+        });
+        view.focus();
+        return;
+      }
+
+      // If cursor is on a word, wrap or unwrap the word
+      const wordRange = findSanskritWordRange(docText, pos);
+      if (wordRange) {
+        const isWordWrapped =
+          wordRange.from >= before.length &&
+          wordRange.to + after.length <= docText.length &&
+          docText.slice(wordRange.from - before.length, wordRange.from) ===
+            before &&
+          docText.slice(wordRange.to, wordRange.to + after.length) === after;
+
+        if (isWordWrapped) {
+          view.dispatch({
+            changes: [
+              {
+                from: wordRange.to,
+                to: wordRange.to + after.length,
+                insert: "",
+              },
+              {
+                from: wordRange.from - before.length,
+                to: wordRange.from,
+                insert: "",
+              },
+            ],
+            selection: {
+              anchor: wordRange.from - before.length,
+              head: wordRange.to - before.length,
+            },
+            scrollIntoView: true,
+          });
+          view.focus();
+          return;
+        }
+
+        const word = docText.slice(wordRange.from, wordRange.to);
+        view.dispatch({
+          changes: {
+            from: wordRange.from,
+            to: wordRange.to,
+            insert: `${before}${word}${after}`,
+          },
+          selection: {
+            anchor: wordRange.from + before.length,
+            head: wordRange.from + before.length + word.length,
+          },
+          scrollIntoView: true,
+        });
+        view.focus();
+        return;
+      }
+    }
+  }
+
+  // 3. Standard Wrap fallback
+  const replacement = `${before}${selectedText}${after}`;
   let anchor = selection.from + before.length;
   let head = anchor + selectedText.length;
   if (selectedText.length === 0 && before.includes("[]")) {

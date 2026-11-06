@@ -10,8 +10,10 @@ html {
   accent-color: var(--vp-c-brand-1, #b45309);
   --vp-font-family-base: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
     Roboto, sans-serif;
-  --vp-font-family-serif: "STIX Two Text", "Gentium Plus", "Charis SIL",
-    "Source Serif 4", serif;
+  --vp-font-family-serif: "STIX Two Text", "Murty Sanskrit",
+    "Noto Serif Devanagari", "Kohinoor Devanagari", serif;
+  --vp-font-family-devanagari: "Murty Sanskrit", "Noto Serif Devanagari",
+    "Kohinoor Devanagari", serif;
   --vp-font-family-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
     "Liberation Mono", monospace;
 
@@ -73,9 +75,9 @@ html {
   color: #e8e0d3 !important;
 }
 
-/* Typografie: Konsistent Source Serif 4 für das gesamte Dokument wie bei Payer */
+/* Typografie: Konsistent STIX Two Text für das gesamte Dokument (Birchville Standard) */
 .vp-doc {
-  font-family: "Source Serif 4", serif !important;
+  font-family: var(--vp-font-family-serif) !important;
 }
 
 .vp-doc h1,
@@ -90,7 +92,7 @@ html {
 .vp-doc blockquote,
 .VPHero .name,
 .VPHero .text {
-  font-family: "Source Serif 4", serif !important;
+  font-family: var(--vp-font-family-serif) !important;
 }
 
 .vp-doc h1 {
@@ -266,7 +268,7 @@ html {
 .vp-doc .sanskrit-dev,
 .sanskrit-dev {
   color: #b22222 !important; /* Scholastic Red (Dunkelrot) */
-  font-family: "Sanskrit2003", "ITR Vijay", serif;
+  font-family: var(--vp-font-family-devanagari);
   font-size: 1.15em;
   font-weight: 600;
   margin: 0;
@@ -291,7 +293,7 @@ html[dir="rtl"] .vp-doc em {
 
 /* Hindi Devanagari — same font as Sanskrit but no color override */
 .hindi-dev {
-  font-family: "Sanskrit2003", "ITR Vijay", serif;
+  font-family: var(--vp-font-family-devanagari);
   font-size: 1.15em;
   font-weight: 600;
   margin: 0;
@@ -1181,8 +1183,7 @@ mark.marker-yellow,
 /* Sanskrit Devanagari */
 .sanskrit-dev,
 .vp-doc .sanskrit-dev {
-  font-family: "Sanskrit 2003", "Murty Sanskrit", "Noto Sans Devanagari",
-    "Tiro Devanagari Sanskrit", serif !important;
+  font-family: var(--vp-font-family-devanagari) !important;
   color: #b22222 !important; /* Scholastic Red (Dunkelrot) */
   font-weight: 600;
 }

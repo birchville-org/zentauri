@@ -134,4 +134,149 @@ describe("Editor Component - repeatLastCommand", () => {
 
     wrapper.unmount();
   });
+
+  it("toggles Sanskrit citation 《...》 on and off without duplicating", () => {
+    const wrapper = mount(Editor, {
+      props: {
+        modelValue: "Sanskrit dharma text",
+      },
+      attachTo: document.body,
+    });
+
+    const vm = wrapper.vm as any;
+    // Select "dharma" (9..15)
+    vm.setSelection(9, 15);
+
+    // 1. First wrap -> 《dharma》
+    vm.wrapSelection("《", "》");
+    expect(vm.getText()).toBe("Sanskrit 《dharma》 text");
+
+    // 2. Wrap again on the wrapped text or inner selection -> toggles off to dharma
+    vm.wrapSelection("《", "》");
+    expect(vm.getText()).toBe("Sanskrit dharma text");
+
+    // 3. Wrap again -> 《dharma》
+    vm.wrapSelection("《", "》");
+    expect(vm.getText()).toBe("Sanskrit 《dharma》 text");
+
+    // 4. Never creates 《《dharma》》 even if outer 《dharma》 is selected
+    vm.setSelection(9, 17); // "《dharma》"
+    vm.wrapSelection("《", "》");
+    expect(vm.getText()).toBe("Sanskrit dharma text");
+
+    wrapper.unmount();
+  });
+
+  it("toggles Signal Highlight :sig[...] on and off without duplicating", () => {
+    const wrapper = mount(Editor, {
+      props: {
+        modelValue: "Wort kṛṣṇaḥ hier",
+      },
+      attachTo: document.body,
+    });
+
+    const vm = wrapper.vm as any;
+    // Select "kṛṣṇaḥ" (5..11)
+    vm.setSelection(5, 11);
+
+    // 1. Wrap -> :sig[kṛṣṇaḥ]
+    vm.wrapSelection(":sig[", "]");
+    expect(vm.getText()).toBe("Wort :sig[kṛṣṇaḥ] hier");
+
+    // 2. Wrap again -> toggles off to kṛṣṇaḥ
+    vm.wrapSelection(":sig[", "]");
+    expect(vm.getText()).toBe("Wort kṛṣṇaḥ hier");
+
+    // 3. Wrap again -> :sig[kṛṣṇaḥ]
+    vm.wrapSelection(":sig[", "]");
+    expect(vm.getText()).toBe("Wort :sig[kṛṣṇaḥ] hier");
+
+    // 4. When full :sig[kṛṣṇaḥ] is selected, toggles off to kṛṣṇaḥ
+    vm.setSelection(5, 17);
+    vm.wrapSelection(":sig[", "]");
+    expect(vm.getText()).toBe("Wort kṛṣṇaḥ hier");
+
+    wrapper.unmount();
+  });
+
+  it("toggles 《...》 and :sig[...] on collapsed cursor without manual selection", () => {
+    const wrapper = mount(Editor, {
+      props: {
+        modelValue: "Ein vidyā Wort",
+      },
+      attachTo: document.body,
+    });
+
+    const vm = wrapper.vm as any;
+    // Position cursor inside "vidyā" (index 6: between 'i' and 'd')
+    vm.setSelection(6, 6);
+
+    // 1. Toggle on -> 《vidyā》
+    vm.wrapSelection("《", "》");
+    expect(vm.getText()).toBe("Ein 《vidyā》 Wort");
+
+    // 2. Cursor inside 《vidyā》 -> Toggle off -> vidyā
+    vm.wrapSelection("《", "》");
+    expect(vm.getText()).toBe("Ein vidyā Wort");
+
+    // 3. Toggle on :sig -> :sig[vidyā]
+    vm.wrapSelection(":sig[", "]");
+    expect(vm.getText()).toBe("Ein :sig[vidyā] Wort");
+
+    // 4. Toggle off :sig -> vidyā
+    vm.wrapSelection(":sig[", "]");
+    expect(vm.getText()).toBe("Ein vidyā Wort");
+
+    wrapper.unmount();
+  });
+
+  it("handles non-closing snippets without triggering inline toggle unwraps", () => {
+    const wrapper = mount(Editor, {
+      props: {
+        modelValue: "Heading text",
+      },
+      attachTo: document.body,
+    });
+
+    const vm = wrapper.vm as any;
+    // Cursor at index 0
+    vm.setSelection(0, 0);
+    vm.wrapSelection("# ", "");
+    expect(vm.getText()).toBe("# Heading text");
+
+    wrapper.unmount();
+  });
+
+  it("toggles symmetrical delimiters (math $ and bold **) with collapsed cursor and selections", () => {
+    const wrapper = mount(Editor, {
+      props: {
+        modelValue: "Formel x und **fett** hier",
+      },
+      attachTo: document.body,
+    });
+
+    const vm = wrapper.vm as any;
+    // Select "x" (7..8)
+    vm.setSelection(7, 8);
+    // 1. Wrap in $ -> $x$
+    vm.wrapSelection("$", "$");
+    expect(vm.getText()).toBe("Formel $x$ und **fett** hier");
+
+    // 2. Cursor inside $x$ (index 8) -> unwraps
+    vm.setSelection(8, 8);
+    vm.wrapSelection("$", "$");
+    expect(vm.getText()).toBe("Formel x und **fett** hier");
+
+    // 3. Cursor inside **fett** (index 17) -> unwraps to fett
+    vm.setSelection(17, 17);
+    vm.wrapSelection("**", "**");
+    expect(vm.getText()).toBe("Formel x und fett hier");
+
+    // 4. Cursor on "fett" (index 15) -> wraps to **fett**
+    vm.setSelection(15, 15);
+    vm.wrapSelection("**", "**");
+    expect(vm.getText()).toBe("Formel x und **fett** hier");
+
+    wrapper.unmount();
+  });
 });

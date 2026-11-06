@@ -1,3 +1,28 @@
+# Release Notes — ZenTauri v1.9.0
+
+ZenTauri v1.9.0 is a major minor-feature release introducing bidirectional Sanskrit transliteration toggles with anti-nesting unwrap logic, Birchville Scholarly Synthesis 3-pillar fontstack harmonization, hardened inline formatting for symmetrical and asymmetrical delimiters, and institutional-grade secret & credential guards.
+
+## Features & Enhancements (v1.9.0)
+
+### 🕉️ Bidirectional Transliteration Toggles & Anti-Nesting Logic
+* **Smart Citation & Formatting Toggles:** The formatting ribbon's Sanskrit chevrons (`《Skt》`), signal red highlights (`:sig[...]`), math formulas (`$...$`), and text styling (`**bold**`, `*italic*`) now feature intelligent toggle-and-unwrap capabilities. Clicking on an already wrapped selection or with a collapsed cursor inside formatted text cleanly removes delimiters without creating nested duplicates (e.g. preventing `《《text》》`).
+* **Balanced Line Delimiter Scanner:** Implemented a robust left-to-right paired line scanner for symmetrical delimiters (`**`, `$`, `` ` ``, `~~`), ensuring reliable toggling and unwrapping across multiple formatted segments on the same line.
+* **Non-Closing Snippet Guard:** Explicitly restricted inline toggle logic to paired wrappers (`after.length > 0`), ensuring prefixes such as headings (`# `), quotes (`> `), and tables are cleanly inserted without triggering inadvertent word-level unwraps.
+
+### 🏛️ Birchville Scholarly Synthesis 3-Pillar Fontstack
+* **STIX Two Text Standardization:** Elevated `STIX Two Text` as the canonical primary serif and IAST font across ZenTauri, replacing legacy or inconsistent fonts (*Source Serif 4*, *EB Garamond*, *Gentium Plus*). Bundled `@fontsource/stix-two-text` weights (400, 400i, 600, 600i, 700, 700i) in the core bundle for offline standalone execution.
+* **3-Pillar Typographic Hierarchy:** Aligned all editor panes, markdown previews, VitePress documentation portals, and standalone HTML exports to Birchville's official 3-pillar standard:
+  1. *UI Chrome:* `Inter`, system UI font fallback.
+  2. *Scholarly Edition / IAST / Devanāgarī:* `STIX Two Text`, `Murty Sanskrit`, `Noto Serif Devanagari`, `Kohinoor Devanagari`, `serif`.
+  3. *Code / Metrik:* `ui-monospace`, `SFMono-Regular`, `Menlo`, `Monaco`, `monospace`.
+* **Typst PDF Export Parity:** Updated font definitions in `typstConverter.ts` to prioritize `STIX Two Text` and modern Devanāgarī fallbacks.
+
+### 🛡️ Institutional Secret & Credential Protection
+* **Standardized .gitignore Guards:** Enforced repository-level exclusion for environment files (`.env`, `.env.*`), private keys (`*.pem`, `*.key`, `*.p12`, `id_rsa*`), and auth credentials (`credentials.json`, `secrets.json`).
+* **Client-Side Pre-Commit Hook & GitHub Push Protection:** Integrated global client-side secret guards with `gitleaks` and activated GitHub Secret Scanning & Push Protection across the Birchville organization.
+
+---
+
 # Release Notes — ZenTauri v1.8.2
 
 ZenTauri v1.8.2 is a reliability and authoring refinement release delivering macOS Option shortcut resilience, isolated undo/redo scoping, robust transliteration nested bracket handling, and VitePress container syntax alignments.
