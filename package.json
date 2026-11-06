@@ -53,7 +53,7 @@
     "markdown-it-attrs": "^5.0.0",
     "markdown-it-container": "^4.0.0",
     "markdown-it-deflist": "^4.0.0",
-    "markdown-it-extensible": "file:/Volumes/SanDisk1TB/proj/markdown-it-extensible",
+    "markdown-it-extensible": "^1.4.2",
     "markdown-it-footnote": "^4.0.0",
     "markdown-it-multimd-table": "^4.2.3",
     "pele": "^1.13.0",
