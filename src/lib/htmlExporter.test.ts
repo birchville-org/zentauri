@@ -61,6 +61,20 @@ describe("htmlExporter", () => {
       expect(html).toContain('loading="lazy"');
       expect(html).toContain('decoding="async"');
     });
+
+    it("embeds synchronous Pele SVG diagrams directly into standalone HTML without script requirements", () => {
+      const markdown = "```mermaid\ngraph TD\n  Start --> Finish\n```";
+      const html = generateStandaloneHtml(markdown);
+
+      expect(html).toContain("script-src 'none'");
+      expect(html).toContain(
+        'class="mermaid-diagram flex justify-center my-4"',
+      );
+      expect(html).toContain("<svg");
+      expect(html).toContain('class="pele pele-flowchart"');
+      expect(html).toContain("Start");
+      expect(html).toContain("Finish");
+    });
   });
 
   describe("copyHtmlToClipboard", () => {

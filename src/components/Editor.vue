@@ -18,6 +18,7 @@ import { onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { adjustContainerNesting } from "../lib/auto-repair";
 import { directiveGuidelines } from "../lib/editor-extensions/directive-guidelines";
 import { livePreviewExtension } from "../lib/editor-extensions/live-preview";
+import { sanskritComposeExtension } from "../lib/editor-extensions/sanskrit-compose";
 import {
   type TransliterationScheme,
   findSanskritWordRange,
@@ -46,11 +47,13 @@ const props = withDefaults(
     vimMode?: boolean;
     livePreview?: boolean;
     lineWrapping?: boolean;
+    sanskritCompose?: boolean;
   }>(),
   {
     vimMode: false,
     livePreview: false,
     lineWrapping: true,
+    sanskritCompose: true,
   },
 );
 const emit = defineEmits<{
@@ -773,6 +776,7 @@ let view: EditorView | null = null;
 const vimCompartment = new Compartment();
 const livePreviewCompartment = new Compartment();
 const lineWrappingCompartment = new Compartment();
+const sanskritComposeCompartment = new Compartment();
 
 onMounted(() => {
   if (!container.value) return;
@@ -920,6 +924,9 @@ onMounted(() => {
       lineWrappingCompartment.of(
         props.lineWrapping ? EditorView.lineWrapping : [],
       ),
+      sanskritComposeCompartment.of(
+        props.sanskritCompose ? sanskritComposeExtension() : [],
+      ),
       EditorView.updateListener.of((update) => {
         if (update.docChanged) {
           emit("update:modelValue", update.state.doc.toString());
@@ -998,6 +1005,19 @@ watch(
       view.dispatch({
         effects: lineWrappingCompartment.reconfigure(
           newVal ? EditorView.lineWrapping : [],
+        ),
+      });
+    }
+  },
+);
+
+watch(
+  () => props.sanskritCompose,
+  (newVal) => {
+    if (view) {
+      view.dispatch({
+        effects: sanskritComposeCompartment.reconfigure(
+          newVal ? sanskritComposeExtension() : [],
         ),
       });
     }

@@ -10,6 +10,7 @@ import * as extensiblePluginModule from "markdown-it-extensible";
 import markdownItFootnote from "markdown-it-footnote";
 // @ts-ignore
 import multimdTable from "markdown-it-multimd-table";
+import { render as renderPele } from "pele";
 import { adjustContainerNesting } from "./auto-repair";
 import { recordRendererPerf } from "./perf";
 
@@ -46,6 +47,7 @@ const SAFE_DATA_IMAGE_URI_RE =
 const ALLOWED_RENDERED_DATA_ATTRS = [
   "data-callout",
   "data-function-plot-source",
+  "data-id",
   "data-jsxgraph-source",
   "data-local-asset-href",
   "data-local-asset-kind",
@@ -172,6 +174,13 @@ const MATHML_TAGS = [
   "line",
   "rect",
   "circle",
+  "polygon",
+  "polyline",
+  "text",
+  "tspan",
+  "defs",
+  "marker",
+  "ellipse",
 ];
 
 function sanitizeRenderedHtml(html: string): string {
@@ -365,7 +374,15 @@ function setupFenceRule(mdInstance: MarkdownIt) {
         : "";
     if (info === "mermaid") {
       const code = token.content.trim();
-      return `<pre class="mermaid"${lineAttr} tabindex="0" role="region" aria-label="Mermaid Diagram" data-mermaid-source="${mdInstance.utils.escapeHtml(code)}">${mdInstance.utils.escapeHtml(code)}</pre>`;
+      if (!code) {
+        return `<pre class="mermaid"${lineAttr} tabindex="0" role="region" aria-label="Mermaid Diagram"></pre>`;
+      }
+      try {
+        const result = renderPele(code);
+        return `<div class="mermaid-diagram flex justify-center my-4"${lineAttr} role="region" aria-label="Mermaid Diagram" data-mermaid-source="${mdInstance.utils.escapeHtml(code)}">${result.svg}</div>`;
+      } catch (_err) {
+        return `<pre class="mermaid mermaid-error text-red-500 font-mono"${lineAttr} tabindex="0" role="region" aria-label="Mermaid Diagram Error" data-mermaid-source="${mdInstance.utils.escapeHtml(code)}">${mdInstance.utils.escapeHtml(code)}</pre>`;
+      }
     }
     if (info === "math" || info === "katex") {
       try {

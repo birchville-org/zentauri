@@ -4,6 +4,15 @@ title: Release Notes
 
 # 🚀 Zentauri Release Notes
 
+### ZenTauri v1.9.1
+- **Synchronous Mermaid Diagram Rendering via Pele (`pele.run`):** Replaced the 2.5 MB `mermaid` library with Steph Ango's zero-dependency `pele` renderer (`^1.13.0`). Diagrams are compiled synchronously in the `markdown-it` pipeline without asynchronous DOM races, render flakiness, or debounce delays.
+- **Bundle Reduction & Performance:** Removed over 80 sub-dependencies and 20+ asynchronous vendor chunks, saving ~2.5 MB in distribution bundles and optimizing preview responsiveness.
+- **Birchville Theming via CSS Custom Properties:** Native `--pele-*` variables automatically style diagrams for Warm Ivory (`#fcf9f2`) and Candlelight Dark (`#0a1628`) themes without diagram re-rendering.
+- **Standalone HTML Export Parity:** Complete inline vector SVGs are embedded directly into generated HTML files, rendering without client JavaScript under strict Content Security Policy (`script-src 'none'`).
+- **In-Editor Sanskrit Compose-Key Shortcuts:** Native CodeMirror 6 `inputHandler` for fluent scholarly IAST input in running prose (`-a` => `ā`, `.r` => `ṛ`, `.m` => `ṃ`, `.h` => `ḥ`, `~n` => `ñ`, `'s` => `ś`, `~r` => `ṝ`, etc.) with full `⌘Z` undo support and dynamic toggle in Settings.
+
+---
+
 ### ZenTauri v1.9.0
 - **Bidirectional Transliteration Toggles & Anti-Nesting Logic:** The ribbon commands for Sanskrit citations (`《Skt》`), signal highlights (`:sig[...]`), math formulas (`$...$`), and inline styling (`**bold**`, `*italic*`) now support smart toggling. Applying a format to already wrapped text or with a collapsed cursor inside the delimiters cleanly unwraps the content without duplicate nestings.
 - **Balanced Delimiter Scanner:** Built a left-to-right paired line scanner for symmetrical delimiters (`**`, `$`, `` ` ``, `~~`), ensuring reliable unwrapping and cursor detection across multiple formatted blocks on a single line.

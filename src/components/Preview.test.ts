@@ -1,13 +1,6 @@
 import { mount } from "@vue/test-utils";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import Preview from "./Preview.vue";
-
-vi.mock("mermaid", () => ({
-  default: {
-    initialize: vi.fn(),
-    run: vi.fn().mockResolvedValue(undefined),
-  },
-}));
 
 describe("Preview Component - Link Handling", () => {
   it("normalizes www. links and emits open-url with https prefix", async () => {
@@ -160,6 +153,20 @@ describe("Preview Component - Link Handling", () => {
       const midInfo = vm.getScrollInfo();
       expect(midInfo).not.toBeNull();
       expect(midInfo.fractionalLine).toBeGreaterThan(1);
+    });
+  });
+
+  describe("Pele Synchronous Mermaid Diagram Rendering", () => {
+    it("renders valid mermaid diagrams synchronously into SVG elements", async () => {
+      const markdown = "```mermaid\ngraph TD\n  A[Start] --> B[End]\n```";
+      const wrapper = mount(Preview, {
+        props: { source: markdown },
+      });
+      await wrapper.vm.$nextTick();
+
+      const svg = wrapper.find(".mermaid-diagram svg");
+      expect(svg.exists()).toBe(true);
+      expect(svg.classes()).toContain("pele");
     });
   });
 });

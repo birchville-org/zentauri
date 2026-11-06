@@ -113,4 +113,30 @@ describe("Settings Component - Update Flow & Layout", () => {
     const saved = JSON.parse(localStorage.getItem("zentauri-settings") || "{}");
     expect(saved.lineWrapping).toBe(false);
   });
+
+  it("persists and emits sanskritCompose setting", async () => {
+    const wrapper = mount(Settings, {
+      props: { isOpen: true },
+    });
+
+    const checkboxes = wrapper.findAll<HTMLInputElement>(
+      "input[type='checkbox']",
+    );
+    const composeCheckbox = checkboxes.find((c) =>
+      c.element.parentElement?.textContent?.includes("Sanskrit Compose-Keys"),
+    );
+    expect(composeCheckbox).toBeDefined();
+    expect(composeCheckbox!.element.checked).toBe(true);
+
+    await composeCheckbox!.setValue(false);
+    expect(wrapper.emitted("update")).toBeTruthy();
+    const lastUpdate = wrapper.emitted("update")!.pop()![0] as Record<
+      string,
+      unknown
+    >;
+    expect(lastUpdate.sanskritCompose).toBe(false);
+
+    const saved = JSON.parse(localStorage.getItem("zentauri-settings") || "{}");
+    expect(saved.sanskritCompose).toBe(false);
+  });
 });

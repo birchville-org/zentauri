@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { renderMarkdown } from "../lib/markdown";
 
 export interface ScrollInfo {
@@ -16,8 +16,6 @@ const scrollContainer = ref<HTMLElement | null>(null);
 const container = ref<HTMLElement | null>(null);
 const html = ref("");
 const sourceLineCount = ref(1);
-let mermaidRunId = 0;
-let mermaidDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 let isProgrammaticScroll = false;
 let rafUnlockId: number | null = null;
 let unlockTimer: ReturnType<typeof setTimeout> | null = null;
@@ -56,44 +54,9 @@ function scheduleUnlock() {
   }, 120);
 }
 
-async function runMermaidSafely() {
-  const currentRunId = ++mermaidRunId;
-  await nextTick();
-  if (currentRunId !== mermaidRunId || !container.value) return;
-
-  const mermaidNodes =
-    container.value.querySelectorAll<HTMLElement>(".mermaid");
-  if (mermaidNodes.length === 0) return;
-
-  try {
-    const { default: mermaid } = await import("mermaid");
-    const isDark = document.documentElement.classList.contains("dark");
-    mermaid.initialize({
-      startOnLoad: false,
-      theme: isDark ? "dark" : "default",
-      securityLevel: "strict",
-    });
-
-    if (currentRunId === mermaidRunId) {
-      await mermaid.run({
-        nodes: Array.from(mermaidNodes),
-      });
-    }
-  } catch (e) {
-    console.error("Mermaid render failed:", e);
-  }
-}
-
 function updatePreview() {
   sourceLineCount.value = props.source ? props.source.split("\n").length : 1;
   html.value = renderMarkdown(props.source, { sourceLines: true });
-
-  if (mermaidDebounceTimer) {
-    clearTimeout(mermaidDebounceTimer);
-  }
-  mermaidDebounceTimer = setTimeout(() => {
-    runMermaidSafely();
-  }, 200);
 }
 
 const emit = defineEmits<{
@@ -400,17 +363,8 @@ watch(
   },
 );
 
-let themeObserver: MutationObserver | null = null;
-
 onMounted(() => {
   updatePreview();
-  themeObserver = new MutationObserver(() => {
-    runMermaidSafely();
-  });
-  themeObserver.observe(document.documentElement, {
-    attributes: true,
-    attributeFilter: ["class", "data-theme"],
-  });
 
   if (scrollContainer.value) {
     const scroller = scrollContainer.value;
@@ -426,10 +380,6 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
-  if (themeObserver) {
-    themeObserver.disconnect();
-    themeObserver = null;
-  }
   clearProgrammaticScrollLock();
   if (scrollContainer.value) {
     const scroller = scrollContainer.value;

@@ -325,4 +325,23 @@ Ausseres Fazit
       '#rect(width: 100%, fill: rgb("f0fdfa"), stroke: (left: 4pt + rgb("14b8a6"))',
     );
   });
+
+  it("renders valid mermaid diagrams synchronously into SVG via Pele", () => {
+    const markdown = "```mermaid\ngraph TD\n  A[Start] --> B[End]\n```";
+    const html = renderMarkdown(markdown);
+    expect(html).toContain('class="mermaid-diagram flex justify-center my-4"');
+    expect(html).toContain("<svg");
+    expect(html).toContain('class="pele pele-flowchart"');
+    expect(html).toContain("Start");
+    expect(html).toContain("End");
+  });
+
+  it("gracefully falls back to escaped error pre block on invalid mermaid syntax", () => {
+    const markdown = "```mermaid\ninvalid syntax diagram ??\n```";
+    const html = renderMarkdown(markdown);
+    expect(html).toContain(
+      'class="mermaid mermaid-error text-red-500 font-mono"',
+    );
+    expect(html).toContain("invalid syntax diagram ??");
+  });
 });

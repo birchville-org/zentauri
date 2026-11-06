@@ -1,3 +1,28 @@
+# Release Notes — ZenTauri v1.9.1
+
+ZenTauri v1.9.1 is a high-performance rendering and scholarly authoring update delivering synchronous Mermaid diagram compilation via Pele, substantial bundle size reduction, full diagram embedding in standalone HTML exports, and in-editor Sanskrit compose-key shortcuts.
+
+## Features & Enhancements (v1.9.1)
+
+### ⚡ Synchronous Mermaid Diagram Rendering via Pele (`pele.run`)
+* **Zero-Lag Diagram Compilation:** Replaced the external 2.5 MB `mermaid` library with the zero-dependency `pele` renderer (`^1.13.0`). Diagrams are now compiled synchronously directly inside the `markdown-it` pipeline without asynchronous DOM mutations, debounce delays, or preview flicker.
+* **Bundle Reduction (~2.5 MB):** Removed over 80 sub-dependencies and 20+ asynchronous vendor chunks (`mermaid.core.js`, `cytoscape.esm.js`, `cynefin.js`, `architectureDiagram.js`), dramatically reducing memory footprint and build times.
+* **Instant Birchville Theming via CSS Custom Properties:** Mapped `--pele-*` diagram styling variables (`--pele-bg`, `--pele-fg`, `--pele-surface`, `--pele-border`, `--pele-accent`, etc.) directly to Birchville Scholarly Synthesis palettes. Theme switching between Warm Ivory (`#fcf9f2`) and Candlelight Dark (`#0a1628`) is instantaneous without diagram recalculation.
+* **Offline Standalone HTML Export Parity:** Fully resolved diagram export in `htmlExporter.ts`. Inline vector SVGs are embedded directly into generated HTML documents, rendering without script requirements under strict Content Security Policy (`script-src 'none'`).
+* **VitePress Docs Integration:** Updated documentation portal (`docs/.vitepress/theme/index.ts`) to render all diagrams synchronously using Pele.
+
+### 🕉️ In-Editor Sanskrit Compose-Key Shortcuts (CodeMirror 6)
+* **Native Flow Transliteration:** Introduced a native CodeMirror 6 `EditorView.inputHandler` extension (`sanskrit-compose.ts`) allowing authors to type scholarly IAST diacritics in running text without switching OS keyboard layouts.
+* **Intuitive Character Sequences:**
+  * Macrons: `-a` => `ā`, `-A` => `Ā`, `-i` => `ī`, `-I` => `Ī`, `-u` => `ū`, `-U` => `Ū`
+  * Underdots: `.r` => `ṛ`, `.R` => `Ṛ`, `.l` => `ḷ`, `.L` => `Ḷ`, `.m` => `ṃ`, `.M` => `Ṃ`, `.h` => `ḥ`, `.H` => `Ḥ`, `.t` => `ṭ`, `.T` => `Ṭ`, `.d` => `ḍ`, `.D` => `Ḍ`, `.n` => `ṇ`, `.N` => `Ṇ`, `.s` => `ṣ`, `.S` => `Ṣ`
+  * Palatals & Special: `~n` => `ñ`, `~N` => `Ñ`, `'s` => `ś`, `'S` => `Ś`
+  * Long vocalic liquids: `~r` => `ṝ`, `~l` => `ḹ`, `-ṛ` => `ṝ`, `-ḷ` => `ḹ`
+* **Transactional Undo Support:** Integrated into CodeMirror's transaction history (`userEvent: "input.compose.sanskrit"`). Pressing `⌘Z` / `Ctrl+Z` immediately restores the raw characters (e.g. `.r`).
+* **Settings & Dynamic Reconfiguration:** Added a toggle in Settings (*Sanskrit Compose-Keys*) backed by local storage persistence and dynamic CodeMirror compartment reconfiguration.
+
+---
+
 # Release Notes — ZenTauri v1.9.0
 
 ZenTauri v1.9.0 is a major minor-feature release introducing bidirectional Sanskrit transliteration toggles with anti-nesting unwrap logic, Birchville Scholarly Synthesis 3-pillar fontstack harmonization, hardened inline formatting for symmetrical and asymmetrical delimiters, and institutional-grade secret & credential guards.

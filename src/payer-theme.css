@@ -34,6 +34,18 @@ html {
   --vp-c-divider: #d8d2c6;
   --vp-c-border: #d8d2c6;
   --vp-c-gutter: transparent;
+
+  /* Pele Diagram Theming (Scholarly Synthesis Light) */
+  --pele-bg: #fcf9f2;
+  --pele-fg: #03192e;
+  --pele-muted: #6b6257;
+  --pele-line: #03192e;
+  --pele-surface: #f1eee7;
+  --pele-surface-alt: #e8e4db;
+  --pele-border: #d8d2c6;
+  --pele-accent: #b45309;
+  --pele-font: var(--vp-font-family-base);
+  --pele-font-mono: var(--vp-font-family-mono);
 }
 
 .dark,
@@ -67,6 +79,18 @@ html {
   --vp-c-divider: #334155;
   --vp-c-border: #334155;
   --vp-c-gutter: #0a1628;
+
+  /* Pele Diagram Theming (Scholarly Synthesis Dark · Kerzenlicht) */
+  --pele-bg: #0a1628;
+  --pele-fg: #e8e0d3;
+  --pele-muted: #a09080;
+  --pele-line: #e8e0d3;
+  --pele-surface: #0f1e35;
+  --pele-surface-alt: #162742;
+  --pele-border: #334155;
+  --pele-accent: #eab308;
+  --pele-font: var(--vp-font-family-base);
+  --pele-font-mono: var(--vp-font-family-mono);
 }
 
 .dark ::selection,

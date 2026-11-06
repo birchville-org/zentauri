@@ -4,7 +4,22 @@ title: Release Notes
 
 # 🚀 Zentauri Release Notes
 
-### ZenTauri v1.8.0
+### ZenTauri v1.9.1
+- **Synchrones Mermaid-Rendering via Pele (`pele.run`):** Vollständige Ablösung der 2,5 MB schweren `mermaid`-Bibliothek durch den abhängigkeitsfreien Renderer `pele` (`^1.13.0`). Diagramme werden verzögerungsfrei synchron direkt in der `markdown-it`-Pipeline kompiliert – ohne asynchrone DOM-Races oder Debounce-Verzögerungen.
+- **Bundle-Verschlankung (~2,5 MB Ersparnis):** Über 80 Unterpakete und 20+ asynchrone Vendor-Chunks entfernt, wodurch Ladezeiten und Speicherbedarf signifikant sinken.
+- **Birchville-Farbtheming über native CSS-Variablen:** SVGs übernehmen Farbwerte (`--pele-*`) für Pergament (`#fcf9f2`) und Kerzenlicht (`#0a1628`) sofort per CSS ohne Re-Rendering.
+- **Vollständiger Standalone-HTML-Export:** Vektor-SVGs werden direkt in exportierte HTML-Dokumente eingebettet und funktionieren ohne Client-JavaScript unter strikter CSP (`script-src 'none'`).
+- **In-Editor Sanskrit Compose-Key-Kürzel:** Nativer CodeMirror 6 `inputHandler` für flüssiges wissenschaftliches Tippen im Fließtext (`-a` => `ā`, `.r` => `ṛ`, `.m` => `ṃ`, `.h` => `ḥ`, `~n` => `ñ`, `'s` => `ś` etc.) mit `⌘Z`-Undo und Umschalter in den Einstellungen.
+
+---
+
+### ZenTauri v1.9.0
+- **Bidirektionale Sanskrit-Transliterations-Toggles:** Die Formatierungsleiste für Sanskrit-Zitate (`《Skt》`), Signalrot (`:sig[...]`), Mathe-Formeln (`$...$`) und Textstile unterstützt smartes Ein- und Auspacken (Unwrapping) ohne doppelte Verschachtelungen.
+- **Paarweiser Zeilen-Delimiter-Scanner:** Robuste Scanner-Logik für symmetrische Begrenzer (`**`, `$`, `` ` ``, `~~`) auf mehrfach formatierten Zeilen.
+- **Birchville Scholarly Synthesis 3-Pillar Fontstack:** Vereinheitlichte Typografie mit `STIX Two Text`, `Murty Sanskrit` und `Noto Serif Devanagari` für Text/IAST, `Inter` für UI und Monospace für Code.
+- **Sicherheits- & Secret-Guards:** Verbindliche `.gitignore`-Filter für Secrets und Credentials sowie Pre-Commit-Prüfung via `gitleaks`.
+
+---
 - **Nativer DOCX- & ODT-Dokumentenimport (`docling-rs`):** Vollwertige Integration der reinen Rust-Konvertierungs-Engine `docling` (v2.55, ohne Python-/Pandoc-/LibreOffice-Abhängigkeiten). Bestehende Manuskripte aus Microsoft Word (`.docx`), OpenDocument Text (`.odt`) sowie `.rtf`, `.epub`, `.pptx` und `.xlsx` werden direkt und blitzschnell im Rust-Backend (`src-tauri`) in sauberes, archivierbares Markdown überführt.
 - **Sicherer Import-Puffer & Originaldateischutz:** Das konvertierte Dokument wird als neuer Arbeitsreiter (`<dateiname>.md`) im Editor geöffnet und als ungespeichert (`isDirty: true`) markiert. Die originale Quelldatei auf der Festplatte bleibt unberührt und wird niemals überschrieben.
 - **Vorab-Bestätigungsdialog für Office-Dateien:** Transparenter nativer Bestätigungshinweis beim Öffnen oder Hineinziehen von Office-Dokumenten, der über Konvertierungsmerkmale, den Wegfall proprietärer Layoutdetails (komplexe Spaltensätze, Rahmen) und das ausschließliche Speichern im Markdown-Format informiert.

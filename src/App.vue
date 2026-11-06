@@ -509,6 +509,7 @@ let htmlCopyTimer: ReturnType<typeof setTimeout> | null = null;
 const autoSaveEnabled = ref(true);
 const pdfPaper = ref<"a4" | "us-letter">("a4");
 const lineWrapping = ref(true);
+const sanskritCompose = ref(true);
 
 const isMac =
   typeof navigator !== "undefined" &&
@@ -537,6 +538,9 @@ if (initialSettingsStr) {
     }
     if (parsedSettings.lineWrapping !== undefined) {
       lineWrapping.value = Boolean(parsedSettings.lineWrapping);
+    }
+    if (parsedSettings.sanskritCompose !== undefined) {
+      sanskritCompose.value = Boolean(parsedSettings.sanskritCompose);
     }
     if (parsedSettings.theme) {
       currentTheme.value = parsedSettings.theme;
@@ -2232,6 +2236,8 @@ function handleSettingsUpdate(settings: any) {
   if (settings.pdfPaper !== undefined) pdfPaper.value = settings.pdfPaper;
   if (settings.lineWrapping !== undefined)
     lineWrapping.value = Boolean(settings.lineWrapping);
+  if (settings.sanskritCompose !== undefined)
+    sanskritCompose.value = Boolean(settings.sanskritCompose);
   if (settings.syncMode !== undefined) {
     syncMode.value = settings.syncMode;
   } else if (settings.syncScroll !== undefined) {
@@ -2694,6 +2700,7 @@ async function handleCopyHtml() {
                   :vimMode="vimMode"
                   :livePreview="isLivePreview"
                   :lineWrapping="lineWrapping"
+                  :sanskritCompose="sanskritCompose"
                   @scroll="onEditorScroll"
                   @user-interaction="onEditorUserInteraction"
                   @cursor-change="onCursorChange"

@@ -24,6 +24,7 @@ const vimMode = ref(false);
 const syncScroll = ref(true);
 const pdfPaper = ref<"a4" | "us-letter">("a4");
 const lineWrapping = ref(true);
+const sanskritCompose = ref(true);
 
 const appVersion = ref(
   typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "1.5.0",
@@ -51,6 +52,8 @@ onMounted(async () => {
       if (s.syncScroll !== undefined) syncScroll.value = s.syncScroll;
       if (s.pdfPaper) pdfPaper.value = s.pdfPaper;
       if (s.lineWrapping !== undefined) lineWrapping.value = s.lineWrapping;
+      if (s.sanskritCompose !== undefined)
+        sanskritCompose.value = s.sanskritCompose;
     } catch (e) {}
   }
   applySettings();
@@ -74,6 +77,7 @@ watch(
     syncScroll,
     pdfPaper,
     lineWrapping,
+    sanskritCompose,
   ],
   () => {
     const s = {
@@ -84,6 +88,7 @@ watch(
       syncScroll: syncScroll.value,
       pdfPaper: pdfPaper.value,
       lineWrapping: lineWrapping.value,
+      sanskritCompose: sanskritCompose.value,
     };
     localStorage.setItem("zentauri-settings", JSON.stringify(s));
     applySettings();
@@ -101,6 +106,7 @@ function applySettings() {
     syncScroll: syncScroll.value,
     pdfPaper: pdfPaper.value,
     lineWrapping: lineWrapping.value,
+    sanskritCompose: sanskritCompose.value,
   };
   emit("update", s);
 }
@@ -224,6 +230,19 @@ function handleManualDownload() {
           <input 
             type="checkbox" 
             v-model="vimMode"
+            class="h-4 w-4 rounded border-app-border text-amber-600 focus:ring-amber-500 bg-app-bg cursor-pointer"
+          />
+        </div>
+
+        <!-- Sanskrit Compose Keys -->
+        <div class="flex items-center justify-between">
+          <div>
+            <label class="text-sm font-medium text-app-text block">Sanskrit Compose-Keys</label>
+            <span class="text-xs text-app-text-muted">Fast scholarly IAST shortcuts (.r => ṛ, -a => ā, ~n => ñ, 's => ś)</span>
+          </div>
+          <input 
+            type="checkbox" 
+            v-model="sanskritCompose"
             class="h-4 w-4 rounded border-app-border text-amber-600 focus:ring-amber-500 bg-app-bg cursor-pointer"
           />
         </div>

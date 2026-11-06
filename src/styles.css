@@ -337,6 +337,7 @@ textarea {
   pre,
   code,
   .mermaid,
+  .mermaid-diagram,
   table,
   img,
   blockquote,
@@ -375,11 +376,25 @@ textarea {
     --tw-prose-td-borders: #e4e4e7 !important;
   }
 
-  /* Ensure Mermaid flowcharts scale properly on print and do not cut off */
-  .mermaid svg {
+  /* Ensure Mermaid / Pele flowcharts scale properly on print and do not cut off */
+  .mermaid svg,
+  .mermaid-diagram svg,
+  svg.pele {
     max-width: 100% !important;
     height: auto !important;
   }
+}
+
+/* Pele / Mermaid Diagram Scaling & Overflow Protection */
+.mermaid-diagram {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.mermaid-diagram svg,
+svg.pele {
+  max-width: 100%;
+  height: auto;
 }
 
 /* CodeMirror 6 Cursor Visibility for Light, Dark, and Custom Themes */

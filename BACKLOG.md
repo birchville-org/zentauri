@@ -75,8 +75,8 @@ In Zentauri ist das primäre QA-Proofing-Konzept jedoch für Modus 3 (**Dual PDF
 
 ## 4. Dreistufiges Hybridkonzept für Sanskrit-Eingabe (In-Editor IME & Live-Transliteration)
 
-- **Status:** Backlog / Konzipiert (Architektur dokumentiert in `docs/scholarly-input-architecture.md`)
-- **Komponenten:** `src/components/Editor.vue`, `src/lib/transliteration.ts`, CodeMirror 6 Extensions
+- **Status:** Teilweise implementiert (Stufe 1 & 3 aktiv; Stufe 2 Compose-Keys in v1.10.0 aktiv; Scope-basierter Live-IME geplant für v2.0)
+- **Komponenten:** `src/components/Editor.vue`, `src/lib/editor-extensions/sanskrit-compose.ts`, `src/lib/transliteration.ts`
 
 ### Hintergrund & Motivation
 Sanskrit-Texte sind im wissenschaftlichen Alltag Mischtexte (deutscher/englischer Kommentar kombiniert mit IAST-Fachbegriffen oder Devanāgarī-Zitaten).
@@ -189,8 +189,8 @@ Zentauri schlägt diese Brücke unter einem strikten Architekturprinzip: **Plain
 
 ## 8. Synchroner Mermaid-Renderer via Pele (`pele.run`)
 
-- **Status:** Evaluation & Prototyping (Oktober 2026)
-- **Komponenten:** `src/lib/markdown.ts`, `src/components/Preview.vue`, `src/lib/htmlExporter.ts`, `src/styles.css`
+- **Status:** Aktiv implementiert (v1.10.0 / November 2026)
+- **Komponenten:** `src/lib/markdown.ts`, `src/components/Preview.vue`, `src/lib/htmlExporter.ts`, `src/styles.css`, `src/payer-theme.css`
 - **Referenz:** [`pele.run`](https://pele.run) (Steph Ango / kepano, MIT, Zero Dependencies)
 
 ### Hintergrund & Motivation
