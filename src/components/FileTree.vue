@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { invoke } from "@tauri-apps/api/core";
 import { computed, onBeforeUpdate, ref } from "vue";
-import WorkspaceFolderSection from "./WorkspaceFolderSection.vue";
 import type { WorkMode } from "../types/workMode";
 import type { SynopticState } from "./SynopticView.vue";
+import WorkspaceFolderSection from "./WorkspaceFolderSection.vue";
 
 export interface OpenPdfItem {
   slot: "left" | "right";
@@ -28,7 +28,7 @@ const props = withDefaults(
   }>(),
   {
     workMode: "markdown",
-  }
+  },
 );
 
 const emit = defineEmits<{

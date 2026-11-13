@@ -77,7 +77,9 @@ describe("SynopticView Component (Mode 2: Synoptic Edition & Master-JSON)", () =
 
     // Delete segment
     vi.spyOn(window, "confirm").mockReturnValue(true);
-    const deleteBtn = wrapper.find("button[title*='Aktuelles Segment löschen']");
+    const deleteBtn = wrapper.find(
+      "button[title*='Aktuelles Segment löschen']",
+    );
     expect(deleteBtn.exists()).toBe(true);
     await deleteBtn.trigger("click");
 
@@ -113,15 +115,15 @@ describe("SynopticView Component (Mode 2: Synoptic Edition & Master-JSON)", () =
     const wrapper = mount(SynopticView);
 
     const translitBtn = wrapper.find(
-      "button[title*='IAST via Rust Vidyut-Lipi']"
+      "button[title*='IAST via Rust Vidyut-Lipi']",
     );
     expect(translitBtn.exists()).toBe(true);
     await translitBtn.trigger("click");
 
-    const devanagariTextarea = wrapper.find(
-      "textarea[placeholder*='देवनागरी']"
-    );
-    expect((devanagariTextarea.element as HTMLTextAreaElement).value).toBeTruthy();
+    const devanagariTextarea = wrapper.find("textarea[placeholder*='देवनागरी']");
+    expect(
+      (devanagariTextarea.element as HTMLTextAreaElement).value,
+    ).toBeTruthy();
   });
 
   it("triggers silent auto-repair feedback on save", async () => {

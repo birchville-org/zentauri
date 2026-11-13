@@ -3,8 +3,6 @@ import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import { readTextFile } from "@tauri-apps/plugin-fs";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { renderMarkdown } from "../lib/markdown";
-import { computeCollationDiff, type CollationResult } from "../lib/diffCollation";
 import {
   computed,
   nextTick,
@@ -13,6 +11,11 @@ import {
   ref,
   watch,
 } from "vue";
+import {
+  type CollationResult,
+  computeCollationDiff,
+} from "../lib/diffCollation";
+import { renderMarkdown } from "../lib/markdown";
 
 interface PdfDocInfo {
   page_count: usize;
@@ -98,7 +101,12 @@ interface DrawingTarget {
 }
 const activeDrawingTarget = ref<DrawingTarget | null>(null);
 const drawStart = ref<{ x: number; y: number } | null>(null);
-const drawCurrent = ref<{ x: number; y: number; width: number; height: number } | null>(null);
+const drawCurrent = ref<{
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+} | null>(null);
 
 // Pending Annotation Popover
 const pendingAnnotation = ref<{
@@ -112,7 +120,8 @@ const pendingAnnotation = ref<{
 const newAnnotationType = ref<AnnotationType>("typo");
 const newAnnotationNote = ref<string>("");
 
-const isTauri = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
+const isTauri =
+  typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 const leftBrowserPdfUrl = ref<string | null>(null);
 const rightBrowserPdfUrl = ref<string | null>(null);
 
@@ -709,10 +718,18 @@ function handleSwap() {
   rightViewType.value = tmpViewType;
   rightBrowserPdfUrl.value = tmpBrowserPdfUrl;
 
-  if (leftDocKind.value === "pdf" && leftPdfPath.value && !leftBrowserPdfUrl.value) {
+  if (
+    leftDocKind.value === "pdf" &&
+    leftPdfPath.value &&
+    !leftBrowserPdfUrl.value
+  ) {
     loadVisiblePages("left", leftCurrentPage.value - 1);
   }
-  if (rightDocKind.value === "pdf" && rightPdfPath.value && !rightBrowserPdfUrl.value) {
+  if (
+    rightDocKind.value === "pdf" &&
+    rightPdfPath.value &&
+    !rightBrowserPdfUrl.value
+  ) {
     loadVisiblePages("right", rightCurrentPage.value - 1);
   }
   emitDocsUpdate();
@@ -729,9 +746,15 @@ function handleMarkdownClick(event: MouseEvent) {
   if (href.startsWith("#")) return;
 
   event.preventDefault();
-  if (href.startsWith("http://") || href.startsWith("https://") || href.startsWith("mailto:")) {
+  if (
+    href.startsWith("http://") ||
+    href.startsWith("https://") ||
+    href.startsWith("mailto:")
+  ) {
     if (isTauri) {
-      openUrl(href).catch((err) => console.error("Fehler beim Öffnen des Links:", err));
+      openUrl(href).catch((err) =>
+        console.error("Fehler beim Öffnen des Links:", err),
+      );
     } else {
       window.open(href, "_blank", "noopener,noreferrer");
     }
@@ -1012,7 +1035,9 @@ function showToast(msg: string) {
 function toggleAnnotateMode() {
   isAnnotateMode.value = !isAnnotateMode.value;
   if (isAnnotateMode.value) {
-    showToast("Annotation-Modus aktiviert: Ziehe eine Bounding-Box über Auffälligkeiten.");
+    showToast(
+      "Annotation-Modus aktiviert: Ziehe eine Bounding-Box über Auffälligkeiten.",
+    );
   }
 }
 
@@ -1060,9 +1085,8 @@ function onPageMouseDown(
     return;
   }
 
-  const card =
-    ((e.currentTarget as HTMLElement) ||
-      target?.closest(".pdf-page-card")) as HTMLElement | null;
+  const card = ((e.currentTarget as HTMLElement) ||
+    target?.closest(".pdf-page-card")) as HTMLElement | null;
   if (!card) return;
   const rect = card.getBoundingClientRect();
   if (rect.width <= 0 || rect.height <= 0) return;
@@ -1171,7 +1195,6 @@ function getAnnotationTypeLabel(type: AnnotationType): string {
       return "OCR-Artefakt";
     case "omission":
       return "Auslassung / Text fehlt";
-    case "general":
     default:
       return "Allgemeiner Hinweis";
   }
@@ -1180,7 +1203,9 @@ function getAnnotationTypeLabel(type: AnnotationType): string {
 async function copyAiReviewPrompt() {
   const hasDiffs = diffResult.value && diffResult.value.stats.totalDiffs > 0;
   if (annotations.value.length === 0 && !hasDiffs) {
-    showToast("Keine Annotationen oder Textabweichungen zum Generieren eines Prompts vorhanden.");
+    showToast(
+      "Keine Annotationen oder Textabweichungen zum Generieren eines Prompts vorhanden.",
+    );
     return;
   }
 
@@ -1195,8 +1220,8 @@ async function copyAiReviewPrompt() {
 
   const lines = [
     `# Dual Document QA & Proofing Review Report (${leftKind} ⇄ ${rightKind})`,
-    ``,
-    `## Dokument-Metadaten`,
+    "",
+    "## Dokument-Metadaten",
     `- Referenz (Links, ${leftKind}): ${leftDoc}`,
     `- Vergleich (Rechts, ${rightKind}): ${rightDoc}`,
     `- Gesamtzahl erfasster Korrekturbereiche: ${annotations.value.length}`,
@@ -1208,7 +1233,7 @@ async function copyAiReviewPrompt() {
     );
   }
 
-  lines.push(``, `## Erfasste Abweichungen & Fehlerstellen`);
+  lines.push("", "## Erfasste Abweichungen & Fehlerstellen");
 
   if (annotations.value.length > 0) {
     annotations.value.forEach((a, idx) => {
@@ -1223,7 +1248,7 @@ async function copyAiReviewPrompt() {
     });
   } else if (diffResult.value) {
     lines.push(
-      `1. **[Philologische Kollation] Wort- und Zeichenabweichungen**`,
+      "1. **[Philologische Kollation] Wort- und Zeichenabweichungen**",
       `   - Erfasste Modifikationen: ${diffResult.value.stats.modifications}`,
       `   - Ergänzungen: ${diffResult.value.stats.additions}`,
       `   - Streichungen: ${diffResult.value.stats.deletions}`,
@@ -1231,20 +1256,21 @@ async function copyAiReviewPrompt() {
   }
 
   lines.push(
-    ``,
-    `## Korrektur-Anweisung für die KI`,
-    `Bitte führe anhand dieser QA-Befunde eine gezielte Korrektur des Quelltexts (Markdown / Typst / Master-JSON) durch:`,
-    `1. Behebe alle typografischen Fehler und OCR-Artefakte exakt an den angegebenen Positionen.`,
-    `2. Achte auf die strikte Einhaltung aller wissenschaftlichen Transliterationsstandards (IAST-Makrons und Devanāgarī-Diakritika).`,
-    `3. Bewahre die bestehende Text- und Vers-Gliederung unversehrt.`,
+    "",
+    "## Korrektur-Anweisung für die KI",
+    "Bitte führe anhand dieser QA-Befunde eine gezielte Korrektur des Quelltexts (Markdown / Typst / Master-JSON) durch:",
+    "1. Behebe alle typografischen Fehler und OCR-Artefakte exakt an den angegebenen Positionen.",
+    "2. Achte auf die strikte Einhaltung aller wissenschaftlichen Transliterationsstandards (IAST-Makrons und Devanāgarī-Diakritika).",
+    "3. Bewahre die bestehende Text- und Vers-Gliederung unversehrt.",
   );
 
   const fullPrompt = lines.join("\n");
   try {
     await navigator.clipboard.writeText(fullPrompt);
-    const countMsg = annotations.value.length > 0
-      ? `${annotations.value.length} Annotationen`
-      : `${diffResult.value?.stats.totalDiffs || 0} Textabweichungen`;
+    const countMsg =
+      annotations.value.length > 0
+        ? `${annotations.value.length} Annotationen`
+        : `${diffResult.value?.stats.totalDiffs || 0} Textabweichungen`;
     showToast(`AI Review Prompt mit ${countMsg} kopiert!`);
   } catch (err) {
     console.error("Clipboard write failed:", err);

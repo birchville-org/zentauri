@@ -1,6 +1,6 @@
 import { mount } from "@vue/test-utils";
-import { nextTick } from "vue";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { nextTick } from "vue";
 import App from "./App.vue";
 import SynopticView from "./components/SynopticView.vue";
 
@@ -74,7 +74,9 @@ describe("App Component - 3 Work-Modes System", () => {
     activeWrappers.push(wrapper);
 
     // Header switcher should have Authoring active
-    const authoringBtn = wrapper.find("button[aria-label='Modus 1: Markdown Authoring']");
+    const authoringBtn = wrapper.find(
+      "button[aria-label='Modus 1: Markdown Authoring']",
+    );
     expect(authoringBtn.exists()).toBe(true);
     expect(authoringBtn.classes()).toContain("font-semibold");
 
@@ -101,7 +103,9 @@ describe("App Component - 3 Work-Modes System", () => {
     });
     activeWrappers.push(wrapper);
 
-    const synopseBtn = wrapper.find("button[aria-label='Modus 2: Synoptische Edition']");
+    const synopseBtn = wrapper.find(
+      "button[aria-label='Modus 2: Synoptische Edition']",
+    );
     expect(synopseBtn.exists()).toBe(true);
     await synopseBtn.trigger("click");
 
@@ -173,7 +177,9 @@ describe("App Component - 3 Work-Modes System", () => {
     expect(tabBar().text()).not.toContain("+ Original-PDF (Links)");
 
     // Switch to Modus 2: Markdown tabs disappear from tab bar, Synoptic tabs appear
-    const synopseBtn = wrapper.find("button[aria-label='Modus 2: Synoptische Edition']");
+    const synopseBtn = wrapper.find(
+      "button[aria-label='Modus 2: Synoptische Edition']",
+    );
     await synopseBtn.trigger("click");
 
     expect(tabBar().text()).not.toContain("USER_INTRO.md");

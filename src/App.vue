@@ -24,8 +24,9 @@ const HelpSystem = defineAsyncComponent(
 );
 import ContextMenu from "./components/ContextMenu.vue";
 import PdfDualViewer, { type OpenPdfDoc } from "./components/PdfDualViewer.vue";
-import SynopticView, { type SynopticState } from "./components/SynopticView.vue";
-import type { WorkMode } from "./types/workMode";
+import SynopticView, {
+  type SynopticState,
+} from "./components/SynopticView.vue";
 import { autoRepairMarkdown } from "./lib/auto-repair";
 import {
   copyHtmlToClipboard,
@@ -35,6 +36,7 @@ import { renderMarkdown } from "./lib/markdown";
 import type { SyntaxItem } from "./lib/syntax-cheatsheet";
 import { applyTheme, isDarkTheme } from "./lib/theme";
 import { convertMarkdownToTypst } from "./lib/typstConverter";
+import type { WorkMode } from "./types/workMode";
 
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
@@ -548,7 +550,9 @@ const viewMode = ref<ViewMode>(
 const workMode = ref<WorkMode>(
   ["markdown", "synoptic", "pdf-qa"].includes(rawStoredWorkMode as any)
     ? (rawStoredWorkMode as WorkMode)
-    : (viewMode.value === "pdf-qa" ? "pdf-qa" : "markdown"),
+    : viewMode.value === "pdf-qa"
+      ? "pdf-qa"
+      : "markdown",
 );
 
 function setWorkMode(mode: WorkMode) {
@@ -876,7 +880,8 @@ const saveStatus = computed(() => {
     if (activeTab.value?.isDirty) {
       return {
         text: "Unsaved (Auto-Save Off)",
-        dotClass: "w-2.5 h-2.5 bg-amber-600 dark:bg-amber-400 ring-2 ring-amber-500/20",
+        dotClass:
+          "w-2.5 h-2.5 bg-amber-600 dark:bg-amber-400 ring-2 ring-amber-500/20",
         textClass: "text-amber-800 dark:text-amber-300 font-semibold",
         title: "Unsaved changes. Press Cmd/Ctrl+S or click Save.",
       };
@@ -1488,10 +1493,20 @@ function handleGlobalKeydown(e: KeyboardEvent) {
   if (isMod && (key === "1" || code === "Digit1") && !e.shiftKey && !e.altKey) {
     e.preventDefault();
     setWorkMode("markdown");
-  } else if (isMod && (key === "2" || code === "Digit2") && !e.shiftKey && !e.altKey) {
+  } else if (
+    isMod &&
+    (key === "2" || code === "Digit2") &&
+    !e.shiftKey &&
+    !e.altKey
+  ) {
     e.preventDefault();
     setWorkMode("synoptic");
-  } else if (isMod && (key === "3" || code === "Digit3") && !e.shiftKey && !e.altKey) {
+  } else if (
+    isMod &&
+    (key === "3" || code === "Digit3") &&
+    !e.shiftKey &&
+    !e.altKey
+  ) {
     e.preventDefault();
     setWorkMode("pdf-qa");
   } else if (isMod && key === "s") {

@@ -1,6 +1,6 @@
 /**
  * Philological Collation & Diff Engine for Zentauri
- * 
+ *
  * Provides word- and character-level collation diffs between text/markdown documents.
  * Unlike developer git-diffs, this preserves scholarly prose formatting, Sanskrit typography,
  * and highlights intra-word transliteration and diacritic variations (e.g. samskrtam ⇄ saṃskṛtam).
@@ -63,7 +63,11 @@ function isWordToken(token: string): boolean {
 /**
  * Standard Myers Diff Algorithm O(ND) with prefix/suffix trimming and MAX_D fallback.
  */
-function myersDiff<T>(a: T[], b: T[], equals: (x: T, y: T) => boolean = (x, y) => x === y): DiffToken[] {
+function myersDiff<T>(
+  a: T[],
+  b: T[],
+  equals: (x: T, y: T) => boolean = (x, y) => x === y,
+): DiffToken[] {
   let start = 0;
   let endA = a.length;
   let endB = b.length;
@@ -93,10 +97,18 @@ function myersDiff<T>(a: T[], b: T[], equals: (x: T, y: T) => boolean = (x, y) =
 
   if (n === 0 && m === 0) return prefix;
   if (n === 0) {
-    return [...prefix, ...midB.map((val) => ({ op: "insert" as const, value: String(val) })), ...suffix];
+    return [
+      ...prefix,
+      ...midB.map((val) => ({ op: "insert" as const, value: String(val) })),
+      ...suffix,
+    ];
   }
   if (m === 0) {
-    return [...prefix, ...midA.map((val) => ({ op: "delete" as const, value: String(val) })), ...suffix];
+    return [
+      ...prefix,
+      ...midA.map((val) => ({ op: "delete" as const, value: String(val) })),
+      ...suffix,
+    ];
   }
 
   const max = Math.min(n + m, MAX_MYERS_D);
@@ -135,7 +147,11 @@ function myersDiff<T>(a: T[], b: T[], equals: (x: T, y: T) => boolean = (x, y) =
           const vPrev = trace[step];
           const kPrev = curX - curY;
           let prevK: number;
-          if (kPrev === -step || (kPrev !== step && (vPrev[kPrev - 1] ?? -1) < (vPrev[kPrev + 1] ?? -1))) {
+          if (
+            kPrev === -step ||
+            (kPrev !== step &&
+              (vPrev[kPrev - 1] ?? -1) < (vPrev[kPrev + 1] ?? -1))
+          ) {
             prevK = kPrev + 1;
           } else {
             prevK = kPrev - 1;
@@ -226,7 +242,10 @@ function diffWordPair(
 /**
  * Computes a philological collation diff between two Markdown/Text documents.
  */
-export function computeCollationDiff(leftText: string, rightText: string): CollationResult {
+export function computeCollationDiff(
+  leftText: string,
+  rightText: string,
+): CollationResult {
   const tokensA = tokenizeWords(leftText);
   const tokensB = tokenizeWords(rightText);
 
@@ -271,7 +290,10 @@ export function computeCollationDiff(leftText: string, rightText: string): Colla
 
       if (isDelWord && isInsWord) {
         modifications++;
-        const { leftHtml, rightHtml, similarity } = diffWordPair(delItem.value, insItem.value);
+        const { leftHtml, rightHtml, similarity } = diffWordPair(
+          delItem.value,
+          insItem.value,
+        );
 
         const leftMark =
           similarity >= 0.3
@@ -282,8 +304,12 @@ export function computeCollationDiff(leftText: string, rightText: string): Colla
             ? `<mark class="diff-substitution diff-added" title="Referenzfassung: ${escapeHtml(delItem.value)}">${rightHtml}</mark>`
             : `<mark class="diff-substitution diff-added" title="Referenz: ${escapeHtml(delItem.value)}">${escapeHtml(insItem.value)}</mark>`;
 
-        leftAnnotatedMd += isWordToken(delItem.value) ? leftMark : delItem.value;
-        rightAnnotatedMd += isWordToken(insItem.value) ? rightMark : insItem.value;
+        leftAnnotatedMd += isWordToken(delItem.value)
+          ? leftMark
+          : delItem.value;
+        rightAnnotatedMd += isWordToken(insItem.value)
+          ? rightMark
+          : insItem.value;
         leftRawHtml += leftMark;
         rightRawHtml += rightMark;
 
@@ -329,8 +355,12 @@ export function computeCollationDiff(leftText: string, rightText: string): Colla
     i++;
   }
 
-  const leftRenderedHtml = renderMarkdown(leftAnnotatedMd, { sourceLines: true });
-  const rightRenderedHtml = renderMarkdown(rightAnnotatedMd, { sourceLines: true });
+  const leftRenderedHtml = renderMarkdown(leftAnnotatedMd, {
+    sourceLines: true,
+  });
+  const rightRenderedHtml = renderMarkdown(rightAnnotatedMd, {
+    sourceLines: true,
+  });
 
   const stats: DiffStats = {
     deletions,

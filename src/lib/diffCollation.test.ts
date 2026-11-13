@@ -39,7 +39,9 @@ describe("diffCollation", () => {
 
       const res = computeCollationDiff(textA, textB);
       expect(res.stats.modifications).toBe(1);
-      expect(res.leftRenderedHtml).toContain('title="Variante im Vergleich: neues"');
+      expect(res.leftRenderedHtml).toContain(
+        'title="Variante im Vergleich: neues"',
+      );
       expect(res.rightRenderedHtml).toContain('title="Referenzfassung: altes"');
       expect(res.leftRenderedHtml).toContain("diff-substitution");
       expect(res.rightRenderedHtml).toContain("diff-substitution");

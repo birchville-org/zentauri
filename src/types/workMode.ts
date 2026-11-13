@@ -16,7 +16,8 @@ export const WORK_MODES: Record<WorkMode, WorkModeMeta> = {
     label: "Authoring",
     badge: "Modus 1",
     shortcut: "⌘1",
-    description: "Fokussiertes Verfassen von Markdown, KaTeX, Sanskrit & Typst-Export",
+    description:
+      "Fokussiertes Verfassen von Markdown, KaTeX, Sanskrit & Typst-Export",
   },
   synoptic: {
     id: "synoptic",
@@ -30,6 +31,7 @@ export const WORK_MODES: Record<WorkMode, WorkModeMeta> = {
     label: "Vergleich",
     badge: "Modus 3",
     shortcut: "⌘3",
-    description: "2-spaltiger Dokumenten-Vergleich (PDF & Markdown lesend) mit QA-Proofing",
+    description:
+      "2-spaltiger Dokumenten-Vergleich (PDF & Markdown lesend) mit QA-Proofing",
   },
 };

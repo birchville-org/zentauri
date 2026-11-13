@@ -73,7 +73,9 @@ describe("ActivityBar Component - Workspace Tools & Actions", () => {
     await exportPdfBtn.trigger("click");
     expect(wrapper.emitted("action")?.[0]).toEqual(["export-pdf"]);
 
-    const exportHtmlBtn = wrapper.find("button[aria-label='Export Standalone HTML']");
+    const exportHtmlBtn = wrapper.find(
+      "button[aria-label='Export Standalone HTML']",
+    );
     await exportHtmlBtn.trigger("click");
     expect(wrapper.emitted("action")?.[1]).toEqual(["export-html"]);
 

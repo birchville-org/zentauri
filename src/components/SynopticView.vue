@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, nextTick, watch } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import { readTextFile, writeTextFile } from "@tauri-apps/plugin-fs";
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import { toggleTransliteration } from "../lib/transliteration";
 
-const isTauri = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
+const isTauri =
+  typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 
 const props = defineProps<{
   currentWorkspace?: string | null;
@@ -122,7 +123,8 @@ const masterData = ref<MasterJsonData>({
         "सोऽबिभेत् । तस्मादेकाकी बिभेति । स हायमीक्षां चक्रे यन्मदन्यन्नास्ति कस्मान्नु बिभेमीति । तत एवास्य भयं वीयाय । कस्माद्ध्यभेष्यद् द्वितीयाद्वै भयं भवति ॥",
       translation_primary:
         "Er fürchtete sich. Daher fürchtet man sich, wenn man allein ist. Er aber überlegte bei sich: »Da es doch außer mir nichts anderes gibt, wovor fürchte ich mich denn?« Da verging seine Furcht. Wovor hätte er sich auch fürchten sollen? Denn vor einem Zweiten entsteht Furcht.",
-      apparatus: "dvitīyād vai bhayaṁ bhavati: kanonischer Merksatz des Monismus.",
+      apparatus:
+        "dvitīyād vai bhayaṁ bhavati: kanonischer Merksatz des Monismus.",
       commentary:
         "Grundlegung der abhaya-Lehre: Furcht existiert nur, wo Dualität projiziert wird.",
       scan_page: 1,
@@ -227,12 +229,31 @@ function resetSplitRatio() {
 // Philological Snippet Toolbar
 // ─────────────────────────────────────────────────────────────────────────────
 const IAST_SNIPPETS = [
-  "ā", "ī", "ū", "ṛ", "ṝ", "ḷ", "ḹ", "ṃ", "ḥ",
-  "ṅ", "ñ", "ṭ", "ḍ", "ṇ", "ś", "ṣ",
-  "|", "||", "«", "»"
+  "ā",
+  "ī",
+  "ū",
+  "ṛ",
+  "ṝ",
+  "ḷ",
+  "ḹ",
+  "ṃ",
+  "ḥ",
+  "ṅ",
+  "ñ",
+  "ṭ",
+  "ḍ",
+  "ṇ",
+  "ś",
+  "ṣ",
+  "|",
+  "||",
+  "«",
+  "»",
 ];
 
-const lastFocusedTextarea = ref<HTMLTextAreaElement | HTMLInputElement | null>(null);
+const lastFocusedTextarea = ref<HTMLTextAreaElement | HTMLInputElement | null>(
+  null,
+);
 
 function registerFocus(e: FocusEvent) {
   const target = e.target;
@@ -452,7 +473,7 @@ watch(
   () => {
     notifySynopticState();
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 function zoomIn() {
@@ -474,7 +495,9 @@ function linkCurrentScanPage() {
   isDirty.value = true;
   saveIndicatorText.value = `Vers mit Seite ${scanCurrentPage.value} verknüpft`;
   scheduleStatusReset(1500, () => {
-    saveIndicatorText.value = isDirty.value ? "Ungespeichert" : "Synchronisiert";
+    saveIndicatorText.value = isDirty.value
+      ? "Ungespeichert"
+      : "Synchronisiert";
   });
 }
 
@@ -485,7 +508,7 @@ watch(
     if (newPage && scanPdfPath.value && newPage !== scanCurrentPage.value) {
       renderScanPage(newPage);
     }
-  }
+  },
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -652,7 +675,9 @@ function nextSegment() {
 function addNewSegment() {
   const current = currentSegment.value;
   const newNum = masterData.value.sections.length + 1;
-  const newVerseNum = current.verse_num ? `${current.verse_num}.next` : `${newNum}`;
+  const newVerseNum = current.verse_num
+    ? `${current.verse_num}.next`
+    : `${newNum}`;
 
   const newSeg: EditionSegment = {
     verse_num: newVerseNum,
@@ -689,7 +714,7 @@ function deleteSegment() {
   }
   if (
     confirm(
-      `Möchten Sie das Segment "${currentSegment.value.canonical_id}: ${currentSegment.value.title}" wirklich löschen?`
+      `Möchten Sie das Segment "${currentSegment.value.canonical_id}: ${currentSegment.value.title}" wirklich löschen?`,
     )
   ) {
     masterData.value.sections.splice(activeSegmentIndex.value, 1);

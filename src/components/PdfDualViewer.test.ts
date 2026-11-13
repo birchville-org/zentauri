@@ -253,7 +253,9 @@ describe("PdfDualViewer", () => {
 
     expect(writeTextMock).toHaveBeenCalledTimes(1);
     const copiedText = writeTextMock.mock.calls[0][0];
-    expect(copiedText).toContain("# Dual Document QA & Proofing Review Report (PDF ⇄ PDF)");
+    expect(copiedText).toContain(
+      "# Dual Document QA & Proofing Review Report (PDF ⇄ PDF)",
+    );
     expect(copiedText).toContain("original_scan.pdf");
     expect(copiedText).toContain("typeset_vector.pdf");
     expect(copiedText).toContain("Diakritikum (Makron/Akzent)");
@@ -319,7 +321,8 @@ describe("PdfDualViewer", () => {
     const wrapper = mount(PdfDualViewer);
     const vm = wrapper.vm as any;
 
-    const mdContent = "# Scholarly Chapter\n\nSanskrit saṃskṛtam text with **bold** formatting.";
+    const mdContent =
+      "# Scholarly Chapter\n\nSanskrit saṃskṛtam text with **bold** formatting.";
     await vm.loadMarkdown("left", "/path/to/chapter1.md", mdContent);
 
     expect(vm.leftDocKind).toBe("markdown");
@@ -342,7 +345,11 @@ describe("PdfDualViewer", () => {
     expect(vm.leftViewType).toBe("raw");
 
     // Load another markdown in right slot
-    await vm.loadMarkdown("right", "/path/to/chapter2.md", "## Secondary Notes");
+    await vm.loadMarkdown(
+      "right",
+      "/path/to/chapter2.md",
+      "## Secondary Notes",
+    );
     expect(vm.rightDocKind).toBe("markdown");
     expect(vm.rightPdfName).toBe("chapter2.md");
     expect(vm.rightMarkdownHtml).toContain("Secondary Notes");
@@ -381,12 +388,12 @@ describe("PdfDualViewer", () => {
     await vm.loadMarkdown(
       "left",
       "/docs/edition_a.md",
-      "# Lektion 1\n\nDas Wort samskrtam ist schön und uralt."
+      "# Lektion 1\n\nDas Wort samskrtam ist schön und uralt.",
     );
     await vm.loadMarkdown(
       "right",
       "/docs/edition_b.md",
-      "# Lektion 1\n\nDas Wort saṃskṛtam ist schön und alt."
+      "# Lektion 1\n\nDas Wort saṃskṛtam ist schön und alt.",
     );
 
     expect(vm.canShowDiff).toBe(true);
@@ -429,7 +436,10 @@ describe("PdfDualViewer", () => {
     const vm = wrapper.vm as any;
 
     await vm.loadMarkdown("left", "/docs/left.md", "# Links");
-    await vm.loadBrowserPdfFile("right", new File(["%PDF-1.4"], "right.pdf", { type: "application/pdf" }));
+    await vm.loadBrowserPdfFile(
+      "right",
+      new File(["%PDF-1.4"], "right.pdf", { type: "application/pdf" }),
+    );
 
     expect(vm.leftDocKind).toBe("markdown");
     expect(vm.rightDocKind).toBe("pdf");
@@ -443,7 +453,10 @@ describe("PdfDualViewer", () => {
     expect(vm.rightMarkdownContent).toBe("# Links");
 
     // Loading a PDF into the Markdown slot resets docKind back to pdf
-    await vm.loadBrowserPdfFile("right", new File(["%PDF-1.4"], "override.pdf", { type: "application/pdf" }));
+    await vm.loadBrowserPdfFile(
+      "right",
+      new File(["%PDF-1.4"], "override.pdf", { type: "application/pdf" }),
+    );
     expect(vm.rightDocKind).toBe("pdf");
     expect(vm.rightMarkdownContent).toBe("");
     expect(vm.rightMarkdownHtml).toBe("");
