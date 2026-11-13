@@ -4,6 +4,14 @@ title: Release Notes
 
 # 🚀 Zentauri Release Notes
 
+### ZenTauri v2.0.0
+- **3-Work-Modes-Architektur (`⌘1` / `⌘2` / `⌘3`):** Einführung des dedizierten Modus-Umschalters zwischen Markdown Authoring (Modus 1), Synoptischer Master-JSON-Edition (Modus 2) und Dual PDF & Markdown QA / Kollationierung (Modus 3) inklusive StatusBar-Anzeige und isolierten Tastenkürzeln.
+- **Synoptischer Master-JSON-Editor (`SynopticView.vue`, Modus 2):** Split-Pane-Bearbeitung von `book.json`-Editionen parallel zu historischen Scan-PDFs (`hayro_svg`) mit Segmentnavigation (`⌘↑`/`⌘↓`), Devanāgarī-/IAST-/Apparat-Feldern, Snippet-Leiste und Speichern via `⌘S`.
+- **Dual-Markdown-Vergleich & Philologischer Kollations-Diff (`diffCollation.ts`, Modus 3):** Paralleler Vergleich zweier Markdown-Dateien (Gerendert & Quelltext) mit Wort- und Zeichen-Diff für Diakritika bei Erhalt der Markdown-Syntax, begrenztem Myers-Diff (`MAX_MYERS_D`) und sicherem Link-Handling.
+- **Bounding-Box-Annotationen & AI Review Prompt (Modus 3):** Normalisierte Markierungsrahmen auf PDF-Seiten zeichnen, im Proofing-Drawer verwalten, als JSON exportieren oder als strukturierten 1-Klick AI Review Prompt (inkl. Kollationsstatistik) in die Zwischenablage kopieren.
+
+---
+
 ### ZenTauri v1.9.1
 - **Synchrones Mermaid-Rendering via Pele (`pele.run`):** Vollständige Ablösung der 2,5 MB schweren `mermaid`-Bibliothek durch den abhängigkeitsfreien Renderer `pele` (`^1.13.0`). Diagramme werden verzögerungsfrei synchron direkt in der `markdown-it`-Pipeline kompiliert – ohne asynchrone DOM-Races oder Debounce-Verzögerungen.
 - **Bundle-Verschlankung (~2,5 MB Ersparnis):** Über 80 Unterpakete und 20+ asynchrone Vendor-Chunks entfernt, wodurch Ladezeiten und Speicherbedarf signifikant sinken.

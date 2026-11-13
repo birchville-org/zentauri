@@ -2,6 +2,8 @@
 import { invoke } from "@tauri-apps/api/core";
 import { computed, onBeforeUpdate, ref } from "vue";
 import WorkspaceFolderSection from "./WorkspaceFolderSection.vue";
+import type { WorkMode } from "../types/workMode";
+import type { SynopticState } from "./SynopticView.vue";
 
 export interface OpenPdfItem {
   slot: "left" | "right";
@@ -10,20 +12,32 @@ export interface OpenPdfItem {
   path: string;
   pageCount?: number;
   currentPage?: number;
+  kind?: "pdf" | "markdown";
+  content?: string;
 }
 
-const props = defineProps<{
-  rootPath?: string | null;
-  rootPaths?: string[];
-  activePath?: string;
-  openTabs?: { id: string; path: string; title: string; content: string }[];
-  openPdfs?: OpenPdfItem[];
-}>();
+const props = withDefaults(
+  defineProps<{
+    rootPath?: string | null;
+    rootPaths?: string[];
+    activePath?: string;
+    openTabs?: { id: string; path: string; title: string; content: string }[];
+    openPdfs?: OpenPdfItem[];
+    synopticState?: SynopticState;
+    workMode?: WorkMode;
+  }>(),
+  {
+    workMode: "markdown",
+  }
+);
 
 const emit = defineEmits<{
   (e: "select", path: string): void;
   (e: "select-pdf", item: OpenPdfItem): void;
   (e: "close-pdf", slot: "left" | "right"): void;
+  (e: "open-pdf-slot", slot: "left" | "right"): void;
+  (e: "select-synoptic-json"): void;
+  (e: "select-synoptic-scan"): void;
   (e: "open-folder"): void;
   (e: "open-file"): void;
   (e: "remove-folder", folderPath: string): void;
@@ -58,7 +72,24 @@ const displayOpenTabs = computed(() => {
 
 const isOpenEditorsExpanded = ref(true);
 const isOpenPdfsExpanded = ref(true);
+const isOpenSynopticExpanded = ref(true);
 const quickFilter = ref("");
+
+const hasActiveModeItems = computed(() => {
+  if (computedRootPaths.value.length > 0) return true;
+  if (props.workMode === "markdown") {
+    return displayOpenTabs.value.length > 0;
+  }
+  if (props.workMode === "pdf-qa") {
+    return Boolean(props.openPdfs && props.openPdfs.length > 0);
+  }
+  if (props.workMode === "synoptic") {
+    return Boolean(
+      props.synopticState?.jsonPath || props.synopticState?.scanPath,
+    );
+  }
+  return false;
+});
 
 const formatPdfPath = (path: string) => {
   if (!path) return "";
@@ -198,9 +229,9 @@ defineExpose({
       </div>
     </div>
 
-    <!-- Quick Filter Input Bar (Pinned at top when workspace/tabs present) -->
+    <!-- Quick Filter Input Bar (Pinned at top when workspace/active items present) -->
     <div 
-      v-if="computedRootPaths.length > 0 || displayOpenTabs.length > 0 || (props.openPdfs && props.openPdfs.length > 0)" 
+      v-if="hasActiveModeItems" 
       class="px-2 py-1.5 border-b border-app-border/60 bg-app-bg-secondary flex items-center gap-1.5 shrink-0 z-10"
     >
       <div class="relative w-full flex items-center">
@@ -220,37 +251,82 @@ defineExpose({
     </div>
     
     <div class="flex-1 py-2 flex flex-col gap-1 overflow-x-auto overflow-y-auto min-w-0 custom-scrollbar">
-      <!-- Big Welcome/Empty State when no workspace is open and no files are loaded -->
-      <div v-if="computedRootPaths.length === 0 && displayOpenTabs.length === 0 && (!props.openPdfs || props.openPdfs.length === 0)" class="px-4 py-8 flex flex-col gap-3">
-        <div class="text-center mb-1">
-          <p class="text-xs text-app-text-muted leading-relaxed">No folder opened in workspace.</p>
-        </div>
-        <button 
-          @click="$emit('open-folder')"
-          class="w-full py-2 px-4 bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium rounded-md transition-colors shadow-sm cursor-pointer flex items-center justify-center gap-2"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
-          Open Folder
-        </button>
-        <button 
-          @click="$emit('open-file')"
-          class="w-full py-2 px-4 bg-app-bg-secondary hover:bg-app-bg text-app-text text-sm font-medium rounded-md border border-app-border transition-colors shadow-sm cursor-pointer flex items-center justify-center gap-2"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
-          Open File
-        </button>
+      <!-- Big Welcome/Empty State when no workspace is open and no active mode items exist -->
+      <div v-if="!hasActiveModeItems" class="px-4 py-8 flex flex-col gap-3">
+        <!-- Markdown Authoring Empty State -->
+        <template v-if="workMode === 'markdown'">
+          <div class="text-center mb-1">
+            <p class="text-xs text-app-text-muted leading-relaxed">No folder opened in workspace.</p>
+          </div>
+          <button 
+            @click="$emit('open-folder')"
+            class="w-full py-2 px-4 bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium rounded-md transition-colors shadow-sm cursor-pointer flex items-center justify-center gap-2"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+            Open Folder
+          </button>
+          <button 
+            @click="$emit('open-file')"
+            class="w-full py-2 px-4 bg-app-bg-secondary hover:bg-app-bg text-app-text text-sm font-medium rounded-md border border-app-border transition-colors shadow-sm cursor-pointer flex items-center justify-center gap-2"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+            Open File
+          </button>
+        </template>
+
+        <!-- Synoptic Edition Empty State -->
+        <template v-else-if="workMode === 'synoptic'">
+          <div class="text-center mb-1">
+            <p class="text-xs text-app-text-muted leading-relaxed">Keine synoptische Edition geöffnet.</p>
+          </div>
+          <button 
+            @click="$emit('select-synoptic-json')"
+            class="w-full py-2 px-4 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium rounded-md transition-colors shadow-sm cursor-pointer flex items-center justify-center gap-2"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+            Master-JSON öffnen
+          </button>
+          <button 
+            @click="$emit('open-folder')"
+            class="w-full py-2 px-4 bg-app-bg-secondary hover:bg-app-bg text-app-text text-sm font-medium rounded-md border border-app-border transition-colors shadow-sm cursor-pointer flex items-center justify-center gap-2"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+            Workspace-Ordner öffnen
+          </button>
+        </template>
+
+        <!-- Dual PDF & Markdown QA Empty State -->
+        <template v-else-if="workMode === 'pdf-qa'">
+          <div class="text-center mb-1">
+            <p class="text-xs text-app-text-muted leading-relaxed">Keine Dokumente für den Vergleich geladen.</p>
+          </div>
+          <button 
+            @click="$emit('open-pdf-slot', 'left')"
+            class="w-full py-2 px-4 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium rounded-md transition-colors shadow-sm cursor-pointer flex items-center justify-center gap-2"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+            + Dokument (Links)
+          </button>
+          <button 
+            @click="$emit('open-folder')"
+            class="w-full py-2 px-4 bg-app-bg-secondary hover:bg-app-bg text-app-text text-sm font-medium rounded-md border border-app-border transition-colors shadow-sm cursor-pointer flex items-center justify-center gap-2"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+            Workspace-Ordner öffnen
+          </button>
+        </template>
       </div>
 
       <div v-else class="min-w-full flex flex-col">
-        <!-- Open PDFs Section (Dual PDF QA) -->
-        <div v-if="openPdfs && openPdfs.length > 0" class="mb-2 min-w-full flex flex-col">
+        <!-- Open Documents Section (Vergleich & QA - Nur in Modus 3) -->
+        <div v-if="workMode === 'pdf-qa' && openPdfs && openPdfs.length > 0" class="mb-2 min-w-full flex flex-col">
           <div 
             class="px-2 py-1.5 text-xs font-bold uppercase tracking-wider text-app-text-muted flex justify-between items-center group/section cursor-pointer select-none bg-app-bg-secondary hover:bg-app-bg transition-colors border-y border-app-border sticky left-0 z-[5] w-full" 
             @click="isOpenPdfsExpanded = !isOpenPdfsExpanded"
           >
             <div class="flex items-center gap-1.5">
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="transition-transform opacity-80" :class="{'rotate-[-90deg]': !isOpenPdfsExpanded}"><polyline points="6 9 12 15 18 9"></polyline></svg>
-              <span class="text-amber-600 dark:text-amber-400">Open PDFs</span>
+              <span class="text-amber-600 dark:text-amber-400">Vergleichs-Dokumente</span>
               <span class="text-[10px] font-medium opacity-60">({{ openPdfs.length }})</span>
             </div>
           </div>
@@ -268,6 +344,12 @@ defineExpose({
                 <div class="flex items-center gap-1.5 min-w-0 pr-2">
                   <span class="px-1 py-0.2 rounded text-[10px] font-mono font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 shrink-0">
                     {{ pdf.slotLabel }}
+                  </span>
+                  <span
+                    class="px-1 py-0.2 rounded text-[9px] font-mono font-bold shrink-0"
+                    :class="pdf.kind === 'markdown' ? 'bg-sky-500/15 text-sky-600 dark:text-sky-400 border border-sky-500/30' : 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30'"
+                  >
+                    {{ pdf.kind === 'markdown' ? 'MD' : 'PDF' }}
                   </span>
                   <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-amber-600 dark:text-amber-400 shrink-0">
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
@@ -314,8 +396,56 @@ defineExpose({
           </div>
         </div>
 
-        <!-- Open Editors Section (Querbalken 1) -->
-        <div v-if="displayOpenTabs && displayOpenTabs.length > 0" class="mb-2 min-w-full flex flex-col">
+        <!-- Synoptic Edition Section (Modus 2) -->
+        <div v-if="workMode === 'synoptic'" class="mb-2 min-w-full flex flex-col">
+          <div 
+            class="px-2 py-1.5 text-xs font-bold uppercase tracking-wider text-app-text-muted flex justify-between items-center group/section cursor-pointer select-none bg-app-bg-secondary hover:bg-app-bg transition-colors border-y border-app-border sticky left-0 z-[5] w-full" 
+            @click="isOpenSynopticExpanded = !isOpenSynopticExpanded"
+          >
+            <div class="flex items-center gap-1.5">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="transition-transform opacity-80" :class="{'rotate-[-90deg]': !isOpenSynopticExpanded}"><polyline points="6 9 12 15 18 9"></polyline></svg>
+              <span class="text-amber-600 dark:text-amber-400">Synoptic Edition</span>
+            </div>
+          </div>
+          
+          <div v-show="isOpenSynopticExpanded" class="flex flex-col py-1 min-w-full w-max">
+            <!-- Master-JSON Item -->
+            <div 
+              @click="$emit('select-synoptic-json')"
+              class="flex items-center justify-between px-2 py-1 text-[13px] cursor-pointer hover:bg-app-bg transition-colors group/json border-l-2 border-l-amber-500/60 hover:border-l-amber-500 min-w-full"
+              :title="synopticState?.jsonPath || 'Master-JSON öffnen'"
+            >
+              <div class="flex items-center gap-1.5 min-w-0 pr-2">
+                <span class="px-1 py-0.2 rounded text-[10px] font-mono font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 shrink-0">
+                  JSON
+                </span>
+                <span class="truncate text-app-text font-medium text-[12px] group-hover/json:text-amber-600 dark:group-hover/json:text-amber-400 transition-colors">
+                  {{ synopticState?.jsonTitle || 'book.json' }}
+                </span>
+                <span v-if="synopticState?.isDirty" class="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" title="Ungespeicherte Änderungen"></span>
+              </div>
+            </div>
+
+            <!-- Scan-PDF Item -->
+            <div 
+              @click="$emit('select-synoptic-scan')"
+              class="flex items-center justify-between px-2 py-1 text-[13px] cursor-pointer hover:bg-app-bg transition-colors group/scan border-l-2 border-l-transparent hover:border-l-amber-500/50 min-w-full"
+              :title="synopticState?.scanPath || 'Scan-PDF zuordnen'"
+            >
+              <div class="flex items-center gap-1.5 min-w-0 pr-2">
+                <span class="px-1 py-0.2 rounded text-[10px] font-mono font-bold bg-slate-500/15 text-app-text-secondary border border-app-border shrink-0">
+                  SCAN
+                </span>
+                <span class="truncate text-app-text-muted text-[12px] group-hover/scan:text-app-text transition-colors" :class="{'italic': !synopticState?.scanFileName}">
+                  {{ synopticState?.scanFileName || '+ Scan-PDF zuordnen...' }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Open Editors Section (Markdown Authoring - Modus 1) -->
+        <div v-if="workMode === 'markdown' && displayOpenTabs && displayOpenTabs.length > 0" class="mb-2 min-w-full flex flex-col">
           <div 
             class="px-2 py-1.5 text-xs font-bold uppercase tracking-wider text-app-text-muted flex justify-between items-center group/section cursor-pointer select-none bg-app-bg-secondary hover:bg-app-bg transition-colors border-y border-app-border sticky left-0 z-[5] w-full" 
             @click="isOpenEditorsExpanded = !isOpenEditorsExpanded"

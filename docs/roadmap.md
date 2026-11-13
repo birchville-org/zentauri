@@ -19,12 +19,14 @@ This document provides transparent tracking of features currently in development
 | **Duplicate File & Repeat Command**| ✅ **Active (v1.8.1)** | v1.8.1 | Native file duplication (`⌘⇧D`) and command repetition (`⌘Y` / `Ctrl+Y`) with undo sync |
 | **Harvard-Kyoto & IAST Hotkeys** | ✅ **Active (v1.2.0)** | v1.2.0 | Bidirectional shortcuts `⌥⌘D` & `⌥⌘H` with tag-safe directive isolation |
 | **Academic Footnotes & Deflists** | ✅ **Active (v1.2.0)** | v1.2.0 | Standard `[^1]` footnotes and `Term\n: Definition` lists via markdown-it |
-| **Dual PDF QA Annotations & AI** | 📋 **Backlog / Conceived** | v2.0.0 | Bounding-box annotation overlay on SVG pages & 1-click clipboard prompt for web LLMs |
+| **Dual PDF QA Annotations & AI** | ✅ **Active** | v2.0.0 | Bounding-box annotation overlay on SVG pages, JSON export & 1-click AI Review Prompt |
+| **Dual Markdown & Collation Diff** | ✅ **Active** | v2.0.0 | Side-by-side Markdown comparison (rendered & source) with word/character diacritic diff |
+| **Synoptic Master-JSON (Mode 2)** | ✅ **Active (Core)** | v2.0.0 | Split-pane editor for `book.json` editions alongside PDF scans (`⌘S`, `⌘↑`/`⌘↓`) |
 | **In-Editor Live IME (Stage 2)** | 📋 **Backlog / Conceived** | v2.0.0 | CodeMirror live conversion inside `《...》` and compose sequences in prose |
 | **Knowledge Graph & Wikilinks** | 📋 **Backlog / Parked** | v2.0.0 | Re-integration of interactive graph, `[[` fuzzy autocomplete, and Cmd+Click navigation |
 | **Synchronous Diagrams (Pele)** | 📋 **Backlog / Evaluation** | v2.0.0 | Zero-lag synchronous Mermaid-compatible renderer via `pele.run` (~2.5 MB bundle reduction) |
 | **DOCX Export & CriticMarkup** | 📋 **Backlog / Conceived** | v2.1.0 | Scholarly `.docx` export template and CodeMirror CriticMarkup track-changes visualization |
-| **Synoptic Master-JSON (Mode 2)** | 📋 **Backlog / Conceived** | v2.1.0 | Split-pane editor for scanned editions (`book.json` AST format from Bṛhadāraṇyaka) |
+| **TEI-P5 Export (Mode 2)** | 📋 **Backlog / Conceived** | v2.1.0 | Automated Rust compilation from `book.json` Master-JSON to TEI-P5 XML and Typst-PDF |
 | **QA Reference Dual-Pane** | 📋 **Backlog / Parked (v1.3.0)** | v2.2.0 | Text-based dual-pane comparison (parked in v1.3.0 in favor of Mode 3: Dual PDF QA) |
 
 ---
@@ -72,32 +74,36 @@ This document provides transparent tracking of features currently in development
 
 ---
 
-## 4. Dual PDF QA & Proofing (Work-Mode 3)
+## 4. Dual PDF & Markdown QA / Proofing (Work-Mode 3)
 
-- **Status:** ✅ **Core Vector Viewer Active (v1.7.0+)** / 📋 **Visual Proofing & AI Bridge in Backlog (v2.0.0)**
-- **Goal:** Comprehensive side-by-side collation and AI-assisted proofing of re-typeset editions against historical reference PDFs.
+- **Status:** ✅ **Active (Vector Viewer, Dual Markdown, Collation Diff, Bounding-Box Annotations & AI Prompt)** / 📋 **Flattened PDF Export in Backlog**
+- **Goal:** Comprehensive side-by-side collation and AI-assisted proofing of re-typeset editions against historical reference PDFs or Markdown sources.
 
-### Active Core Features (v1.7.0+):
+### Active Features:
 - **High-Fidelity Vector Rendering:** Direct SVG rendering of PDF pages via `hayro_svg` in Rust with ID isolation and sharp zooming.
 - **Synchronous Dual-Viewer:** Percentage-based and page-lockstep synchronized scrolling, SWAP toggle, and fit-width modes.
+- **Dual Markdown & Philological Collation Diff:** Side-by-side Markdown comparison (rendered & raw source) with word- and character-level diacritic highlighting (`diffCollation.ts`).
+- **Normalized Overlay & Bounding Boxes:** Click-and-drag box annotations on rendered SVG vector pages with Proofing Drawer and JSON export.
+- **Web-First AI Prompt Generator:** 1-click clipboard prompt containing document metadata, bounding-box findings, and collation diff stats for Claude/ChatGPT/Gemini.
 - **System Launch & File Associations:** Direct file launch from macOS Finder and CLI (`open -a ZenTauri --args file1.pdf file2.pdf`).
 
-### Planned Proofing Extensions (Target: v2.0.0):
-1. **Normalized Overlay & Bounding Boxes:** Click-and-drag box annotations on rendered SVG vector pages (`hayro_svg`) with relative percentage coordinates.
-2. **Web-First AI Prompt Generator:** 1-click clipboard prompt containing source Markdown and structured correction table for Claude/ChatGPT/Gemini Web.
-3. **Annotated PDF Export & Automation:** Direct export of flattened PDF with visual annotations and optional local Ollama diff-patching.
+### Planned Proofing Extensions:
+1. **Annotated PDF Export & Automation:** Direct export of flattened PDF with embedded visual annotations and optional local Ollama diff-patching.
 
 ---
 
 ## 5. Synoptic Master-JSON Editor (Work-Mode 2)
 
-- **Status:** Backlog / Conceived (Inspired by the Bṛhadāraṇyaka-Upaniṣad edition project)
+- **Status:** ✅ **Active Core Split-Pane Editor (`SynopticView.vue`)** / 📋 **TEI-P5 & Typst Export Pipeline Planned**
 - **Goal:** Segmented, split-pane editing of scanned historical editions (`book.json` / AST format) without requiring error-prone manual TEI-XML markup.
 
+### Active Features:
+1. **Split-Pane Scan Alignment:** Historical PDF scan on the left, structured segment entry on the right (`⌘S` save, `⌘↑`/`⌘↓` segment navigation).
+2. **Field-Based Segments:** Dedicated inputs for Devanāgarī, IAST, translations, and philological apparatus with bidirectional Sanskrit transliteration.
+
 ### Planned Features:
-1. **Split-Pane Scan Alignment:** Synchronized historical PDF scan on the left, structured segment entry on the right.
-2. **Field-Based Segments:** Dedicated inputs for Devanāgarī, IAST, translations, critical variants (Slaje vs. Böhtlingk), and philological commentary.
-3. **Automated Export Pipeline:** Native Rust compilation from Master-JSON into standard TEI-P5 XML and Typst-PDF.
+1. **Automated Export Pipeline:** Native Rust compilation from Master-JSON into standard TEI-P5 XML and Typst-PDF.
+2. **Silent Auto-Repair & Validation:** Automatic normalization of quotation marks, dandas, and JSON structure on save.
 
 ---
 

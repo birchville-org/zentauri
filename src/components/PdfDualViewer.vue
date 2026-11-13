@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
+import { readTextFile } from "@tauri-apps/plugin-fs";
+import { openUrl } from "@tauri-apps/plugin-opener";
+import { renderMarkdown } from "../lib/markdown";
+import { computeCollationDiff, type CollationResult } from "../lib/diffCollation";
 import {
   computed,
   nextTick,
@@ -34,19 +38,83 @@ function cleanupPages(pages: PageItem[]) {
   }
 }
 
+export type CompareDocKind = "pdf" | "markdown";
+
 export interface OpenPdfDoc {
   slot: "left" | "right";
   slotLabel: string;
+  kind?: CompareDocKind;
   name: string;
   path: string;
   pageCount: number;
   currentPage: number;
+  content?: string;
+}
+
+export type AnnotationType =
+  | "typo"
+  | "diacritic"
+  | "layout"
+  | "ocr"
+  | "omission"
+  | "general";
+
+export interface PdfAnnotation {
+  id: string;
+  slot: "left" | "right";
+  pageIndex: number; // 0-based
+  x: number; // percentage (0 - 100)
+  y: number; // percentage (0 - 100)
+  width: number; // percentage (0 - 100)
+  height: number; // percentage (0 - 100)
+  type: AnnotationType;
+  note: string;
+  createdAt: number;
 }
 
 const emit = defineEmits<{
   (e: "close"): void;
   (e: "update-docs", docs: OpenPdfDoc[]): void;
 }>();
+
+// Annotation & Proofing State
+const annotations = ref<PdfAnnotation[]>([]);
+const isAnnotateMode = ref<boolean>(false);
+const showProofingDrawer = ref<boolean>(false);
+const selectedAnnotationId = ref<string | null>(null);
+const drawerSlotFilter = ref<"all" | "left" | "right">("all");
+const filteredDrawerAnnotations = computed(() => {
+  if (drawerSlotFilter.value === "all") return annotations.value;
+  return annotations.value.filter((a) => a.slot === drawerSlotFilter.value);
+});
+const toastMessage = ref<string | null>(null);
+const noteInputRef = ref<HTMLTextAreaElement | null>(null);
+
+// In-progress Drawing State
+interface DrawingTarget {
+  slot: "left" | "right";
+  pageIndex: number;
+  card: HTMLElement;
+}
+const activeDrawingTarget = ref<DrawingTarget | null>(null);
+const drawStart = ref<{ x: number; y: number } | null>(null);
+const drawCurrent = ref<{ x: number; y: number; width: number; height: number } | null>(null);
+
+// Pending Annotation Popover
+const pendingAnnotation = ref<{
+  slot: "left" | "right";
+  pageIndex: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+} | null>(null);
+const newAnnotationType = ref<AnnotationType>("typo");
+const newAnnotationNote = ref<string>("");
+
+const isTauri = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
+const leftBrowserPdfUrl = ref<string | null>(null);
+const rightBrowserPdfUrl = ref<string | null>(null);
 
 // Sync Mode: 'percentage' | 'page' | 'off'
 type SyncMode = "percentage" | "page" | "off";
@@ -68,8 +136,12 @@ const isResizingSplit = ref<boolean>(false);
 const hoveredPane = ref<"left" | "right">("left");
 
 // Left Document State
+const leftDocKind = ref<CompareDocKind>("pdf");
 const leftPdfPath = ref<string>("");
 const leftPdfName = ref<string>("");
+const leftMarkdownContent = ref<string>("");
+const leftMarkdownHtml = ref<string>("");
+const leftViewType = ref<"rendered" | "raw">("rendered");
 const leftPageCount = ref<number>(0);
 const leftPages = ref<PageItem[]>([]);
 const leftCurrentPage = ref<number>(1);
@@ -77,13 +149,48 @@ const leftLoading = ref<boolean>(false);
 const leftError = ref<string | null>(null);
 
 // Right Document State
+const rightDocKind = ref<CompareDocKind>("pdf");
 const rightPdfPath = ref<string>("");
 const rightPdfName = ref<string>("");
+const rightMarkdownContent = ref<string>("");
+const rightMarkdownHtml = ref<string>("");
+const rightViewType = ref<"rendered" | "raw">("rendered");
 const rightPageCount = ref<number>(0);
 const rightPages = ref<PageItem[]>([]);
 const rightCurrentPage = ref<number>(1);
 const rightLoading = ref<boolean>(false);
 const rightError = ref<string | null>(null);
+
+// Philological Collation / Diff State
+const isDiffActive = ref<boolean>(false);
+const diffResult = ref<CollationResult | null>(null);
+
+const canShowDiff = computed(() => {
+  return (
+    leftDocKind.value === "markdown" &&
+    rightDocKind.value === "markdown" &&
+    !!leftMarkdownContent.value &&
+    !!rightMarkdownContent.value
+  );
+});
+
+function updateCollationDiff() {
+  if (canShowDiff.value && isDiffActive.value) {
+    diffResult.value = computeCollationDiff(
+      leftMarkdownContent.value,
+      rightMarkdownContent.value,
+    );
+  } else {
+    diffResult.value = null;
+  }
+}
+
+watch(
+  [isDiffActive, leftMarkdownContent, rightMarkdownContent, canShowDiff],
+  () => {
+    updateCollationDiff();
+  },
+);
 
 // DOM references
 const leftScrollContainer = ref<HTMLDivElement | null>(null);
@@ -144,20 +251,24 @@ function emitDocsUpdate() {
     list.push({
       slot: "left",
       slotLabel: "[1] Ref",
+      kind: leftDocKind.value,
       name: leftPdfName.value,
       path: leftPdfPath.value,
       pageCount: leftPageCount.value,
       currentPage: leftCurrentPage.value,
+      content: leftMarkdownContent.value,
     });
   }
   if (rightPdfPath.value) {
     list.push({
       slot: "right",
       slotLabel: "[2] Comp",
+      kind: rightDocKind.value,
       name: rightPdfName.value,
       path: rightPdfPath.value,
       pageCount: rightPageCount.value,
       currentPage: rightCurrentPage.value,
+      content: rightMarkdownContent.value,
     });
   }
   emit("update-docs", list);
@@ -173,8 +284,15 @@ function unloadPdf(target: "left" | "right") {
   if (target === "left") {
     leftLoadToken++;
     cleanupPages(leftPages.value);
+    if (leftBrowserPdfUrl.value) {
+      URL.revokeObjectURL(leftBrowserPdfUrl.value);
+      leftBrowserPdfUrl.value = null;
+    }
+    leftDocKind.value = "pdf";
     leftPdfPath.value = "";
     leftPdfName.value = "";
+    leftMarkdownContent.value = "";
+    leftMarkdownHtml.value = "";
     leftPageCount.value = 0;
     leftPages.value = [];
     leftCurrentPage.value = 1;
@@ -183,8 +301,15 @@ function unloadPdf(target: "left" | "right") {
   } else {
     rightLoadToken++;
     cleanupPages(rightPages.value);
+    if (rightBrowserPdfUrl.value) {
+      URL.revokeObjectURL(rightBrowserPdfUrl.value);
+      rightBrowserPdfUrl.value = null;
+    }
+    rightDocKind.value = "pdf";
     rightPdfPath.value = "";
     rightPdfName.value = "";
+    rightMarkdownContent.value = "";
+    rightMarkdownHtml.value = "";
     rightPageCount.value = 0;
     rightPages.value = [];
     rightCurrentPage.value = 1;
@@ -194,35 +319,130 @@ function unloadPdf(target: "left" | "right") {
   emitDocsUpdate();
 }
 
-async function loadPdfFromExternal(path: string, slot?: "left" | "right") {
-  if (slot) {
-    await loadPdf(slot, path);
-    return;
+async function loadMarkdown(
+  target: "left" | "right",
+  path: string,
+  content?: string,
+) {
+  const name = path.split(/[/\\]/).pop() || "Document.md";
+  let text = content;
+  if (text === undefined) {
+    try {
+      if (isTauri) {
+        text = await readTextFile(path);
+      } else {
+        text = "";
+      }
+    } catch (e) {
+      console.error("Failed to read markdown file:", e);
+      text = "";
+    }
   }
-  if (!leftPdfPath.value) {
-    await loadPdf("left", path);
-  } else if (!rightPdfPath.value) {
-    await loadPdf("right", path);
+
+  if (target === "left") {
+    leftLoadToken++;
+    cleanupPages(leftPages.value);
+    if (leftBrowserPdfUrl.value) {
+      URL.revokeObjectURL(leftBrowserPdfUrl.value);
+      leftBrowserPdfUrl.value = null;
+    }
+    leftDocKind.value = "markdown";
+    leftPdfPath.value = path;
+    leftPdfName.value = name;
+    leftMarkdownContent.value = text || "";
+    leftMarkdownHtml.value = renderMarkdown(text || "", { sourceLines: true });
+    leftPageCount.value = 1;
+    leftCurrentPage.value = 1;
+    leftLoading.value = false;
+    leftError.value = null;
   } else {
-    await loadPdf(hoveredPane.value || "right", path);
+    rightLoadToken++;
+    cleanupPages(rightPages.value);
+    if (rightBrowserPdfUrl.value) {
+      URL.revokeObjectURL(rightBrowserPdfUrl.value);
+      rightBrowserPdfUrl.value = null;
+    }
+    rightDocKind.value = "markdown";
+    rightPdfPath.value = path;
+    rightPdfName.value = name;
+    rightMarkdownContent.value = text || "";
+    rightMarkdownHtml.value = renderMarkdown(text || "", { sourceLines: true });
+    rightPageCount.value = 1;
+    rightCurrentPage.value = 1;
+    rightLoading.value = false;
+    rightError.value = null;
+  }
+  emitDocsUpdate();
+}
+
+async function loadDocumentFromExternal(
+  path: string,
+  slot?: "left" | "right",
+  content?: string,
+) {
+  const isMd =
+    path.toLowerCase().endsWith(".md") ||
+    path.toLowerCase().endsWith(".markdown");
+  const targetSlot =
+    slot ||
+    (!leftPdfPath.value
+      ? "left"
+      : !rightPdfPath.value
+        ? "right"
+        : hoveredPane.value || "right");
+
+  if (isMd) {
+    await loadMarkdown(targetSlot, path, content);
+  } else {
+    await loadPdf(targetSlot, path);
   }
 }
 
-async function loadPdfPair(leftPath: string, rightPath?: string) {
+async function loadPdfFromExternal(path: string, slot?: "left" | "right") {
+  await loadDocumentFromExternal(path, slot);
+}
+
+async function loadDocumentPair(
+  leftPath: string,
+  rightPath?: string,
+  leftContent?: string,
+  rightContent?: string,
+) {
   const promises: Promise<void>[] = [];
+  const leftIsMd =
+    leftPath.toLowerCase().endsWith(".md") ||
+    leftPath.toLowerCase().endsWith(".markdown");
+
   if (leftPdfPath.value !== leftPath || leftError.value) {
-    promises.push(loadPdf("left", leftPath));
+    if (leftIsMd) {
+      promises.push(loadMarkdown("left", leftPath, leftContent));
+    } else {
+      promises.push(loadPdf("left", leftPath));
+    }
   }
+
   if (rightPath) {
+    const rightIsMd =
+      rightPath.toLowerCase().endsWith(".md") ||
+      rightPath.toLowerCase().endsWith(".markdown");
     if (rightPdfPath.value !== rightPath || rightError.value) {
-      promises.push(loadPdf("right", rightPath));
+      if (rightIsMd) {
+        promises.push(loadMarkdown("right", rightPath, rightContent));
+      } else {
+        promises.push(loadPdf("right", rightPath));
+      }
     }
   } else if (rightPdfPath.value) {
     unloadPdf("right");
   }
+
   if (promises.length > 0) {
     await Promise.all(promises);
   }
+}
+
+async function loadPdfPair(leftPath: string, rightPath?: string) {
+  await loadDocumentPair(leftPath, rightPath);
 }
 
 async function revealInFinder(path: string) {
@@ -243,26 +463,104 @@ function getDirectoryName(path: string): string {
   return parts.slice(-2).join("/"); // last 1-2 directories for compact display
 }
 
-async function pickPdf(target: "left" | "right") {
+async function pickDocument(target: "left" | "right") {
+  if (!isTauri) {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".pdf,.md,.markdown";
+    input.onchange = async (e: Event) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+      const isMd =
+        file.name.toLowerCase().endsWith(".md") ||
+        file.name.toLowerCase().endsWith(".markdown");
+      if (isMd) {
+        const text = await file.text();
+        await loadMarkdown(target, `browser://${file.name}`, text);
+      } else {
+        await loadBrowserPdfFile(target, file);
+      }
+    };
+    input.click();
+    return;
+  }
+
   try {
     const selected = await open({
       multiple: false,
       directory: false,
-      filters: [{ name: "PDF Document", extensions: ["pdf"] }],
+      filters: [
+        {
+          name: "Vergleichbare Dokumente (*.pdf, *.md)",
+          extensions: ["pdf", "md", "markdown"],
+        },
+        { name: "PDF Dokumente (*.pdf)", extensions: ["pdf"] },
+        { name: "Markdown Dokumente (*.md)", extensions: ["md", "markdown"] },
+        { name: "Alle Dateien", extensions: ["*"] },
+      ],
     });
 
     if (selected && typeof selected === "string") {
-      await loadPdf(target, selected);
+      const isMd =
+        selected.toLowerCase().endsWith(".md") ||
+        selected.toLowerCase().endsWith(".markdown");
+      if (isMd) {
+        await loadMarkdown(target, selected);
+      } else {
+        await loadPdf(target, selected);
+      }
     }
   } catch (err) {
-    console.error(`Failed to pick PDF for ${target}:`, err);
+    console.error(`Failed to pick document for ${target}:`, err);
   }
+}
+
+async function pickPdf(target: "left" | "right") {
+  await pickDocument(target);
+}
+
+async function loadBrowserPdfFile(target: "left" | "right", file: File) {
+  const blobUrl = URL.createObjectURL(file);
+  if (target === "left") {
+    if (leftBrowserPdfUrl.value) URL.revokeObjectURL(leftBrowserPdfUrl.value);
+    leftDocKind.value = "pdf";
+    leftMarkdownContent.value = "";
+    leftMarkdownHtml.value = "";
+    leftBrowserPdfUrl.value = blobUrl;
+    leftPdfName.value = file.name;
+    leftPdfPath.value = `browser://${file.name}`;
+    leftPageCount.value = 1;
+    leftCurrentPage.value = 1;
+    leftLoading.value = false;
+    leftError.value = null;
+  } else {
+    if (rightBrowserPdfUrl.value) URL.revokeObjectURL(rightBrowserPdfUrl.value);
+    rightDocKind.value = "pdf";
+    rightMarkdownContent.value = "";
+    rightMarkdownHtml.value = "";
+    rightBrowserPdfUrl.value = blobUrl;
+    rightPdfName.value = file.name;
+    rightPdfPath.value = `browser://${file.name}`;
+    rightPageCount.value = 1;
+    rightCurrentPage.value = 1;
+    rightLoading.value = false;
+    rightError.value = null;
+  }
+  emitDocsUpdate();
+  showToast(`${file.name} im Browser geladen.`);
 }
 
 async function loadPdf(target: "left" | "right", path: string) {
   if (target === "left") {
     leftLoadToken++;
     cleanupPages(leftPages.value);
+    if (leftBrowserPdfUrl.value) {
+      URL.revokeObjectURL(leftBrowserPdfUrl.value);
+      leftBrowserPdfUrl.value = null;
+    }
+    leftDocKind.value = "pdf";
+    leftMarkdownContent.value = "";
+    leftMarkdownHtml.value = "";
     leftPdfPath.value = path;
     leftLoading.value = true;
     leftError.value = null;
@@ -270,6 +568,13 @@ async function loadPdf(target: "left" | "right", path: string) {
   } else {
     rightLoadToken++;
     cleanupPages(rightPages.value);
+    if (rightBrowserPdfUrl.value) {
+      URL.revokeObjectURL(rightBrowserPdfUrl.value);
+      rightBrowserPdfUrl.value = null;
+    }
+    rightDocKind.value = "pdf";
+    rightMarkdownContent.value = "";
+    rightMarkdownHtml.value = "";
     rightPdfPath.value = path;
     rightLoading.value = true;
     rightError.value = null;
@@ -374,6 +679,11 @@ function handleSwap() {
   const tmpPages = leftPages.value;
   const tmpPage = leftCurrentPage.value;
   const tmpError = leftError.value;
+  const tmpDocKind = leftDocKind.value;
+  const tmpMdContent = leftMarkdownContent.value;
+  const tmpMdHtml = leftMarkdownHtml.value;
+  const tmpViewType = leftViewType.value;
+  const tmpBrowserPdfUrl = leftBrowserPdfUrl.value;
 
   leftPdfPath.value = rightPdfPath.value;
   leftPdfName.value = rightPdfName.value;
@@ -381,6 +691,11 @@ function handleSwap() {
   leftPages.value = rightPages.value;
   leftCurrentPage.value = rightCurrentPage.value;
   leftError.value = rightError.value;
+  leftDocKind.value = rightDocKind.value;
+  leftMarkdownContent.value = rightMarkdownContent.value;
+  leftMarkdownHtml.value = rightMarkdownHtml.value;
+  leftViewType.value = rightViewType.value;
+  leftBrowserPdfUrl.value = rightBrowserPdfUrl.value;
 
   rightPdfPath.value = tmpPath;
   rightPdfName.value = tmpName;
@@ -388,10 +703,39 @@ function handleSwap() {
   rightPages.value = tmpPages;
   rightCurrentPage.value = tmpPage;
   rightError.value = tmpError;
+  rightDocKind.value = tmpDocKind;
+  rightMarkdownContent.value = tmpMdContent;
+  rightMarkdownHtml.value = tmpMdHtml;
+  rightViewType.value = tmpViewType;
+  rightBrowserPdfUrl.value = tmpBrowserPdfUrl;
 
-  loadVisiblePages("left", leftCurrentPage.value - 1);
-  loadVisiblePages("right", rightCurrentPage.value - 1);
+  if (leftDocKind.value === "pdf" && leftPdfPath.value && !leftBrowserPdfUrl.value) {
+    loadVisiblePages("left", leftCurrentPage.value - 1);
+  }
+  if (rightDocKind.value === "pdf" && rightPdfPath.value && !rightBrowserPdfUrl.value) {
+    loadVisiblePages("right", rightCurrentPage.value - 1);
+  }
   emitDocsUpdate();
+}
+
+function handleMarkdownClick(event: MouseEvent) {
+  const target = event.target as HTMLElement | null;
+  const anchor = target?.closest("a");
+  if (!anchor) return;
+
+  const href = anchor.getAttribute("href");
+  if (!href) return;
+
+  if (href.startsWith("#")) return;
+
+  event.preventDefault();
+  if (href.startsWith("http://") || href.startsWith("https://") || href.startsWith("mailto:")) {
+    if (isTauri) {
+      openUrl(href).catch((err) => console.error("Fehler beim Öffnen des Links:", err));
+    } else {
+      window.open(href, "_blank", "noopener,noreferrer");
+    }
+  }
 }
 
 // Paging Navigation Methods
@@ -656,8 +1000,297 @@ function onSplitMouseUp() {
   window.removeEventListener("mouseup", onSplitMouseUp);
 }
 
+let toastTimer: ReturnType<typeof setTimeout> | null = null;
+function showToast(msg: string) {
+  toastMessage.value = msg;
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    toastMessage.value = null;
+  }, 3500);
+}
+
+function toggleAnnotateMode() {
+  isAnnotateMode.value = !isAnnotateMode.value;
+  if (isAnnotateMode.value) {
+    showToast("Annotation-Modus aktiviert: Ziehe eine Bounding-Box über Auffälligkeiten.");
+  }
+}
+
+function getAnnotationsForPage(slot: "left" | "right", pageIndex: number) {
+  return annotations.value.filter(
+    (a) => a.slot === slot && a.pageIndex === pageIndex,
+  );
+}
+
+function selectAnnotation(anno: PdfAnnotation) {
+  selectedAnnotationId.value = anno.id;
+}
+
+function deleteAnnotation(id: string) {
+  annotations.value = annotations.value.filter((a) => a.id !== id);
+  if (selectedAnnotationId.value === id) {
+    selectedAnnotationId.value = null;
+  }
+  showToast("Annotation gelöscht.");
+}
+
+function clearAllAnnotations() {
+  if (annotations.value.length === 0) return;
+  annotations.value = [];
+  selectedAnnotationId.value = null;
+  showToast("Alle Annotationen gelöscht.");
+}
+
+function jumpToAnnotation(anno: PdfAnnotation) {
+  selectedAnnotationId.value = anno.id;
+  goToPage(anno.slot, anno.pageIndex + 1);
+}
+
+function onPageMouseDown(
+  slot: "left" | "right",
+  pageIndex: number,
+  e: MouseEvent,
+) {
+  if (!isAnnotateMode.value) return;
+  const target = e.target as HTMLElement | null;
+  if (
+    target?.closest(".annotation-box") ||
+    target?.closest(".annotation-popover")
+  ) {
+    return;
+  }
+
+  const card =
+    ((e.currentTarget as HTMLElement) ||
+      target?.closest(".pdf-page-card")) as HTMLElement | null;
+  if (!card) return;
+  const rect = card.getBoundingClientRect();
+  if (rect.width <= 0 || rect.height <= 0) return;
+
+  const startX = ((e.clientX - rect.left) / rect.width) * 100;
+  const startY = ((e.clientY - rect.top) / rect.height) * 100;
+
+  activeDrawingTarget.value = { slot, pageIndex, card };
+  drawStart.value = { x: startX, y: startY };
+  drawCurrent.value = { x: startX, y: startY, width: 0, height: 0 };
+
+  window.addEventListener("mousemove", onDrawMouseMove);
+  window.addEventListener("mouseup", onDrawMouseUp);
+}
+
+function onDrawMouseMove(e: MouseEvent) {
+  if (!activeDrawingTarget.value || !drawStart.value) return;
+  const rect = activeDrawingTarget.value.card.getBoundingClientRect();
+  if (rect.width <= 0 || rect.height <= 0) return;
+
+  const clientX = Math.max(rect.left, Math.min(rect.right, e.clientX));
+  const clientY = Math.max(rect.top, Math.min(rect.bottom, e.clientY));
+
+  const currentX = ((clientX - rect.left) / rect.width) * 100;
+  const currentY = ((clientY - rect.top) / rect.height) * 100;
+
+  const x = Math.min(drawStart.value.x, currentX);
+  const y = Math.min(drawStart.value.y, currentY);
+  const width = Math.abs(currentX - drawStart.value.x);
+  const height = Math.abs(currentY - drawStart.value.y);
+
+  drawCurrent.value = { x, y, width, height };
+}
+
+function onDrawMouseUp() {
+  window.removeEventListener("mousemove", onDrawMouseMove);
+  window.removeEventListener("mouseup", onDrawMouseUp);
+
+  if (!activeDrawingTarget.value || !drawCurrent.value) {
+    activeDrawingTarget.value = null;
+    drawStart.value = null;
+    drawCurrent.value = null;
+    return;
+  }
+
+  const { slot, pageIndex } = activeDrawingTarget.value;
+  const { x, y, width, height } = drawCurrent.value;
+
+  activeDrawingTarget.value = null;
+  drawStart.value = null;
+  drawCurrent.value = null;
+
+  // Minimum threshold: 1.5% in width and height
+  if (width >= 1.5 && height >= 1.5) {
+    pendingAnnotation.value = {
+      slot,
+      pageIndex,
+      x: Math.round(x * 10) / 10,
+      y: Math.round(y * 10) / 10,
+      width: Math.round(width * 10) / 10,
+      height: Math.round(height * 10) / 10,
+    };
+    newAnnotationType.value = "typo";
+    newAnnotationNote.value = "";
+    nextTick(() => {
+      noteInputRef.value?.focus();
+    });
+  }
+}
+
+function savePendingAnnotation() {
+  if (!pendingAnnotation.value) return;
+  const newAnno: PdfAnnotation = {
+    id: `anno_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+    slot: pendingAnnotation.value.slot,
+    pageIndex: pendingAnnotation.value.pageIndex,
+    x: pendingAnnotation.value.x,
+    y: pendingAnnotation.value.y,
+    width: pendingAnnotation.value.width,
+    height: pendingAnnotation.value.height,
+    type: newAnnotationType.value,
+    note: newAnnotationNote.value.trim(),
+    createdAt: Date.now(),
+  };
+  annotations.value.push(newAnno);
+  selectedAnnotationId.value = newAnno.id;
+  pendingAnnotation.value = null;
+  newAnnotationNote.value = "";
+  showToast(`Annotation #${annotations.value.length} gespeichert.`);
+}
+
+function cancelPendingAnnotation() {
+  pendingAnnotation.value = null;
+  newAnnotationNote.value = "";
+}
+
+function getAnnotationTypeLabel(type: AnnotationType): string {
+  switch (type) {
+    case "typo":
+      return "Typo (Druckfehler)";
+    case "diacritic":
+      return "Diakritikum (Makron/Akzent)";
+    case "layout":
+      return "Layout & Umbruch";
+    case "ocr":
+      return "OCR-Artefakt";
+    case "omission":
+      return "Auslassung / Text fehlt";
+    case "general":
+    default:
+      return "Allgemeiner Hinweis";
+  }
+}
+
+async function copyAiReviewPrompt() {
+  const hasDiffs = diffResult.value && diffResult.value.stats.totalDiffs > 0;
+  if (annotations.value.length === 0 && !hasDiffs) {
+    showToast("Keine Annotationen oder Textabweichungen zum Generieren eines Prompts vorhanden.");
+    return;
+  }
+
+  const leftKind = leftDocKind.value === "markdown" ? "Markdown" : "PDF";
+  const rightKind = rightDocKind.value === "markdown" ? "Markdown" : "PDF";
+  const leftDoc = leftPdfName.value
+    ? `${leftPdfName.value} (${leftKind})`
+    : "Dokument 1 (Referenz)";
+  const rightDoc = rightPdfName.value
+    ? `${rightPdfName.value} (${rightKind})`
+    : "Dokument 2 (Vergleich)";
+
+  const lines = [
+    `# Dual Document QA & Proofing Review Report (${leftKind} ⇄ ${rightKind})`,
+    ``,
+    `## Dokument-Metadaten`,
+    `- Referenz (Links, ${leftKind}): ${leftDoc}`,
+    `- Vergleich (Rechts, ${rightKind}): ${rightDoc}`,
+    `- Gesamtzahl erfasster Korrekturbereiche: ${annotations.value.length}`,
+  ];
+
+  if (diffResult.value) {
+    lines.push(
+      `- Erfasste Kollations-Abweichungen (Wort- & Zeichen-Diff): ${diffResult.value.stats.totalDiffs} (Modifikationen: ${diffResult.value.stats.modifications}, Ergänzungen: ${diffResult.value.stats.additions}, Streichungen: ${diffResult.value.stats.deletions})`,
+    );
+  }
+
+  lines.push(``, `## Erfasste Abweichungen & Fehlerstellen`);
+
+  if (annotations.value.length > 0) {
+    annotations.value.forEach((a, idx) => {
+      const slotLabel =
+        a.slot === "left" ? "Links (Referenz)" : "Rechts (Vergleich)";
+      const typeLabel = getAnnotationTypeLabel(a.type);
+      lines.push(
+        `${idx + 1}. **[Seite ${a.pageIndex + 1} | ${slotLabel}] ${typeLabel}**`,
+        `   - Bounding-Box: x=${a.x}%, y=${a.y}%, breite=${a.width}%, höhe=${a.height}%`,
+        `   - Befund / Notiz: ${a.note ? a.note : "(Keine Detailnotiz)"}`,
+      );
+    });
+  } else if (diffResult.value) {
+    lines.push(
+      `1. **[Philologische Kollation] Wort- und Zeichenabweichungen**`,
+      `   - Erfasste Modifikationen: ${diffResult.value.stats.modifications}`,
+      `   - Ergänzungen: ${diffResult.value.stats.additions}`,
+      `   - Streichungen: ${diffResult.value.stats.deletions}`,
+    );
+  }
+
+  lines.push(
+    ``,
+    `## Korrektur-Anweisung für die KI`,
+    `Bitte führe anhand dieser QA-Befunde eine gezielte Korrektur des Quelltexts (Markdown / Typst / Master-JSON) durch:`,
+    `1. Behebe alle typografischen Fehler und OCR-Artefakte exakt an den angegebenen Positionen.`,
+    `2. Achte auf die strikte Einhaltung aller wissenschaftlichen Transliterationsstandards (IAST-Makrons und Devanāgarī-Diakritika).`,
+    `3. Bewahre die bestehende Text- und Vers-Gliederung unversehrt.`,
+  );
+
+  const fullPrompt = lines.join("\n");
+  try {
+    await navigator.clipboard.writeText(fullPrompt);
+    const countMsg = annotations.value.length > 0
+      ? `${annotations.value.length} Annotationen`
+      : `${diffResult.value?.stats.totalDiffs || 0} Textabweichungen`;
+    showToast(`AI Review Prompt mit ${countMsg} kopiert!`);
+  } catch (err) {
+    console.error("Clipboard write failed:", err);
+    showToast("Fehler beim Kopieren in die Zwischenablage.");
+  }
+}
+
+function exportAnnotationsJson() {
+  const data = JSON.stringify(
+    {
+      version: "1.0",
+      date: new Date().toISOString(),
+      leftDocument: {
+        name: leftPdfName.value,
+        path: leftPdfPath.value,
+        kind: leftDocKind.value,
+      },
+      rightDocument: {
+        name: rightPdfName.value,
+        path: rightPdfPath.value,
+        kind: rightDocKind.value,
+      },
+      annotations: annotations.value,
+    },
+    null,
+    2,
+  );
+
+  const blob = new Blob([data], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `qa-annotations-${Date.now()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast("Annotationen als JSON exportiert.");
+}
+
 function handleKeydown(e: KeyboardEvent) {
-  if (!containerRef.value || containerRef.value.offsetParent === null) {
+  if (
+    !containerRef.value ||
+    containerRef.value.style.display === "none" ||
+    (containerRef.value.offsetParent === null &&
+      !window.navigator.userAgent.includes("jsdom") &&
+      containerRef.value.isConnected)
+  ) {
     return;
   }
 
@@ -670,6 +1303,32 @@ function handleKeydown(e: KeyboardEvent) {
     targetEl?.isContentEditable
   ) {
     return;
+  }
+
+  if (e.key === "a" || e.key === "A") {
+    if (!e.metaKey && !e.ctrlKey && !e.altKey) {
+      e.preventDefault();
+      toggleAnnotateMode();
+      return;
+    }
+  } else if (e.key === "Escape") {
+    if (pendingAnnotation.value) {
+      cancelPendingAnnotation();
+      return;
+    }
+    if (isAnnotateMode.value) {
+      isAnnotateMode.value = false;
+      return;
+    }
+    if (selectedAnnotationId.value) {
+      selectedAnnotationId.value = null;
+      return;
+    }
+  } else if (e.key === "Delete" || e.key === "Backspace") {
+    if (selectedAnnotationId.value) {
+      deleteAnnotation(selectedAnnotationId.value);
+      return;
+    }
   }
 
   if (e.key === "ArrowLeft" || e.key === "PageUp") {
@@ -697,20 +1356,48 @@ onBeforeUnmount(() => {
   window.removeEventListener("keydown", handleKeydown);
   if (syncRaf) cancelAnimationFrame(syncRaf);
   if (activeScrollerTimer) clearTimeout(activeScrollerTimer);
+  if (toastTimer) clearTimeout(toastTimer);
   window.removeEventListener("mousemove", onSplitMouseMove);
   window.removeEventListener("mouseup", onSplitMouseUp);
+  window.removeEventListener("mousemove", onDrawMouseMove);
+  window.removeEventListener("mouseup", onDrawMouseUp);
   cleanupPages(leftPages.value);
   cleanupPages(rightPages.value);
+  if (leftBrowserPdfUrl.value) URL.revokeObjectURL(leftBrowserPdfUrl.value);
+  if (rightBrowserPdfUrl.value) URL.revokeObjectURL(rightBrowserPdfUrl.value);
 });
 
 defineExpose({
   loadPdf,
+  loadMarkdown,
+  loadDocumentFromExternal,
   loadPdfFromExternal,
+  loadDocumentPair,
   loadPdfPair,
   unloadPdf,
+  pickDocument,
+  pickPdf,
   revealInFinder,
   leftPdfPath,
   rightPdfPath,
+  leftDocKind,
+  rightDocKind,
+  leftMarkdownContent,
+  rightMarkdownContent,
+  leftMarkdownHtml,
+  rightMarkdownHtml,
+  leftViewType,
+  rightViewType,
+  annotations,
+  isAnnotateMode,
+  showProofingDrawer,
+  copyAiReviewPrompt,
+  isDiffActive,
+  canShowDiff,
+  diffResult,
+  addAnnotation: (anno: PdfAnnotation) => annotations.value.push(anno),
+  deleteAnnotation,
+  clearAllAnnotations,
 });
 </script>
 
@@ -745,10 +1432,10 @@ defineExpose({
             <line x1="16" y1="17" x2="8" y2="17"/>
             <polyline points="10 9 9 9 8 9"/>
           </svg>
-          DUAL PDF QA
+          VERGLEICH & QA
         </span>
         <span class="text-app-text-muted text-[11px] truncate hidden md:inline">
-          Vector Synchronous PDF Viewer
+          Dual Document Viewer (PDF & Markdown lesend)
         </span>
       </div>
 
@@ -888,8 +1575,96 @@ defineExpose({
         </button>
       </div>
 
-      <!-- Close / Back to Editor -->
-      <div class="flex items-center gap-1">
+      <!-- Proofing & AI QA Toolbar Controls -->
+      <div class="flex items-center gap-1.5">
+        <!-- Philological Diff / Collation Toggle (when both sides have Markdown) -->
+        <button
+          v-if="canShowDiff"
+          type="button"
+          @click="isDiffActive = !isDiffActive"
+          class="flex items-center gap-1.5 h-6 px-2 rounded transition-colors text-[11px] font-mono font-semibold cursor-pointer border shadow-2xs"
+          :class="[
+            isDiffActive
+              ? 'bg-amber-600 text-white border-amber-600 shadow-xs'
+              : 'bg-app-bg text-app-text-secondary hover:text-app-text hover:bg-app-bg-hover border-app-border'
+          ]"
+          title="Philologische Kollation (Wort- & Zeichen-Diff hervorheben)"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M16 3h5v5"/>
+            <path d="M8 21H3v-5"/>
+            <path d="M21 3l-7.5 7.5"/>
+            <path d="M3 21l7.5-7.5"/>
+          </svg>
+          <span>Diff</span>
+          <span
+            v-if="diffResult && diffResult.stats.totalDiffs > 0"
+            class="px-1 py-0.2 rounded text-[10px] font-mono font-bold"
+            :class="isDiffActive ? 'bg-black/20 text-white' : 'bg-amber-500/15 text-amber-600 dark:text-amber-400'"
+          >
+            {{ diffResult.stats.totalDiffs }}
+          </span>
+          <span
+            v-else-if="diffResult && diffResult.stats.totalDiffs === 0"
+            class="px-1 py-0.2 rounded text-[10px] font-mono font-bold"
+            :class="isDiffActive ? 'bg-black/20 text-white' : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'"
+          >
+            0
+          </span>
+        </button>
+
+        <!-- Annotate Mode Toggle -->
+        <button
+          type="button"
+          @click="toggleAnnotateMode"
+          class="flex items-center gap-1 h-6 px-2 rounded transition-colors text-[11px] font-mono font-semibold cursor-pointer border shadow-2xs"
+          :class="[
+            isAnnotateMode
+              ? 'bg-amber-600 text-white border-amber-600'
+              : 'bg-app-bg text-app-text-secondary hover:text-app-text hover:bg-app-bg-hover border-app-border'
+          ]"
+          :title="isAnnotateMode ? 'Annotation-Modus aktiv: Box auf PDF-Seite aufziehen (Taste A)' : 'Annotation-Modus aktivieren (Taste A)'"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 20h9"/>
+            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+          </svg>
+          <span>{{ isAnnotateMode ? 'Annotieren: An' : 'Annotieren' }}</span>
+        </button>
+
+        <!-- Proofing Drawer Toggle -->
+        <button
+          type="button"
+          @click="showProofingDrawer = !showProofingDrawer"
+          class="flex items-center gap-1 h-6 px-2 rounded transition-colors text-[11px] font-mono cursor-pointer border shadow-2xs"
+          :class="[
+            showProofingDrawer
+              ? 'bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30 font-semibold'
+              : 'bg-app-bg text-app-text-secondary hover:text-app-text hover:bg-app-bg-hover border-app-border font-medium'
+          ]"
+          title="Proofing-Seitenleiste ein-/ausblenden"
+        >
+          <span>📋 {{ annotations.length }}</span>
+          <span class="hidden lg:inline">Befunde</span>
+        </button>
+
+        <!-- Copy AI Review Prompt -->
+        <button
+          type="button"
+          @click="copyAiReviewPrompt"
+          class="flex items-center gap-1 h-6 px-2 rounded bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30 text-[11px] font-mono font-semibold transition-colors cursor-pointer active:scale-95 shadow-2xs"
+          title="Kopiert alle erfassten Bounding-Box-Korrekturen als strukturierter LLM-Review-Prompt in die Zwischenablage"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+          </svg>
+          <span class="hidden sm:inline">Copy AI Prompt</span>
+        </button>
+
+        <div class="w-px h-3.5 bg-app-border mx-0.5"></div>
+
+        <!-- Close / Back to Editor -->
         <button
           type="button"
           @click="$emit('close')"
@@ -912,7 +1687,7 @@ defineExpose({
         :style="{ width: `${leftPaneWidthPercent}%` }"
         @mouseenter="hoveredPane = 'left'"
       >
-        <!-- Left Header Bar with Paging Stepper -->
+        <!-- Left Header Bar with Paging Stepper / ViewType -->
         <div
           class="flex-none flex items-center justify-between px-3 py-1.5 bg-app-bg border-b border-app-border text-xs gap-2"
         >
@@ -921,6 +1696,12 @@ defineExpose({
               [1] Reference
             </span>
             <template v-if="leftPdfName">
+              <span
+                class="px-1.5 py-0.2 rounded text-[10px] font-mono font-bold shrink-0"
+                :class="leftDocKind === 'markdown' ? 'bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30' : 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30'"
+              >
+                {{ leftDocKind === 'markdown' ? 'MD' : 'PDF' }}
+              </span>
               <span
                 class="font-mono text-[11px] font-semibold text-app-text truncate"
                 :title="leftPdfPath"
@@ -964,8 +1745,30 @@ defineExpose({
           </div>
 
           <div class="flex items-center gap-1.5 shrink-0">
-            <!-- Left Pager Controls -->
-            <div v-if="leftPageCount > 0" class="flex items-center gap-1 font-mono text-xs">
+            <!-- Left Markdown ViewType Toggle (Read-Only Rendered vs Raw) -->
+            <div v-if="leftDocKind === 'markdown' && leftPdfPath" class="flex items-center bg-app-bg-secondary p-0.5 rounded border border-app-border text-[10px]">
+              <button
+                type="button"
+                @click="leftViewType = 'rendered'"
+                class="px-1.5 py-0.5 rounded transition-colors cursor-pointer"
+                :class="leftViewType === 'rendered' ? 'bg-app-bg text-app-text font-bold shadow-2xs' : 'text-app-text-muted hover:text-app-text'"
+                title="Typografisch gerenderte Leseansicht"
+              >
+                Rendered
+              </button>
+              <button
+                type="button"
+                @click="leftViewType = 'raw'"
+                class="px-1.5 py-0.5 rounded transition-colors cursor-pointer"
+                :class="leftViewType === 'raw' ? 'bg-app-bg text-app-text font-bold shadow-2xs' : 'text-app-text-muted hover:text-app-text'"
+                title="Schreibgeschützter Quelltext"
+              >
+                Raw
+              </button>
+            </div>
+
+            <!-- Left PDF Pager Controls -->
+            <div v-else-if="leftDocKind === 'pdf' && leftPageCount > 0" class="flex items-center gap-1 font-mono text-xs">
               <button
                 type="button"
                 @click="prevPage('left')"
@@ -1001,10 +1804,10 @@ defineExpose({
 
             <button
               type="button"
-              @click="pickPdf('left')"
+              @click="pickDocument('left')"
               class="h-6 px-2 rounded bg-app-bg-secondary hover:bg-app-bg-hover border border-app-border text-[11px] font-medium transition-colors cursor-pointer text-app-text shadow-2xs active:scale-95"
             >
-              {{ leftPdfPath ? 'Change...' : 'Load PDF...' }}
+              {{ leftPdfPath ? 'Change...' : 'Load Document...' }}
             </button>
           </div>
         </div>
@@ -1032,23 +1835,23 @@ defineExpose({
                 <line x1="9" y1="15" x2="15" y2="15"/>
               </svg>
             </div>
-            <div class="font-semibold text-sm text-app-text mb-1">Load Reference PDF</div>
+            <div class="font-semibold text-sm text-app-text mb-1">Referenz-Dokument laden</div>
             <p class="text-xs max-w-[280px] mb-3">
-              Select a reference PDF document to compare and proofread.
+              Wählen Sie ein Dokument (PDF oder Markdown) zum Vergleichen und Gegenlesen.
             </p>
             <button
               type="button"
-              @click="pickPdf('left')"
+              @click="pickDocument('left')"
               class="px-3 py-1.5 rounded-md bg-amber-600 hover:bg-amber-500 text-white font-medium text-xs transition-colors shadow-xs active:scale-95 cursor-pointer"
             >
-              Select PDF
+              Dokument auswählen...
             </button>
           </div>
 
           <!-- Loading Spinner -->
           <div v-else-if="leftLoading" class="p-8 text-center text-app-text-muted text-xs">
             <div class="animate-spin inline-block w-6 h-6 border-2 border-current border-t-transparent rounded-full mb-2 text-amber-500"></div>
-            <div>Loading and rendering PDF...</div>
+            <div>Loading and rendering document...</div>
           </div>
 
           <!-- Error Alert -->
@@ -1056,12 +1859,109 @@ defineExpose({
             Failed to load: {{ leftError }}
           </div>
 
+          <!-- MARKDOWN VIEW (Read-Only) -->
+          <template v-else-if="leftDocKind === 'markdown'">
+            <div class="w-full flex justify-center py-4 px-2 select-text">
+              <!-- Rendered Scholarly Preview -->
+              <div
+                v-if="leftViewType === 'rendered'"
+                class="w-full max-w-[850px] bg-app-bg rounded-lg border border-app-border p-8 sm:p-12 shadow-sm font-serif leading-relaxed text-app-text prose dark:prose-invert max-w-none"
+                @click="handleMarkdownClick"
+                v-html="isDiffActive && diffResult ? diffResult.leftRenderedHtml : leftMarkdownHtml"
+              ></div>
+
+              <!-- Raw Read-Only Markdown Text -->
+              <div v-else class="w-full max-w-[900px]">
+                <pre
+                  v-if="isDiffActive && diffResult"
+                  class="w-full bg-app-bg rounded-lg border border-app-border p-6 shadow-sm overflow-x-auto whitespace-pre-wrap leading-relaxed font-mono text-xs text-app-text select-text"
+                  v-html="diffResult.leftRawHtml"
+                ></pre>
+                <pre
+                  v-else
+                  class="w-full bg-app-bg rounded-lg border border-app-border p-6 shadow-sm overflow-x-auto whitespace-pre-wrap leading-relaxed font-mono text-xs text-app-text select-text"
+                >{{ leftMarkdownContent }}</pre>
+              </div>
+            </div>
+          </template>
+
+          <!-- BROWSER MODE EMBED (When running in browser without Tauri IPC) -->
+          <template v-if="!isTauri && leftBrowserPdfUrl">
+            <div
+              class="pdf-page-card w-full h-full min-h-[500px] flex flex-col relative rounded overflow-hidden shadow-lg border border-slate-300 dark:border-slate-700 bg-white"
+              :class="{ 'cursor-crosshair': isAnnotateMode }"
+              @mousedown="onPageMouseDown('left', leftCurrentPage - 1, $event)"
+            >
+              <iframe
+                :src="leftBrowserPdfUrl"
+                class="w-full h-full min-h-[500px] flex-1 border-none"
+                :class="{ 'pointer-events-none': isAnnotateMode || activeDrawingTarget !== null }"
+                title="Left PDF Reference"
+              ></iframe>
+
+              <!-- Transparent Interaction Layer when Annotating -->
+              <div
+                v-if="isAnnotateMode || activeDrawingTarget"
+                class="absolute inset-0 z-10 cursor-crosshair"
+              ></div>
+
+              <!-- Annotations Overlay -->
+              <div class="absolute inset-0 z-20 pointer-events-none">
+                <div
+                  v-for="anno in getAnnotationsForPage('left', leftCurrentPage - 1)"
+                  :key="anno.id"
+                  class="annotation-box absolute border-2 rounded transition-all cursor-pointer pointer-events-auto group"
+                  :class="[
+                    selectedAnnotationId === anno.id
+                      ? 'border-amber-600 bg-amber-500/30 ring-2 ring-amber-400/50 shadow-md z-30'
+                      : 'border-amber-500/90 bg-amber-500/15 hover:bg-amber-500/30 z-20'
+                  ]"
+                  :style="{
+                    left: `${anno.x}%`,
+                    top: `${anno.y}%`,
+                    width: `${anno.width}%`,
+                    height: `${anno.height}%`,
+                  }"
+                  @click.stop="selectAnnotation(anno)"
+                  :title="`${getAnnotationTypeLabel(anno.type)}: ${anno.note || '(Keine Notiz)'}`"
+                >
+                  <div class="absolute -top-5 left-0 px-1 py-0.5 rounded text-[9px] font-mono font-bold bg-black/85 text-white flex items-center gap-1 shadow-xs whitespace-nowrap select-none">
+                    <span>{{ getAnnotationTypeLabel(anno.type).split(' ')[0] }}</span>
+                    <span v-if="anno.note" class="font-normal opacity-90 truncate max-w-[120px]">{{ anno.note }}</span>
+                  </div>
+                  <button
+                    type="button"
+                    @click.stop="deleteAnnotation(anno.id)"
+                    class="opacity-0 group-hover:opacity-100 absolute -top-5 right-0 w-4 h-4 flex items-center justify-center rounded bg-red-600 hover:bg-red-700 text-white text-[10px] leading-none transition-opacity shadow-xs"
+                    title="Annotation löschen"
+                  >
+                    ×
+                  </button>
+                </div>
+
+                <!-- Active In-Progress Box -->
+                <div
+                  v-if="activeDrawingTarget && activeDrawingTarget.slot === 'left' && activeDrawingTarget.pageIndex === (leftCurrentPage - 1) && drawCurrent"
+                  class="absolute border-2 border-dashed border-amber-600 bg-amber-500/25 pointer-events-none z-30 shadow-sm"
+                  :style="{
+                    left: `${drawCurrent.x}%`,
+                    top: `${drawCurrent.y}%`,
+                    width: `${drawCurrent.width}%`,
+                    height: `${drawCurrent.height}%`,
+                  }"
+                />
+              </div>
+            </div>
+          </template>
+
           <!-- SINGLE PAGE MODE -->
           <template v-else-if="pageLayoutMode === 'single'">
             <div
               v-if="activeLeftPage"
               class="pdf-page-card bg-white text-black shadow-xl mx-auto rounded overflow-hidden border border-slate-300 dark:border-slate-700 relative"
+              :class="{ 'cursor-crosshair': isAnnotateMode }"
               :style="pageWidthStyle"
+              @mousedown="onPageMouseDown('left', leftCurrentPage - 1, $event)"
             >
               <div class="absolute top-2 right-2 z-10 px-1.5 py-0.5 rounded bg-black/60 text-white font-mono text-[10px] select-none pointer-events-none">
                 #{{ leftCurrentPage }} / {{ leftPageCount }}
@@ -1078,6 +1978,52 @@ defineExpose({
               >
                 <div class="text-xs font-mono">Loading page #{{ leftCurrentPage }}...</div>
               </div>
+
+              <!-- Annotations Overlay -->
+              <div class="absolute inset-0 z-20 pointer-events-none">
+                <div
+                  v-for="anno in getAnnotationsForPage('left', leftCurrentPage - 1)"
+                  :key="anno.id"
+                  class="annotation-box absolute border-2 rounded transition-all cursor-pointer pointer-events-auto group"
+                  :class="[
+                    selectedAnnotationId === anno.id
+                      ? 'border-amber-600 bg-amber-500/30 ring-2 ring-amber-400/50 shadow-md z-30'
+                      : 'border-amber-500/90 bg-amber-500/15 hover:bg-amber-500/30 z-20'
+                  ]"
+                  :style="{
+                    left: `${anno.x}%`,
+                    top: `${anno.y}%`,
+                    width: `${anno.width}%`,
+                    height: `${anno.height}%`,
+                  }"
+                  @click.stop="selectAnnotation(anno)"
+                  :title="`${getAnnotationTypeLabel(anno.type)}: ${anno.note || '(Keine Notiz)'}`"
+                >
+                  <div class="absolute -top-5 left-0 px-1 py-0.5 rounded text-[9px] font-mono font-bold bg-black/85 text-white flex items-center gap-1 shadow-xs whitespace-nowrap select-none">
+                    <span>{{ getAnnotationTypeLabel(anno.type).split(' ')[0] }}</span>
+                    <span v-if="anno.note" class="font-normal opacity-90 truncate max-w-[120px]">{{ anno.note }}</span>
+                  </div>
+                  <button
+                    type="button"
+                    @click.stop="deleteAnnotation(anno.id)"
+                    class="opacity-0 group-hover:opacity-100 absolute -top-5 right-0 w-4 h-4 flex items-center justify-center rounded bg-red-600 hover:bg-red-700 text-white text-[10px] leading-none transition-opacity shadow-xs"
+                    title="Annotation löschen"
+                  >
+                    ×
+                  </button>
+                </div>
+
+                <div
+                  v-if="activeDrawingTarget && activeDrawingTarget.slot === 'left' && activeDrawingTarget.pageIndex === (leftCurrentPage - 1) && drawCurrent"
+                  class="absolute border-2 border-dashed border-amber-600 bg-amber-500/25 pointer-events-none z-30 shadow-sm"
+                  :style="{
+                    left: `${drawCurrent.x}%`,
+                    top: `${drawCurrent.y}%`,
+                    width: `${drawCurrent.width}%`,
+                    height: `${drawCurrent.height}%`,
+                  }"
+                />
+              </div>
             </div>
           </template>
 
@@ -1087,7 +2033,9 @@ defineExpose({
               v-for="page in leftPages"
               :key="`left-page-${page.index}`"
               class="pdf-page-card bg-white text-black shadow-lg mx-auto rounded overflow-hidden transition-all duration-150 border border-slate-300 dark:border-slate-700 relative"
+              :class="{ 'cursor-crosshair': isAnnotateMode }"
               :style="pageWidthStyle"
+              @mousedown="onPageMouseDown('left', page.index, $event)"
             >
               <div class="absolute top-2 right-2 z-10 px-1.5 py-0.5 rounded bg-black/60 text-white font-mono text-[10px] select-none pointer-events-none">
                 #{{ page.index + 1 }}
@@ -1105,6 +2053,52 @@ defineExpose({
                 class="w-full aspect-[1/1.414] bg-slate-100 flex flex-col items-center justify-center text-slate-400 animate-pulse"
               >
                 <div class="text-xs font-mono">Loading page #{{ page.index + 1 }}...</div>
+              </div>
+
+              <!-- Annotations Overlay -->
+              <div class="absolute inset-0 z-20 pointer-events-none">
+                <div
+                  v-for="anno in getAnnotationsForPage('left', page.index)"
+                  :key="anno.id"
+                  class="annotation-box absolute border-2 rounded transition-all cursor-pointer pointer-events-auto group"
+                  :class="[
+                    selectedAnnotationId === anno.id
+                      ? 'border-amber-600 bg-amber-500/30 ring-2 ring-amber-400/50 shadow-md z-30'
+                      : 'border-amber-500/90 bg-amber-500/15 hover:bg-amber-500/30 z-20'
+                  ]"
+                  :style="{
+                    left: `${anno.x}%`,
+                    top: `${anno.y}%`,
+                    width: `${anno.width}%`,
+                    height: `${anno.height}%`,
+                  }"
+                  @click.stop="selectAnnotation(anno)"
+                  :title="`${getAnnotationTypeLabel(anno.type)}: ${anno.note || '(Keine Notiz)'}`"
+                >
+                  <div class="absolute -top-5 left-0 px-1 py-0.5 rounded text-[9px] font-mono font-bold bg-black/85 text-white flex items-center gap-1 shadow-xs whitespace-nowrap select-none">
+                    <span>{{ getAnnotationTypeLabel(anno.type).split(' ')[0] }}</span>
+                    <span v-if="anno.note" class="font-normal opacity-90 truncate max-w-[120px]">{{ anno.note }}</span>
+                  </div>
+                  <button
+                    type="button"
+                    @click.stop="deleteAnnotation(anno.id)"
+                    class="opacity-0 group-hover:opacity-100 absolute -top-5 right-0 w-4 h-4 flex items-center justify-center rounded bg-red-600 hover:bg-red-700 text-white text-[10px] leading-none transition-opacity shadow-xs"
+                    title="Annotation löschen"
+                  >
+                    ×
+                  </button>
+                </div>
+
+                <div
+                  v-if="activeDrawingTarget && activeDrawingTarget.slot === 'left' && activeDrawingTarget.pageIndex === page.index && drawCurrent"
+                  class="absolute border-2 border-dashed border-amber-600 bg-amber-500/25 pointer-events-none z-30 shadow-sm"
+                  :style="{
+                    left: `${drawCurrent.x}%`,
+                    top: `${drawCurrent.y}%`,
+                    width: `${drawCurrent.width}%`,
+                    height: `${drawCurrent.height}%`,
+                  }"
+                />
               </div>
             </div>
           </template>
@@ -1125,7 +2119,7 @@ defineExpose({
         :style="{ width: `${100 - leftPaneWidthPercent}%` }"
         @mouseenter="hoveredPane = 'right'"
       >
-        <!-- Right Header Bar with Paging Stepper -->
+        <!-- Right Header Bar with Paging Stepper / ViewType -->
         <div
           class="flex-none flex items-center justify-between px-3 py-1.5 bg-app-bg border-b border-app-border text-xs gap-2"
         >
@@ -1134,6 +2128,12 @@ defineExpose({
               [2] Comparison
             </span>
             <template v-if="rightPdfName">
+              <span
+                class="px-1.5 py-0.2 rounded text-[10px] font-mono font-bold shrink-0"
+                :class="rightDocKind === 'markdown' ? 'bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30' : 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30'"
+              >
+                {{ rightDocKind === 'markdown' ? 'MD' : 'PDF' }}
+              </span>
               <span
                 class="font-mono text-[11px] font-semibold text-app-text truncate"
                 :title="rightPdfPath"
@@ -1177,8 +2177,30 @@ defineExpose({
           </div>
 
           <div class="flex items-center gap-1.5 shrink-0">
-            <!-- Right Pager Controls -->
-            <div v-if="rightPageCount > 0" class="flex items-center gap-1 font-mono text-xs">
+            <!-- Right Markdown ViewType Toggle (Read-Only Rendered vs Raw) -->
+            <div v-if="rightDocKind === 'markdown' && rightPdfPath" class="flex items-center bg-app-bg-secondary p-0.5 rounded border border-app-border text-[10px]">
+              <button
+                type="button"
+                @click="rightViewType = 'rendered'"
+                class="px-1.5 py-0.5 rounded transition-colors cursor-pointer"
+                :class="rightViewType === 'rendered' ? 'bg-app-bg text-app-text font-bold shadow-2xs' : 'text-app-text-muted hover:text-app-text'"
+                title="Typografisch gerenderte Leseansicht"
+              >
+                Rendered
+              </button>
+              <button
+                type="button"
+                @click="rightViewType = 'raw'"
+                class="px-1.5 py-0.5 rounded transition-colors cursor-pointer"
+                :class="rightViewType === 'raw' ? 'bg-app-bg text-app-text font-bold shadow-2xs' : 'text-app-text-muted hover:text-app-text'"
+                title="Schreibgeschützter Quelltext"
+              >
+                Raw
+              </button>
+            </div>
+
+            <!-- Right PDF Pager Controls -->
+            <div v-else-if="rightDocKind === 'pdf' && rightPageCount > 0" class="flex items-center gap-1 font-mono text-xs">
               <button
                 type="button"
                 @click="prevPage('right')"
@@ -1214,10 +2236,10 @@ defineExpose({
 
             <button
               type="button"
-              @click="pickPdf('right')"
+              @click="pickDocument('right')"
               class="h-6 px-2 rounded bg-app-bg-secondary hover:bg-app-bg-hover border border-app-border text-[11px] font-medium transition-colors cursor-pointer text-app-text shadow-2xs active:scale-95"
             >
-              {{ rightPdfPath ? 'Change...' : 'Load PDF...' }}
+              {{ rightPdfPath ? 'Change...' : 'Load Document...' }}
             </button>
           </div>
         </div>
@@ -1245,23 +2267,23 @@ defineExpose({
                 <line x1="9" y1="15" x2="15" y2="15"/>
               </svg>
             </div>
-            <div class="font-semibold text-sm text-app-text mb-1">Load Comparison PDF</div>
+            <div class="font-semibold text-sm text-app-text mb-1">Vergleichs-Dokument laden</div>
             <p class="text-xs max-w-[280px] mb-3">
-              Select the second PDF to compare and proofread side by side.
+              Wählen Sie das zweite Dokument (PDF oder Markdown) zum Vergleichen und Gegenlesen.
             </p>
             <button
               type="button"
-              @click="pickPdf('right')"
+              @click="pickDocument('right')"
               class="px-3 py-1.5 rounded-md bg-amber-600 hover:bg-amber-500 text-white font-medium text-xs transition-colors shadow-xs active:scale-95 cursor-pointer"
             >
-              Select PDF
+              Dokument auswählen...
             </button>
           </div>
 
           <!-- Loading Spinner -->
           <div v-else-if="rightLoading" class="p-8 text-center text-app-text-muted text-xs">
             <div class="animate-spin inline-block w-6 h-6 border-2 border-current border-t-transparent rounded-full mb-2 text-amber-500"></div>
-            <div>Loading and rendering PDF...</div>
+            <div>Loading and rendering document...</div>
           </div>
 
           <!-- Error Alert -->
@@ -1269,12 +2291,109 @@ defineExpose({
             Failed to load: {{ rightError }}
           </div>
 
+          <!-- MARKDOWN VIEW (Read-Only) -->
+          <template v-else-if="rightDocKind === 'markdown'">
+            <div class="w-full flex justify-center py-4 px-2 select-text">
+              <!-- Rendered Scholarly Preview -->
+              <div
+                v-if="rightViewType === 'rendered'"
+                class="w-full max-w-[850px] bg-app-bg rounded-lg border border-app-border p-8 sm:p-12 shadow-sm font-serif leading-relaxed text-app-text prose dark:prose-invert max-w-none"
+                @click="handleMarkdownClick"
+                v-html="isDiffActive && diffResult ? diffResult.rightRenderedHtml : rightMarkdownHtml"
+              ></div>
+
+              <!-- Raw Read-Only Markdown Text -->
+              <div v-else class="w-full max-w-[900px]">
+                <pre
+                  v-if="isDiffActive && diffResult"
+                  class="w-full bg-app-bg rounded-lg border border-app-border p-6 shadow-sm overflow-x-auto whitespace-pre-wrap leading-relaxed font-mono text-xs text-app-text select-text"
+                  v-html="diffResult.rightRawHtml"
+                ></pre>
+                <pre
+                  v-else
+                  class="w-full bg-app-bg rounded-lg border border-app-border p-6 shadow-sm overflow-x-auto whitespace-pre-wrap leading-relaxed font-mono text-xs text-app-text select-text"
+                >{{ rightMarkdownContent }}</pre>
+              </div>
+            </div>
+          </template>
+
+          <!-- BROWSER MODE EMBED (When running in browser without Tauri IPC) -->
+          <template v-if="!isTauri && rightBrowserPdfUrl">
+            <div
+              class="pdf-page-card w-full h-full min-h-[500px] flex flex-col relative rounded overflow-hidden shadow-lg border border-slate-300 dark:border-slate-700 bg-white"
+              :class="{ 'cursor-crosshair': isAnnotateMode }"
+              @mousedown="onPageMouseDown('right', rightCurrentPage - 1, $event)"
+            >
+              <iframe
+                :src="rightBrowserPdfUrl"
+                class="w-full h-full min-h-[500px] flex-1 border-none"
+                :class="{ 'pointer-events-none': isAnnotateMode || activeDrawingTarget !== null }"
+                title="Right PDF Comparison"
+              ></iframe>
+
+              <!-- Transparent Interaction Layer when Annotating -->
+              <div
+                v-if="isAnnotateMode || activeDrawingTarget"
+                class="absolute inset-0 z-10 cursor-crosshair"
+              ></div>
+
+              <!-- Annotations Overlay -->
+              <div class="absolute inset-0 z-20 pointer-events-none">
+                <div
+                  v-for="anno in getAnnotationsForPage('right', rightCurrentPage - 1)"
+                  :key="anno.id"
+                  class="annotation-box absolute border-2 rounded transition-all cursor-pointer pointer-events-auto group"
+                  :class="[
+                    selectedAnnotationId === anno.id
+                      ? 'border-amber-600 bg-amber-500/30 ring-2 ring-amber-400/50 shadow-md z-30'
+                      : 'border-amber-500/90 bg-amber-500/15 hover:bg-amber-500/30 z-20'
+                  ]"
+                  :style="{
+                    left: `${anno.x}%`,
+                    top: `${anno.y}%`,
+                    width: `${anno.width}%`,
+                    height: `${anno.height}%`,
+                  }"
+                  @click.stop="selectAnnotation(anno)"
+                  :title="`${getAnnotationTypeLabel(anno.type)}: ${anno.note || '(Keine Notiz)'}`"
+                >
+                  <div class="absolute -top-5 left-0 px-1 py-0.5 rounded text-[9px] font-mono font-bold bg-black/85 text-white flex items-center gap-1 shadow-xs whitespace-nowrap select-none">
+                    <span>{{ getAnnotationTypeLabel(anno.type).split(' ')[0] }}</span>
+                    <span v-if="anno.note" class="font-normal opacity-90 truncate max-w-[120px]">{{ anno.note }}</span>
+                  </div>
+                  <button
+                    type="button"
+                    @click.stop="deleteAnnotation(anno.id)"
+                    class="opacity-0 group-hover:opacity-100 absolute -top-5 right-0 w-4 h-4 flex items-center justify-center rounded bg-red-600 hover:bg-red-700 text-white text-[10px] leading-none transition-opacity shadow-xs"
+                    title="Annotation löschen"
+                  >
+                    ×
+                  </button>
+                </div>
+
+                <!-- Active In-Progress Box -->
+                <div
+                  v-if="activeDrawingTarget && activeDrawingTarget.slot === 'right' && activeDrawingTarget.pageIndex === (rightCurrentPage - 1) && drawCurrent"
+                  class="absolute border-2 border-dashed border-amber-600 bg-amber-500/25 pointer-events-none z-30 shadow-sm"
+                  :style="{
+                    left: `${drawCurrent.x}%`,
+                    top: `${drawCurrent.y}%`,
+                    width: `${drawCurrent.width}%`,
+                    height: `${drawCurrent.height}%`,
+                  }"
+                />
+              </div>
+            </div>
+          </template>
+
           <!-- SINGLE PAGE MODE -->
           <template v-else-if="pageLayoutMode === 'single'">
             <div
               v-if="activeRightPage"
               class="pdf-page-card bg-white text-black shadow-xl mx-auto rounded overflow-hidden border border-slate-300 dark:border-slate-700 relative"
+              :class="{ 'cursor-crosshair': isAnnotateMode }"
               :style="pageWidthStyle"
+              @mousedown="onPageMouseDown('right', rightCurrentPage - 1, $event)"
             >
               <div class="absolute top-2 right-2 z-10 px-1.5 py-0.5 rounded bg-black/60 text-white font-mono text-[10px] select-none pointer-events-none">
                 #{{ rightCurrentPage }} / {{ rightPageCount }}
@@ -1291,6 +2410,52 @@ defineExpose({
               >
                 <div class="text-xs font-mono">Loading page #{{ rightCurrentPage }}...</div>
               </div>
+
+              <!-- Annotations Overlay -->
+              <div class="absolute inset-0 z-20 pointer-events-none">
+                <div
+                  v-for="anno in getAnnotationsForPage('right', rightCurrentPage - 1)"
+                  :key="anno.id"
+                  class="annotation-box absolute border-2 rounded transition-all cursor-pointer pointer-events-auto group"
+                  :class="[
+                    selectedAnnotationId === anno.id
+                      ? 'border-amber-600 bg-amber-500/30 ring-2 ring-amber-400/50 shadow-md z-30'
+                      : 'border-amber-500/90 bg-amber-500/15 hover:bg-amber-500/30 z-20'
+                  ]"
+                  :style="{
+                    left: `${anno.x}%`,
+                    top: `${anno.y}%`,
+                    width: `${anno.width}%`,
+                    height: `${anno.height}%`,
+                  }"
+                  @click.stop="selectAnnotation(anno)"
+                  :title="`${getAnnotationTypeLabel(anno.type)}: ${anno.note || '(Keine Notiz)'}`"
+                >
+                  <div class="absolute -top-5 left-0 px-1 py-0.5 rounded text-[9px] font-mono font-bold bg-black/85 text-white flex items-center gap-1 shadow-xs whitespace-nowrap select-none">
+                    <span>{{ getAnnotationTypeLabel(anno.type).split(' ')[0] }}</span>
+                    <span v-if="anno.note" class="font-normal opacity-90 truncate max-w-[120px]">{{ anno.note }}</span>
+                  </div>
+                  <button
+                    type="button"
+                    @click.stop="deleteAnnotation(anno.id)"
+                    class="opacity-0 group-hover:opacity-100 absolute -top-5 right-0 w-4 h-4 flex items-center justify-center rounded bg-red-600 hover:bg-red-700 text-white text-[10px] leading-none transition-opacity shadow-xs"
+                    title="Annotation löschen"
+                  >
+                    ×
+                  </button>
+                </div>
+
+                <div
+                  v-if="activeDrawingTarget && activeDrawingTarget.slot === 'right' && activeDrawingTarget.pageIndex === (rightCurrentPage - 1) && drawCurrent"
+                  class="absolute border-2 border-dashed border-amber-600 bg-amber-500/25 pointer-events-none z-30 shadow-sm"
+                  :style="{
+                    left: `${drawCurrent.x}%`,
+                    top: `${drawCurrent.y}%`,
+                    width: `${drawCurrent.width}%`,
+                    height: `${drawCurrent.height}%`,
+                  }"
+                />
+              </div>
             </div>
           </template>
 
@@ -1300,7 +2465,9 @@ defineExpose({
               v-for="page in rightPages"
               :key="`right-page-${page.index}`"
               class="pdf-page-card bg-white text-black shadow-lg mx-auto rounded overflow-hidden transition-all duration-150 border border-slate-300 dark:border-slate-700 relative"
+              :class="{ 'cursor-crosshair': isAnnotateMode }"
               :style="pageWidthStyle"
+              @mousedown="onPageMouseDown('right', page.index, $event)"
             >
               <div class="absolute top-2 right-2 z-10 px-1.5 py-0.5 rounded bg-black/60 text-white font-mono text-[10px] select-none pointer-events-none">
                 #{{ page.index + 1 }}
@@ -1319,10 +2486,305 @@ defineExpose({
               >
                 <div class="text-xs font-mono">Loading page #{{ page.index + 1 }}...</div>
               </div>
+
+              <!-- Annotations Overlay -->
+              <div class="absolute inset-0 z-20 pointer-events-none">
+                <div
+                  v-for="anno in getAnnotationsForPage('right', page.index)"
+                  :key="anno.id"
+                  class="annotation-box absolute border-2 rounded transition-all cursor-pointer pointer-events-auto group"
+                  :class="[
+                    selectedAnnotationId === anno.id
+                      ? 'border-amber-600 bg-amber-500/30 ring-2 ring-amber-400/50 shadow-md z-30'
+                      : 'border-amber-500/90 bg-amber-500/15 hover:bg-amber-500/30 z-20'
+                  ]"
+                  :style="{
+                    left: `${anno.x}%`,
+                    top: `${anno.y}%`,
+                    width: `${anno.width}%`,
+                    height: `${anno.height}%`,
+                  }"
+                  @click.stop="selectAnnotation(anno)"
+                  :title="`${getAnnotationTypeLabel(anno.type)}: ${anno.note || '(Keine Notiz)'}`"
+                >
+                  <div class="absolute -top-5 left-0 px-1 py-0.5 rounded text-[9px] font-mono font-bold bg-black/85 text-white flex items-center gap-1 shadow-xs whitespace-nowrap select-none">
+                    <span>{{ getAnnotationTypeLabel(anno.type).split(' ')[0] }}</span>
+                    <span v-if="anno.note" class="font-normal opacity-90 truncate max-w-[120px]">{{ anno.note }}</span>
+                  </div>
+                  <button
+                    type="button"
+                    @click.stop="deleteAnnotation(anno.id)"
+                    class="opacity-0 group-hover:opacity-100 absolute -top-5 right-0 w-4 h-4 flex items-center justify-center rounded bg-red-600 hover:bg-red-700 text-white text-[10px] leading-none transition-opacity shadow-xs"
+                    title="Annotation löschen"
+                  >
+                    ×
+                  </button>
+                </div>
+
+                <div
+                  v-if="activeDrawingTarget && activeDrawingTarget.slot === 'right' && activeDrawingTarget.pageIndex === page.index && drawCurrent"
+                  class="absolute border-2 border-dashed border-amber-600 bg-amber-500/25 pointer-events-none z-30 shadow-sm"
+                  :style="{
+                    left: `${drawCurrent.x}%`,
+                    top: `${drawCurrent.y}%`,
+                    width: `${drawCurrent.width}%`,
+                    height: `${drawCurrent.height}%`,
+                  }"
+                />
+              </div>
             </div>
           </template>
         </div>
       </div>
+
+      <!-- PROOFING & ANNOTATIONS DRAWER -->
+      <aside
+        v-if="showProofingDrawer"
+        class="w-80 flex-none border-l border-app-border bg-app-bg flex flex-col h-full shadow-xl z-20 transition-all select-text"
+      >
+        <!-- Drawer Header -->
+        <div class="flex-none flex items-center justify-between px-3 py-2 border-b border-app-border bg-app-bg-secondary text-xs">
+          <div class="flex items-center gap-1.5 font-bold text-app-text">
+            <span>📋 Proofing & QA</span>
+            <span class="px-1.5 py-0.2 rounded-full text-[10px] font-mono bg-amber-500/20 text-amber-700 dark:text-amber-300">
+              {{ annotations.length }}
+            </span>
+          </div>
+          <button
+            type="button"
+            @click="showProofingDrawer = false"
+            class="w-5 h-5 flex items-center justify-center rounded hover:bg-app-bg-hover text-app-text-muted hover:text-app-text text-sm transition-colors cursor-pointer"
+            title="Schließen"
+          >
+            ×
+          </button>
+        </div>
+
+        <!-- Drawer Quick Actions -->
+        <div class="flex-none p-2 border-b border-app-border bg-app-bg flex flex-col gap-1.5">
+          <button
+            type="button"
+            @click="copyAiReviewPrompt"
+            class="w-full flex items-center justify-center gap-1.5 py-1.5 px-3 rounded bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs transition-colors shadow-xs cursor-pointer active:scale-98"
+            title="Kopiere strukturierten AI-Prompt für automatische Korrektur"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+            </svg>
+            <span>Copy AI Review Prompt</span>
+          </button>
+
+          <div class="flex items-center gap-1">
+            <button
+              type="button"
+              @click="exportAnnotationsJson"
+              class="flex-1 py-1 px-2 rounded bg-app-bg-secondary hover:bg-app-bg-hover border border-app-border text-[11px] font-medium text-app-text transition-colors cursor-pointer"
+              title="Als JSON sichern"
+            >
+              Export JSON
+            </button>
+            <button
+              type="button"
+              @click="clearAllAnnotations"
+              :disabled="annotations.length === 0"
+              class="py-1 px-2 rounded bg-app-bg-secondary hover:bg-red-500/10 hover:text-red-600 dark:hover:text-red-400 border border-app-border disabled:opacity-30 disabled:pointer-events-none text-[11px] font-medium text-app-text-muted transition-colors cursor-pointer"
+              title="Alle Annotationen löschen"
+            >
+              Leeren
+            </button>
+          </div>
+
+          <!-- Slot Filter Pills -->
+          <div class="flex items-center gap-1 pt-1 text-[11px]">
+            <button
+              type="button"
+              @click="drawerSlotFilter = 'all'"
+              class="flex-1 py-0.5 rounded text-center font-mono cursor-pointer transition-colors"
+              :class="[
+                drawerSlotFilter === 'all'
+                  ? 'bg-amber-500/20 text-amber-700 dark:text-amber-300 font-bold'
+                  : 'text-app-text-muted hover:text-app-text hover:bg-app-bg-hover'
+              ]"
+            >
+              Alle ({{ annotations.length }})
+            </button>
+            <button
+              type="button"
+              @click="drawerSlotFilter = 'left'"
+              class="flex-1 py-0.5 rounded text-center font-mono cursor-pointer transition-colors"
+              :class="[
+                drawerSlotFilter === 'left'
+                  ? 'bg-amber-500/20 text-amber-700 dark:text-amber-300 font-bold'
+                  : 'text-app-text-muted hover:text-app-text hover:bg-app-bg-hover'
+              ]"
+            >
+              Ref ({{ annotations.filter(a => a.slot === 'left').length }})
+            </button>
+            <button
+              type="button"
+              @click="drawerSlotFilter = 'right'"
+              class="flex-1 py-0.5 rounded text-center font-mono cursor-pointer transition-colors"
+              :class="[
+                drawerSlotFilter === 'right'
+                  ? 'bg-amber-500/20 text-amber-700 dark:text-amber-300 font-bold'
+                  : 'text-app-text-muted hover:text-app-text hover:bg-app-bg-hover'
+              ]"
+            >
+              Neusatz ({{ annotations.filter(a => a.slot === 'right').length }})
+            </button>
+          </div>
+        </div>
+
+        <!-- Annotations List -->
+        <div class="flex-1 overflow-y-auto p-2 flex flex-col gap-2">
+          <div
+            v-if="filteredDrawerAnnotations.length === 0"
+            class="p-4 text-center text-app-text-muted text-xs flex flex-col items-center gap-1.5"
+          >
+            <span class="text-xl">✏️</span>
+            <span class="font-medium">Keine Annotationen</span>
+            <p class="text-[11px] leading-relaxed opacity-80">
+              Aktiviere 'Annotieren' in der Toolbar und ziehe ein Rechteck über typografische Abweichungen.
+            </p>
+          </div>
+
+          <div
+            v-for="anno in filteredDrawerAnnotations"
+            :key="anno.id"
+            @click="jumpToAnnotation(anno)"
+            class="p-2.5 rounded-md border text-xs cursor-pointer transition-all flex flex-col gap-1.5"
+            :class="[
+              selectedAnnotationId === anno.id
+                ? 'bg-amber-500/10 border-amber-500 shadow-xs ring-1 ring-amber-500/40'
+                : 'bg-app-bg-secondary hover:bg-app-bg border-app-border'
+            ]"
+          >
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-1.5">
+                <span class="px-1.5 py-0.2 rounded font-mono font-bold text-[10px] bg-black/10 dark:bg-white/10 text-app-text">
+                  S. {{ anno.pageIndex + 1 }}
+                </span>
+                <span class="text-[10px] font-mono uppercase font-semibold text-amber-600 dark:text-amber-400">
+                  {{ anno.slot === 'left' ? '[Ref]' : '[Neusatz]' }}
+                </span>
+              </div>
+              <button
+                type="button"
+                @click.stop="deleteAnnotation(anno.id)"
+                class="w-4 h-4 flex items-center justify-center rounded text-app-text-muted hover:text-red-500 hover:bg-red-500/10 transition-colors"
+                title="Löschen"
+              >
+                ×
+              </button>
+            </div>
+
+            <div class="flex items-center gap-1">
+              <span class="font-semibold text-[11px] text-app-text">
+                {{ getAnnotationTypeLabel(anno.type) }}
+              </span>
+            </div>
+
+            <p v-if="anno.note" class="text-[11px] text-app-text-secondary leading-snug break-words">
+              {{ anno.note }}
+            </p>
+            <span v-else class="text-[10px] text-app-text-muted italic">
+              Keine Detailnotiz
+            </span>
+
+            <div class="text-[9px] font-mono text-app-text-muted opacity-60">
+              Box: {{ anno.x.toFixed(0) }}%, {{ anno.y.toFixed(0) }}% ({{ anno.width.toFixed(0) }}% × {{ anno.height.toFixed(0) }}%)
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <!-- Creation Popover for New Annotation -->
+    <div
+      v-if="pendingAnnotation"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-2xs"
+      @click.self="cancelPendingAnnotation"
+    >
+      <div
+        class="bg-app-bg border border-app-border rounded-lg shadow-2xl p-4 w-[360px] max-w-[90vw] flex flex-col gap-3 text-xs animate-in fade-in zoom-in-95 duration-150"
+      >
+        <div class="flex items-center justify-between pb-2 border-b border-app-border">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+            <span class="font-bold text-sm text-app-text">Neue Annotation erfassen</span>
+          </div>
+          <button
+            type="button"
+            @click="cancelPendingAnnotation"
+            class="text-app-text-muted hover:text-app-text text-base leading-none p-1 rounded hover:bg-app-bg-hover cursor-pointer"
+          >
+            ×
+          </button>
+        </div>
+
+        <div class="text-[11px] text-app-text-secondary flex items-center justify-between font-mono bg-app-bg-secondary p-2 rounded border border-app-border">
+          <span>{{ pendingAnnotation.slot === 'left' ? '[Links] Referenz' : '[Rechts] Neusatz' }}</span>
+          <span>Seite {{ pendingAnnotation.pageIndex + 1 }}</span>
+          <span>Box: {{ pendingAnnotation.width.toFixed(0) }}% × {{ pendingAnnotation.height.toFixed(0) }}%</span>
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <label class="font-semibold text-app-text text-[11px]">Fehlertyp / Kategorie:</label>
+          <select
+            v-model="newAnnotationType"
+            class="bg-app-bg-secondary border border-app-border rounded px-2.5 py-1.5 text-xs text-app-text focus:outline-none focus:border-amber-500"
+          >
+            <option value="typo">Typo (Druck- / Setzfehler)</option>
+            <option value="diacritic">Diakritikum (Makron, Akzent, Devanāgarī)</option>
+            <option value="layout">Layout / Zeilenumbruch / Spationierung</option>
+            <option value="ocr">OCR-Artefakt / Zeichenerkennung</option>
+            <option value="omission">Auslassung (Fehlender Text)</option>
+            <option value="general">Allgemeine Bemerkung</option>
+          </select>
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <label class="font-semibold text-app-text text-[11px]">Korrektur-Notiz / Befund:</label>
+          <textarea
+            ref="noteInputRef"
+            v-model="newAnnotationNote"
+            rows="3"
+            placeholder="z.B. ā fehlt in mahābhārata, Zeilenabstand nach Śloka zu groß..."
+            @keydown.enter.prevent="savePendingAnnotation"
+            @keydown.esc="cancelPendingAnnotation"
+            class="bg-app-bg-secondary border border-app-border rounded p-2 text-xs text-app-text focus:outline-none focus:border-amber-500 resize-none font-sans"
+          ></textarea>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-2 border-t border-app-border">
+          <button
+            type="button"
+            @click="cancelPendingAnnotation"
+            class="px-3 py-1.5 rounded hover:bg-app-bg-hover text-app-text-secondary hover:text-app-text border border-transparent font-medium cursor-pointer"
+          >
+            Abbrechen
+          </button>
+          <button
+            type="button"
+            @click="savePendingAnnotation"
+            class="px-3 py-1.5 rounded bg-amber-600 hover:bg-amber-700 text-white font-semibold shadow-xs cursor-pointer"
+          >
+            Annotation speichern
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Floating Toast Notification -->
+    <div
+      v-if="toastMessage"
+      class="fixed bottom-6 right-6 z-50 px-4 py-2.5 rounded-lg bg-slate-900 text-white dark:bg-amber-500 dark:text-slate-950 font-medium text-xs shadow-2xl flex items-center gap-2 border border-slate-700/50 animate-in fade-in slide-in-from-bottom-2 duration-150"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20 6L9 17l-5-5"/>
+      </svg>
+      <span>{{ toastMessage }}</span>
     </div>
   </div>
 </template>

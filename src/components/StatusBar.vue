@@ -15,6 +15,7 @@ const props = withDefaults(
     syncScroll?: boolean;
     syncMode?: "header" | "percentage" | "off";
     viewMode?: string;
+    workMode?: "markdown" | "synoptic" | "pdf-qa";
     workspaceName?: string | null;
     activeFilePath?: string | null;
     saveStatus?: {
@@ -35,6 +36,7 @@ const props = withDefaults(
     syncScroll: true,
     syncMode: "header",
     viewMode: "split",
+    workMode: "markdown",
     workspaceName: null,
     activeFilePath: null,
     saveStatus: () => ({
@@ -58,25 +60,33 @@ const cursorDisplay = computed(() => {
 
 <template>
   <footer
-    class="flex-none h-[22px] bg-app-bg-secondary border-t border-app-border flex items-center justify-between px-2.5 text-[11px] font-sans select-none text-app-text-muted print:hidden z-20"
+    class="flex-none h-[22px] bg-app-bg-secondary border-t border-app-border flex items-center justify-between px-2.5 text-[11px] font-sans select-none text-app-text-secondary print:hidden z-20"
     data-tauri-drag-region
   >
     <!-- Left Section: Workspace & Status -->
     <div class="flex items-center gap-2 min-w-0">
       <!-- Workspace Badge -->
       <div 
-        class="flex items-center gap-1.5 px-1.5 py-0.5 rounded text-app-text-muted hover:text-app-text hover:bg-app-bg-hover transition-colors truncate cursor-default"
+        class="flex items-center gap-1.5 px-1.5 py-0.5 rounded text-app-text-secondary hover:text-app-text hover:bg-app-bg-hover transition-colors truncate cursor-default"
         :title="workspaceName ? `Workspace Folder: ${workspaceName}` : 'No Workspace Open'"
       >
         <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0 opacity-80">
           <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
         </svg>
-        <span class="truncate font-medium">{{ workspaceName || 'ZenTauri' }}</span>
+        <span class="truncate font-semibold">{{ workspaceName || 'ZenTauri' }}</span>
       </div>
+
+      <!-- Work-Mode Indicator Badge -->
+      <span
+        class="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold tracking-wide border transition-colors cursor-default text-amber-800 dark:text-amber-300 border-amber-600/30 bg-amber-500/15"
+        :title="workMode === 'markdown' ? 'Modus 1: Markdown Authoring' : workMode === 'synoptic' ? 'Modus 2: Synoptische Edition' : 'Modus 3: Dual PDF QA & Proofing'"
+      >
+        {{ workMode === 'markdown' ? 'Modus 1' : workMode === 'synoptic' ? 'Modus 2' : 'Modus 3' }}
+      </span>
 
       <!-- Save Indicator Dot & Text -->
       <div 
-        class="hidden sm:flex items-center gap-1.5 px-1.5 py-0.5 rounded text-app-text-muted cursor-default"
+        class="hidden sm:flex items-center gap-1.5 px-1.5 py-0.5 rounded text-app-text-secondary font-medium cursor-default"
         :title="saveStatus.title"
       >
         <span class="w-1.5 h-1.5 rounded-full inline-block shrink-0 shadow-xs" :class="saveStatus.dotClass"></span>
@@ -85,7 +95,7 @@ const cursorDisplay = computed(() => {
     </div>
 
     <!-- Right Section: Editor Info (VS Code Standard) -->
-    <div class="flex items-center gap-1 font-mono shrink-0">
+    <div class="flex items-center gap-1 font-mono font-medium shrink-0 text-app-text-secondary">
       <!-- Cursor Position (Ln, Col) & Selection -->
       <button
         type="button"

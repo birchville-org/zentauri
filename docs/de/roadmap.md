@@ -19,12 +19,14 @@ Dieses Dokument erfasst geplante Ausbau-Features, Architekturkonzepte und vorlä
 | **Datei duplizieren & Befehl wiederholen** | ✅ **Aktiv (v1.8.1)** | v1.8.1 | Native Dateiduplizierung (`⌘⇧D`) und Befehlswiederholung (`⌘Y` / `Ctrl+Y`) mit Undo-Synchronisation |
 | **Harvard-Kyoto & IAST Shortcuts** | ✅ **Aktiv (v1.2.0)** | v1.2.0 | Bidirektionale Tastenkürzel `⌥⌘D` & `⌥⌘H` mit Tag-geschützter Transliteration |
 | **Wissenschaftliche Fußnoten & Deflists** | ✅ **Aktiv (v1.2.0)** | v1.2.0 | Standard `[^1]` Fußnoten und `Begriff\n: Definition` Definitionslisten |
-| **Dual PDF QA Annotationen & KI** | 📋 **Backlog / Konzipiert** | v2.0.0 | Bounding-Box Overlays auf SVG-Seiten & 1-Klick Clipboard-Prompt für Web-LLMs |
+| **Dual PDF QA Annotationen & KI** | ✅ **Aktiv** | v2.0.0 | Bounding-Box Overlays auf SVG-Seiten, JSON-Export & 1-Klick AI Review Prompt |
+| **Dual Markdown & Kollations-Diff** | ✅ **Aktiv** | v2.0.0 | Paralleler Markdown-Vergleich (Gerendert & Quelltext) mit Wort-/Zeichen-Diff für Diakritika |
+| **Synoptischer Master-JSON (Modus 2)** | ✅ **Aktiv (Kern)** | v2.0.0 | Split-Pane-Editor für `book.json`-Editionen neben Scan-PDFs (`⌘S`, `⌘↑`/`⌘↓`) |
 | **In-Editor Live-IME (Stufe 2)** | 📋 **Backlog / Konzipiert** | v2.0.0 | CodeMirror-Echtzeitwandlung in `《...》` und Compose-Sequenzen im Fließtext |
 | **Wissensgraph & Wikilinks** | 📋 **Backlog / Pausiert** | v2.0.0 | Re-Integration des Graphen, `[[`-Autovervollständigung und Cmd+Klick-Navigation |
 | **Synchrone Diagramme (Pele)** | 📋 **Backlog / Evaluation** | v2.0.0 | Verzögerungsfreier, synchroner Mermaid-kompatibler Renderer via `pele.run` (~2,5 MB Ersparnis) |
 | **DOCX-Export & CriticMarkup** | 📋 **Backlog / Konzipiert** | v2.1.0 | Akademisches `.docx`-Verlags-Exporttemplate und CodeMirror CriticMarkup Track-Changes |
-| **Synoptischer Master-JSON (Modus 2)** | 📋 **Backlog / Konzipiert** | v2.1.0 | Split-Pane-Editor für historische Editionen (`book.json` AST-Format nach Bṛhadāraṇyaka) |
+| **TEI-P5-Export (Modus 2)** | 📋 **Backlog / Konzipiert** | v2.1.0 | Automatisierte Rust-Kompilierung von `book.json` Master-JSON nach TEI-P5 XML und Typst-PDF |
 | **QA Reference Dual-Pane** | 📋 **Backlog / Pausiert (v1.3.0)** | v2.2.0 | Textbasierter 2-Spalten-Vergleich (in v1.3.0 zugunsten von Modus 3: Dual PDF QA zurückgestellt) |
 
 ---
@@ -72,32 +74,36 @@ Dieses Dokument erfasst geplante Ausbau-Features, Architekturkonzepte und vorlä
 
 ---
 
-## 4. Dual PDF QA & Proofing (Work-Mode 3)
+## 4. Dual PDF & Markdown QA / Proofing (Work-Mode 3)
 
-- **Status:** ✅ **Kern-Vektor-Viewer Aktiv (v1.7.0+)** / 📋 **Visuelles Proofing & KI-Bridge im Backlog (v2.0.0)**
-- **Ziel:** Synchronisierter 2-Spalten-Vektor-PDF-Vergleich von Neusatz-Ausgaben gegen historische Druckscans mit KI-unterstützter Korrekturführung.
+- **Status:** ✅ **Aktiv (Vektor-Viewer, Dual-Markdown, Kollations-Diff, Bounding-Box-Annotationen & KI-Prompt)** / 📋 **Export annotierter PDFs im Backlog**
+- **Ziel:** Synchronisierter 2-Spalten-Vergleich von PDF-Ausgaben und Markdown-Fassungen mit philologischem Kollations-Diff und KI-gestützter Korrekturführung.
 
-### Aktive Kernfunktionen (v1.7.0+):
+### Aktive Funktionen:
 - **Hochpräzises Vektor-Rendering:** Direkter SVG-Satz von PDF-Seiten via `hayro_svg` in Rust mit ID-Scoping und randscharfem Zoom.
 - **Synchroner Dual-Viewer:** Prozentuales Scrollen und Seiten-Lockstep, SWAP-Seitentausch und Breitenanpassung.
+- **Dual-Markdown & Philologischer Kollations-Diff:** Paralleler Vergleich zweier Markdown-Dateien (Gerendert & Quelltext) mit Wort- und Zeichen-Diff für Diakritika (`diffCollation.ts`).
+- **Normalisiertes Bounding-Box Overlay:** Klick- und Zieh-Markierungen auf gerenderten SVG-Vektorseiten mit Proofing-Drawer und JSON-Export.
+- **Web-First KI-Prompt-Generator:** 1-Klick-Übernahme eines strukturierten Prompts (Metadaten, Annotationen und Kollationsstatistik) ins Clipboard für Claude, ChatGPT und Gemini.
 - **Systemintegration:** Dateiverknüpfungen und Direktstart via macOS Finder („Öffnen mit...“) sowie Terminal-CLI.
 
-### Geplante Proofing-Erweiterungen (Ziel: v2.0.0):
-1. **Normalisiertes Bounding-Box Overlay:** Klick- und Zieh-Markierungen auf den gerenderten SVG-Vektorseiten (`hayro_svg`) mit relativen Prozent-Koordinaten.
-2. **Web-First KI-Prompt-Generator:** 1-Klick-Übernahme eines strukturierten Markdown-Prompts (Quelltext + Korrekturtabelle) ins Clipboard für Claude, ChatGPT und Gemini Web.
-3. **Annotierter PDF-Export & Automation:** Export als visuell eingebranntes PDF sowie optionale lokale Ollama-Diff-Korrektur.
+### Geplante Proofing-Erweiterungen:
+1. **Annotierter PDF-Export & Automation:** Export als visuell eingebranntes PDF sowie optionale lokale Ollama-Diff-Korrektur.
 
 ---
 
 ## 5. Synoptischer Master-JSON Editor (Work-Mode 2)
 
-- **Status:** Backlog / Konzipiert (Inspiriert durch das Editions-Projekt *Bṛhadāraṇyaka-Upaniṣad*)
+- **Status:** ✅ **Aktiver Kern-Split-Pane-Editor (`SynopticView.vue`)** / 📋 **TEI-P5 & Typst-Export-Pipeline geplant**
 - **Ziel:** Segmentierte Split-Pane-Bearbeitung historischer Scanausgaben (`book.json` / AST-Format) ohne fehleranfälliges manuelles TEI-XML-Taggen.
 
+### Aktive Funktionen:
+1. **Split-Pane Scan-Synchronisation:** Historischer PDF-Scan links, strukturierte Segment-Eingabe rechts (`⌘S` Speichern, `⌘↑`/`⌘↓` Segmentnavigation).
+2. **Segmentbasierte Felder:** Isolierte Eingaben für Devanāgarī, IAST, Übersetzungen und textkritischen Apparat inkl. bidirektionaler Sanskrit-Transliteration.
+
 ### Geplante Funktionen:
-1. **Split-Pane Scan-Synchronisation:** Historischer PDF-Scan links, strukturierte Segment-Eingabe rechts.
-2. **Segmentbasierte Felder:** Isolierte Eingaben für Devanāgarī, IAST, Übersetzungen, textkritische Varianten (z. B. Slaje vs. Böhtlingk) und Lemmata.
-3. **Automatisierte Export-Pipeline:** Native Rust-Kompilierung aus dem Master-JSON nach standardkonformem TEI-P5 XML (`<ab>`-Parallelität) und Typst-PDF.
+1. **Automatisierte Export-Pipeline:** Native Rust-Kompilierung aus dem Master-JSON nach standardkonformem TEI-P5 XML (`<ab>`-Parallelität) und Typst-PDF.
+2. **Silent Auto-Repair & Validierung:** Automatische Normalisierung von Anführungszeichen, Dandas und JSON-Struktur beim Speichern.
 
 ---
 

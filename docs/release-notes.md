@@ -4,6 +4,14 @@ title: Release Notes
 
 # 🚀 Zentauri Release Notes
 
+### ZenTauri v2.0.0
+- **3-Work-Modes Architecture (`⌘1` / `⌘2` / `⌘3`):** Introduced dedicated mode switching between Markdown Authoring (Mode 1), Synoptic Master-JSON Edition (Mode 2), and Dual PDF & Markdown QA / Proofing (Mode 3) with StatusBar indicator and isolated keyboard shortcuts.
+- **Synoptic Master-JSON Editor (`SynopticView.vue`, Mode 2):** Split-pane editing of `book.json` editions alongside historical PDF scans (`hayro_svg`), featuring segment navigation (`⌘↑`/`⌘↓`), IAST/Devanāgarī fields, snippet toolbar, and `⌘S` persistence.
+- **Dual Markdown Comparison & Philological Collation Diff (`diffCollation.ts`, Mode 3):** Side-by-side Markdown comparison (rendered scholarly preview & raw source) with word- and character-level diacritic diff highlighting that preserves Markdown structure, bounded Myers diff (`MAX_MYERS_D`), and safe link interception.
+- **Bounding-Box Annotations & AI Review Prompt (Mode 3):** Draw normalized bounding-box overlays on PDF pages, manage them in the Proofing Drawer, export as JSON, or copy a structured 1-click AI Review Prompt (including collation stats).
+
+---
+
 ### ZenTauri v1.9.1
 - **Synchronous Mermaid Diagram Rendering via Pele (`pele.run`):** Replaced the 2.5 MB `mermaid` library with Steph Ango's zero-dependency `pele` renderer (`^1.13.0`). Diagrams are compiled synchronously in the `markdown-it` pipeline without asynchronous DOM races, render flakiness, or debounce delays.
 - **Bundle Reduction & Performance:** Removed over 80 sub-dependencies and 20+ asynchronous vendor chunks, saving ~2.5 MB in distribution bundles and optimizing preview responsiveness.

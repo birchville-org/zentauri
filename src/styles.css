@@ -4,6 +4,12 @@
 @plugin "@tailwindcss/typography";
 @custom-variant dark (&:where(.dark, .dark *));
 
+body {
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
 body,
 input,
 button,
@@ -61,6 +67,7 @@ textarea {
   --color-app-bg-hover: var(--app-bg-hover);
   --color-app-bg-active: var(--app-bg-active);
   --color-app-text: var(--app-text);
+  --color-app-text-secondary: var(--app-text-secondary);
   --color-app-text-muted: var(--app-text-muted);
   --color-app-border: var(--app-border);
 }
@@ -72,8 +79,9 @@ textarea {
   --app-bg-hover: #e4e4e7;
   --app-bg-active: #d4d4d8;
   --app-text: #18181b;
-  --app-text-muted: #71717a;
-  --app-border: #e4e4e7;
+  --app-text-secondary: #27272a;
+  --app-text-muted: #475569;
+  --app-border: #cbd5e1;
   --editor-font-size: 16px;
   --directive-l1: #8b5cf6;
   --directive-l2: #3b82f6;
@@ -95,7 +103,8 @@ textarea {
     --app-bg-hover: #27272a;
     --app-bg-active: #3f3f46;
     --app-text: #f4f4f5;
-    --app-text-muted: #a1a1aa;
+    --app-text-secondary: #d4d4d8;
+    --app-text-muted: #94a3b8;
     --app-border: #27272a;
     --directive-l1: #8b5cf6;
     --directive-l2: #3b82f6;
@@ -116,8 +125,9 @@ textarea {
   --app-bg-hover: #e4e4e7;
   --app-bg-active: #d4d4d8;
   --app-text: #18181b;
-  --app-text-muted: #71717a;
-  --app-border: #e4e4e7;
+  --app-text-secondary: #27272a;
+  --app-text-muted: #475569;
+  --app-border: #cbd5e1;
   --directive-l1: #8b5cf6;
   --directive-l2: #3b82f6;
   --directive-l3: #10b981;
@@ -136,7 +146,8 @@ textarea {
   --app-bg-hover: #27272a;
   --app-bg-active: #3f3f46;
   --app-text: #f4f4f5;
-  --app-text-muted: #a1a1aa;
+  --app-text-secondary: #d4d4d8;
+  --app-text-muted: #94a3b8;
   --app-border: #27272a;
   --directive-l1: #8b5cf6;
   --directive-l2: #3b82f6;
@@ -156,8 +167,9 @@ textarea {
   --app-bg-hover: #e8e3d7;
   --app-bg-active: #dfd7c5;
   --app-text: #03192e;
-  --app-text-muted: #6b6257;
-  --app-border: #d8d2c6;
+  --app-text-secondary: #1e2d37;
+  --app-text-muted: #475569;
+  --app-border: #cbc4b4;
   --directive-l1: #7c3aed;
   --directive-l2: #1d4ed8;
   --directive-l3: #047857;
@@ -175,8 +187,9 @@ textarea {
   --app-bg-secondary: #0f1e35;
   --app-bg-hover: #172a48;
   --app-bg-active: #223c63;
-  --app-text: #e8e0d3;
-  --app-text-muted: #a09080;
+  --app-text: #f1ede4;
+  --app-text-secondary: #cbd5e1;
+  --app-text-muted: #94a3b8;
   --app-border: #334155;
   --directive-l1: #c084fc;
   --directive-l2: #60a5fa;
@@ -196,6 +209,7 @@ textarea {
   --app-bg-hover: #504945;
   --app-bg-active: #665c54;
   --app-text: #ebdbb2;
+  --app-text-secondary: #d5c4a1;
   --app-text-muted: #a89984;
   --app-border: #504945;
   --directive-l1: #d3869b;
@@ -210,8 +224,9 @@ textarea {
   --app-bg-secondary: #eee8d5;
   --app-bg-hover: #e1d8c1;
   --app-bg-active: #d5c8ab;
-  --app-text: #657b83;
-  --app-text-muted: #93a1a1;
+  --app-text: #073642;
+  --app-text-secondary: #586e75;
+  --app-text-muted: #657b83;
   --app-border: #d5c8ab;
   --directive-l1: #6c71c4;
   --directive-l2: #268bd2;
@@ -225,8 +240,9 @@ textarea {
   --app-bg-secondary: #073642;
   --app-bg-hover: #586e75;
   --app-bg-active: #657b83;
-  --app-text: #839496;
-  --app-text-muted: #586e75;
+  --app-text: #fdf6e3;
+  --app-text-secondary: #93a1a1;
+  --app-text-muted: #839496;
   --app-border: #073642;
   --directive-l1: #6c71c4;
   --directive-l2: #268bd2;
@@ -241,6 +257,7 @@ textarea {
   --app-bg-hover: #313244;
   --app-bg-active: #45475a;
   --app-text: #cdd6f4;
+  --app-text-secondary: #bac2de;
   --app-text-muted: #a6adc8;
   --app-border: #6c7086;
   --directive-l1: #cba6f7;
@@ -256,7 +273,8 @@ textarea {
   --app-bg-hover: #292e42;
   --app-bg-active: #3b4261;
   --app-text: #c0caf5;
-  --app-text-muted: #565f89;
+  --app-text-secondary: #a9b1d6;
+  --app-text-muted: #7aa2f7;
   --app-border: #414868;
   --directive-l1: #bb9af7;
   --directive-l2: #7aa2f7;
@@ -270,8 +288,9 @@ textarea {
   --app-bg-secondary: #3b4252;
   --app-bg-hover: #434c5e;
   --app-bg-active: #4c566a;
-  --app-text: #d8dee9;
-  --app-text-muted: #eceff4;
+  --app-text: #eceff4;
+  --app-text-secondary: #e5e9f0;
+  --app-text-muted: #d8dee9;
   --app-border: #434c5e;
   --directive-l1: #b48ead;
   --directive-l2: #81a1c1;
@@ -286,7 +305,8 @@ textarea {
   --app-bg-hover: #44475a;
   --app-bg-active: #6272a4;
   --app-text: #f8f8f2;
-  --app-text-muted: #6272a4;
+  --app-text-secondary: #e2e8f0;
+  --app-text-muted: #94a3b8;
   --app-border: #44475a;
   --directive-l1: #bd93f9;
   --directive-l2: #8be9fd;
@@ -597,4 +617,65 @@ svg.pele {
 .custom-scrollbar {
   scrollbar-width: thin;
   scrollbar-color: var(--app-border) transparent;
+}
+
+/* ==========================================================================
+   Birchville Scholarly Synthesis - Philological Collation Diff Highlights
+   ========================================================================== */
+mark.diff-substitution {
+  background-color: rgba(245, 158, 11, 0.16);
+  color: inherit;
+  border-bottom: 1.5px solid rgba(217, 119, 6, 0.6);
+  border-radius: 2px;
+  padding: 0 1px;
+}
+.dark mark.diff-substitution {
+  background-color: rgba(245, 158, 11, 0.22);
+  border-bottom-color: rgba(245, 158, 11, 0.7);
+}
+
+mark.diff-deletion {
+  background-color: rgba(244, 63, 94, 0.16);
+  color: inherit;
+  text-decoration: line-through;
+  text-decoration-color: rgba(225, 29, 72, 0.7);
+  border-radius: 2px;
+  padding: 0 1px;
+}
+.dark mark.diff-deletion {
+  background-color: rgba(244, 63, 94, 0.22);
+  text-decoration-color: rgba(251, 113, 133, 0.8);
+}
+
+mark.diff-addition {
+  background-color: rgba(16, 185, 129, 0.16);
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: rgba(5, 150, 105, 0.7);
+  border-radius: 2px;
+  padding: 0 1px;
+}
+.dark mark.diff-addition {
+  background-color: rgba(16, 185, 129, 0.22);
+  text-decoration-color: rgba(52, 211, 153, 0.8);
+}
+
+.diff-char-del {
+  background-color: rgba(217, 119, 6, 0.35);
+  font-weight: 700;
+  border-radius: 1px;
+  padding: 0 1px;
+}
+.dark .diff-char-del {
+  background-color: rgba(245, 158, 11, 0.45);
+}
+
+.diff-char-ins {
+  background-color: rgba(16, 185, 129, 0.35);
+  font-weight: 700;
+  border-radius: 1px;
+  padding: 0 1px;
+}
+.dark .diff-char-ins {
+  background-color: rgba(52, 211, 153, 0.45);
 }

@@ -1,3 +1,25 @@
+# Release Notes — ZenTauri v2.0.0
+
+ZenTauri v2.0.0 introduces the 3-Work-Modes architecture for scholarly digital humanities workflows: Markdown Authoring (`⌘1`), Synoptic Master-JSON Edition (`⌘2`), and Dual PDF & Markdown QA / Proofing (`⌘3`) with philological collation diffing, bounding-box annotations, and 1-click AI Review Prompts.
+
+## Features & Enhancements (v2.0.0)
+
+### 🏛️ 3-Work-Modes Architecture & Navigation
+* **Dedicated Work-Mode Switcher (`⌘1` / `⌘2` / `⌘3`):** Cleanly separates Markdown Authoring, Synoptic Edition (`book.json`), and Dual QA / Proofing across the header switcher, ActivityBar, and StatusBar badge.
+* **Persistent Split-Pane Ergonomics:** Preserves mode state cleanly without cross-mode keyboard shortcut leaks (`SynopticView` visibility guard and timer cleanup).
+
+### 📜 Work-Mode 2: Synoptic Master-JSON Edition (`SynopticView`)
+* **Split-Pane Scan Alignment:** Pairs historical reference PDF scans (`hayro_svg`) on the left with structured segment fields (Devanāgarī, IAST, translation, critical apparatus, commentary) on the right.
+* **Keyboard Workflow & Sanskrit Transliteration:** Navigate segments via `⌘↑` / `⌘↓`, insert IAST/Danda snippets, run bidirectional Sanskrit transliteration, and save `book.json` via `⌘S`.
+
+### 🔍 Work-Mode 3: Dual PDF & Markdown QA / Proofing (`PdfDualViewer`)
+* **Dual Markdown & PDF Collation:** Compare two PDFs (`hayro_svg` vector rendering) or two Markdown files (toggleable between rendered scholarly preview and raw source) side-by-side, with full SWAP support and synchronized scrolling (`%` / `Page` / `Off`).
+* **Philological Collation Diff (`diffCollation.ts`):** Highlights word substitutions, additions, deletions, and intra-word diacritic variations (e.g. `samskrtam` ⇄ `saṃskṛtam`) using semantic Birchville CSS classes while preserving Markdown block and inline syntax (`#`, `**`, etc.).
+* **Bounding-Box Annotations & 1-Click AI Review Prompt:** Draw normalized bounding-box overlays on PDF pages, manage findings in the Proofing Drawer, export JSON annotations, or copy a structured AI Review Prompt (including collation diff stats) to the clipboard.
+* **Security & Stability:** Added safe link interception in rendered Dual Markdown previews (`openUrl` / external browser target) and bounded Myers diff (`MAX_MYERS_D`) with single-pass word similarity calculation.
+
+---
+
 # Release Notes — ZenTauri v1.9.1
 
 ZenTauri v1.9.1 is a high-performance rendering and scholarly authoring update delivering synchronous Mermaid diagram compilation via Pele, substantial bundle size reduction, full diagram embedding in standalone HTML exports, and in-editor Sanskrit compose-key shortcuts.

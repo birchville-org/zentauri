@@ -879,12 +879,17 @@ onMounted(() => {
           backgroundColor: "var(--app-bg)",
           color: "var(--app-text)",
         },
-        ".cm-scroller": { overflow: "auto", fontFamily: "monospace" },
+        ".cm-scroller": {
+          overflow: "auto",
+          fontFamily:
+            'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace',
+        },
         ".cm-content": { caretColor: "var(--app-text) !important" },
         ".cm-gutters": {
           backgroundColor: "var(--app-bg-secondary)",
           color: "var(--app-text-muted)",
           borderRight: "1px solid var(--app-border)",
+          fontWeight: "500",
         },
         ".cm-activeLineGutter": { backgroundColor: "var(--app-bg-hover)" },
         ".cm-activeLine": { backgroundColor: "var(--app-bg-hover)" },

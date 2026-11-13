@@ -58,19 +58,19 @@ This manual is organized into six comprehensive parts. Active features are immed
 - **Chapter 5: Math, Diagrams & Hyperlinking** (KaTeX formulas, Mermaid diagrams, footnotes `[^1]`, definition lists)
 - **Chapter 6: Compilation & Export** (Native Typst PDF compilation, standalone HTML export adhering to Modern Web Guidance)
 
-### Part III: Work-Mode 2 — Synoptic Master-JSON Edition *(Roadmap)*
+### Part III: Work-Mode 2 — Synoptic Master-JSON Edition *(Active)*
 - **Chapter 7: Master-JSON Concept (`book.json`)** (The Bṛhadāraṇyaka edition architecture as an AST Single Source)
 - **Chapter 8: Split-Pane Collation Layout** (Historical PDF scan on the left ⇄ structured segment inputs on the right)
 - **Chapter 9: Segment-Based Fields** (Devanāgarī, IAST, translations, critical variants, philological apparatus)
-- **Chapter 10: Silent Auto-Repair & Validation** (Background auto-repair of quotation marks, dandas, and JSON syntax on save)
-- **Chapter 11: TEI-P5 XML & Synoptic HTML Compilation** (Automated generation of `<ab>`-aligned TEI archives and web presentations)
+- **Chapter 10: Silent Auto-Repair & Validation** *(Planned)* (Background auto-repair of quotation marks, dandas, and JSON syntax on save)
+- **Chapter 11: TEI-P5 XML & Synoptic HTML Compilation** *(Planned)* (Automated generation of `<ab>`-aligned TEI archives and web presentations)
 
-### Part IV: Work-Mode 3 — Dual PDF QA & Proofing *(Active / In Development)*
-- **Chapter 12: Dual-Vector Synchronous Viewer** (Loading parallel PDFs, one-click SWAP control)
-- **Chapter 13: Scroll Synchronization Modes** (Percentage scroll, page lockstep, heading matching)
-- **Chapter 14: Normalized Bounding-Box Annotations** *(Conceived)* (Click-and-drag overlays on vector SVGs with relative coordinates)
-- **Chapter 15: Web-First AI Correction Bridge** *(Conceived)* (1-click clipboard prompt for Claude, ChatGPT, and Gemini)
-- **Chapter 16: Flattened Annotated PDF Export** *(Conceived)* (Embedded markings for human reviewers and multimodal vision models)
+### Part IV: Work-Mode 3 — Dual PDF & Markdown QA / Proofing *(Active)*
+- **Chapter 12: Dual-Vector Synchronous Viewer & Markdown Comparison** (Loading parallel PDFs or Markdown files, one-click SWAP control)
+- **Chapter 13: Scroll Synchronization Modes** (Percentage scroll, page lockstep, independent scrolling)
+- **Chapter 14: Normalized Bounding-Box Annotations & Philological Collation Diff** (Click-and-drag overlays on vector SVGs and word/character-level diacritic diffing for Markdown)
+- **Chapter 15: Web-First AI Correction Bridge** (1-click clipboard prompt for Claude, ChatGPT, and Gemini)
+- **Chapter 16: Flattened Annotated PDF Export** *(Planned)* (Embedded markings for human reviewers and multimodal vision models)
 
 ### Part V: Interoperability & Word Workflows
 - **Chapter 17: DOCX Ingest (Import & Sanitization)** *(Conceived)* (Stripping Word styling debris, Unicode NFC normalization)
@@ -121,14 +121,15 @@ devo viṣṇuḥ = ⟪देवो⟫ ⟪विष्णुः⟫ = "Viṣṇu 
   - Standard footnotes using `[^1]` inline and `[^1]: Footnote body` at the bottom.
   - Lexical definition lists via `Term\n: Definition`.
 
-### 4. Dual PDF QA: Vector Synchronous Viewer (Mode 3)
-- **Synchronized Collation:** Load two PDFs side-by-side using the `PdfDualViewer` component.
-- **Rust Vector Precision:** Pages are compiled as SVG via `hayro_svg` — preserving razor-sharp typography at any zoom level.
-- **Sync Modes:**
-  - `% (Percentage):` Both panes scroll proportionally relative to their overall scroll height.
-  - `Page (Lockstep):` Both panes lock to the identical page number.
-  - `Off:` Independent scrolling.
-- **SWAP Control:** Instantly flip left and right panes with a single click.
+### 4. Synoptic Edition (Mode 2) & Dual QA / Collation (Mode 3)
+- **Work-Mode Switching:** Toggle between **Modus 1** (`⌘1`), **Modus 2** (`⌘2`), and **Modus 3** (`⌘3`) via the header switcher or keyboard shortcuts.
+- **Synoptic Master-JSON (`book.json`, Mode 2):** Open a `book.json` edition alongside a reference scan PDF. Navigate segments with `⌘↑` / `⌘↓`, edit Devanāgarī, IAST, translation, and apparatus fields directly, and save with `⌘S`.
+- **Dual PDF & Markdown Collation (Mode 3):**
+  - **PDF ⇄ PDF:** Pages are compiled as vector SVG via `hayro_svg` for sharp typography at any zoom level.
+  - **Markdown ⇄ Markdown:** Load two `.md` files side-by-side and switch each pane between **Rendered** scholarly preview and **Source** view.
+  - **Philological Collation Diff:** Toggle **Diff** in the toolbar to highlight word substitutions, additions, deletions, and intra-word diacritic changes (such as `samskrtam` ⇄ `saṃskṛtam`) while preserving Markdown structure.
+  - **Bounding-Box Annotations & AI Review Prompt:** Draw normalized bounding-box annotations on PDF pages, manage them in the Proofing Drawer, export them as JSON, or copy a structured **AI Review Prompt** (including collation diffs) to the clipboard.
+  - **Sync Modes & SWAP:** Synchronize scrolling by `% (Percentage)`, `Page (Lockstep)`, or `Off`, and flip left/right documents with **SWAP**.
 
 ### 5. Custom Styling (`custom.css`)
 Override colors, fonts, and container styles via `~/.config/zentauri/custom.css` (macOS/Linux) or `%APPDATA%\zentauri\custom.css` (Windows):

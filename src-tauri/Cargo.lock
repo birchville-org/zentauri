@@ -4,7 +4,7 @@ version = 4
 
 [[package]]
 name = "ZenTauri"
-version = "1.9.1"
+version = "2.0.0"
 dependencies = [
  "docling",
  "hayro-interpret 0.8.0",

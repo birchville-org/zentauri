@@ -7,10 +7,10 @@
 Zentauri is a lightweight (ca. 30MB on Mac), high-performance philological desktop environment. Built with Tauri and Vue 3, it originated as a standalone editor for the Payer Sanskrit Course and evolved into an integrated three-pillar workbench:
 
 > [!NOTE]
-> **The 3 Work-Modes of Zentauri**
+> **The 3 Work-Modes of Zentauri** (`⌘1` / `⌘2` / `⌘3`)
 > 1. **✍️ Markdown Authoring (Active):** High-speed writing of Sanskrit grammar lessons, notes, and scholarly articles with custom container boxes (`::: grammar-box`, `::: note-box`), Sanskrit Devanāgarī bracket highlighting (`《...》`), and bidirectional transliteration.
-> 2. **📜 Synoptic Edition & Master-JSON (Planned):** Structured editing of scanned historical editions (`book.json` / AST format as in the *Bṛhadāraṇyaka-Upaniṣad* project). Split-pane alignment pairing historical scans (PDF) with segmented field inputs for Devanāgarī, IAST, translation, and critical apparatus without brittle TEI-XML manual markup.
-> 3. **🔍 Dual PDF QA & Proofing (In Development):** Synchronized dual-vector PDF comparison (original vs. re-typeset edition) with normalized bounding-box annotations, 1-click clipboard prompt generation for LLMs, and annotated PDF export.
+> 2. **📜 Synoptic Edition & Master-JSON (Active):** Structured editing of scanned historical editions (`book.json` / AST format as in the *Bṛhadāraṇyaka-Upaniṣad* project). Split-pane alignment pairing historical scans (PDF) with segmented field inputs for Devanāgarī, IAST, translation, and critical apparatus.
+> 3. **🔍 Dual PDF & Markdown QA / Proofing (Active):** Synchronized dual-vector PDF comparison (`hayro_svg`) and dual-Markdown comparison (rendered & raw source) with philological word/character collation diff, normalized bounding-box annotations, and 1-click AI Review Prompt export.
 
 If you wish to explore the full architecture, developer notes, and syntax extensions, visit the [Documentation Wiki](https://birchville-org.github.io/zentauri/).
 

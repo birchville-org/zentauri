@@ -1,5 +1,14 @@
-import Sanscript from "@indic-transliteration/sanscript";
-import { invoke } from "@tauri-apps/api/core";
+import { invoke, isTauri } from "@tauri-apps/api/core";
+
+let sanscriptInstance: any = null;
+
+async function getSanscript() {
+  if (!sanscriptInstance) {
+    const mod = await import("@indic-transliteration/sanscript");
+    sanscriptInstance = (mod as any).default || mod;
+  }
+  return sanscriptInstance;
+}
 
 /**
  * Supported transliteration schemes for bidirectional conversion with Devanagari.
@@ -14,13 +23,17 @@ export function containsDevanagari(text: string): boolean {
 }
 
 function isTauriAvailable(): boolean {
-  return (
-    typeof window !== "undefined" &&
-    Boolean(
-      (window as unknown as { __TAURI_INTERNALS__?: unknown })
-        .__TAURI_INTERNALS__,
-    )
-  );
+  try {
+    return isTauri();
+  } catch {
+    return (
+      typeof window !== "undefined" &&
+      Boolean(
+        (window as unknown as { __TAURI_INTERNALS__?: unknown })
+          .__TAURI_INTERNALS__,
+      )
+    );
+  }
 }
 
 /**
@@ -88,20 +101,22 @@ function transformPreservingDirectives(
 
 /**
  * Client-side Sanscript fallback for browser mode or when Tauri IPC is not available.
+ * Uses lazy dynamic import so the library is never bundled into the main desktop application.
  */
-export function jsTransliterate(
+export async function jsTransliterate(
   text: string,
   from: "iast" | "hk" | "devanagari",
   to: "iast" | "hk" | "devanagari",
-): string {
+): Promise<string> {
   if (!text || from === to) return text;
   let normalized = text;
   if (from === "iast") {
     normalized = normalized.replace(/ṁ/g, "ṃ").replace(/Ṁ/g, "Ṃ");
   }
+  const s = await getSanscript();
   return transformPreservingDirectives(normalized, (chunk) => {
     if (!chunk) return "";
-    return Sanscript.t(chunk, from, to);
+    return s.t(chunk, from, to);
   });
 }
 
@@ -127,10 +142,10 @@ async function transliterate(
         "Tauri transliterate_sanskrit IPC error, falling back to Sanscript:",
         err,
       );
-      return jsTransliterate(text, from, to);
+      return await jsTransliterate(text, from, to);
     }
   }
-  return jsTransliterate(text, from, to);
+  return await jsTransliterate(text, from, to);
 }
 
 /**
@@ -185,12 +200,12 @@ export async function toggleSchemeTransliteration(
   const isDeva = containsDevanagari(text);
   if (scheme === "hk") {
     return isDeva
-      ? jsTransliterate(text, "devanagari", "hk")
-      : jsTransliterate(text, "hk", "devanagari");
+      ? await jsTransliterate(text, "devanagari", "hk")
+      : await jsTransliterate(text, "hk", "devanagari");
   }
   return isDeva
-    ? jsTransliterate(text, "devanagari", "iast")
-    : jsTransliterate(text, "iast", "devanagari");
+    ? await jsTransliterate(text, "devanagari", "iast")
+    : await jsTransliterate(text, "iast", "devanagari");
 }
 
 /**

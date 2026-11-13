@@ -566,7 +566,7 @@ async function refresh() {
       <div v-else class="flex flex-col min-w-0 pr-4">
         <span 
           class="text-sm select-none text-app-text whitespace-nowrap" 
-          :class="{ 'text-app-text-muted': !isMarkdown && !node.isDirectory }"
+          :class="{ 'text-app-text-secondary': !isMarkdown && !node.isDirectory }"
           :title="node.title ? `${node.name} — ${node.title}` : node.name"
         >
           {{ node.name }}

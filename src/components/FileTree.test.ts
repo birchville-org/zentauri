@@ -224,6 +224,7 @@ describe("FileTree Component", () => {
         rootPaths: ["/Users/test/my-project"],
         openTabs: [],
         openPdfs,
+        workMode: "pdf-qa",
       },
       global: {
         stubs: {
@@ -232,7 +233,7 @@ describe("FileTree Component", () => {
       },
     });
 
-    expect(wrapper.text()).toContain("Open PDFs");
+    expect(wrapper.text()).toContain("Vergleichs-Dokumente");
     expect(wrapper.text()).toContain("(2)");
     expect(wrapper.text()).toContain("[1] Ref");
     expect(wrapper.text()).toContain("scan_source.pdf");
@@ -260,6 +261,44 @@ describe("FileTree Component", () => {
     expect(invoke).toHaveBeenCalledWith("reveal_in_explorer", {
       path: "/Users/test/my-project/scans/scan_source.pdf",
     });
+  });
+
+  it("does not render Vergleichs-Dokumente when workMode is 'markdown'", () => {
+    const openPdfs = [
+      {
+        slot: "left" as const,
+        slotLabel: "[1] Ref",
+        name: "scan_source.pdf",
+        path: "/Users/test/my-project/scans/scan_source.pdf",
+      },
+    ];
+
+    const wrapper = mount(FileTree, {
+      props: {
+        rootPath: null,
+        rootPaths: [],
+        openTabs: [
+          {
+            id: "1",
+            path: "/workspace/doc.md",
+            title: "doc.md",
+            content: "Hello",
+          },
+        ],
+        openPdfs,
+        workMode: "markdown",
+      },
+      global: {
+        stubs: {
+          ContextMenu: true,
+        },
+      },
+    });
+
+    expect(wrapper.text()).toContain("Open Editors");
+    expect(wrapper.text()).toContain("doc.md");
+    expect(wrapper.text()).not.toContain("Vergleichs-Dokumente");
+    expect(wrapper.text()).not.toContain("scan_source.pdf");
   });
 
   it("bubbles file-renamed and file-deleted events from WorkspaceFolderSection", async () => {

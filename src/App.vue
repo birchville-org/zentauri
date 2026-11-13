@@ -24,6 +24,8 @@ const HelpSystem = defineAsyncComponent(
 );
 import ContextMenu from "./components/ContextMenu.vue";
 import PdfDualViewer, { type OpenPdfDoc } from "./components/PdfDualViewer.vue";
+import SynopticView, { type SynopticState } from "./components/SynopticView.vue";
+import type { WorkMode } from "./types/workMode";
 import { autoRepairMarkdown } from "./lib/auto-repair";
 import {
   copyHtmlToClipboard,
@@ -116,15 +118,61 @@ const editorRef = ref<InstanceType<typeof Editor> | null>(null);
 const previewRef = ref<InstanceType<typeof Preview> | null>(null);
 const fileTreeRef = ref<InstanceType<typeof FileTree> | null>(null);
 const pdfDualViewerRef = ref<InstanceType<typeof PdfDualViewer> | null>(null);
+const synopticViewRef = ref<InstanceType<typeof SynopticView> | null>(null);
 const openPdfList = ref<OpenPdfDoc[]>([]);
+
+const synopticState = ref<SynopticState>({
+  jsonPath: null,
+  jsonTitle: "book.json",
+  isDirty: false,
+  scanPath: null,
+  scanFileName: null,
+  scanCurrentPage: 1,
+  scanTotalPages: 1,
+});
+
+function handleSynopticStateUpdate(state: SynopticState) {
+  synopticState.value = state;
+}
+
+const leftPdfDoc = computed(() => {
+  return openPdfList.value.find((d) => d.slot === "left") || null;
+});
+
+const rightPdfDoc = computed(() => {
+  return openPdfList.value.find((d) => d.slot === "right") || null;
+});
 
 function handlePdfDocsUpdate(docs: OpenPdfDoc[]) {
   openPdfList.value = docs;
 }
 
 function handleSelectOpenPdf(_item: OpenPdfDoc) {
-  setViewMode("pdf-qa");
+  setWorkMode("pdf-qa");
   showExplorerView();
+}
+
+function handleOpenPdfSlot(slot: "left" | "right") {
+  setWorkMode("pdf-qa");
+  nextTick(() => {
+    pdfDualViewerRef.value?.pickDocument(slot);
+  });
+}
+
+function handleSelectSynopticJson() {
+  setWorkMode("synoptic");
+  if (!synopticState.value.jsonPath) {
+    nextTick(() => {
+      synopticViewRef.value?.pickAndOpenMasterJson();
+    });
+  }
+}
+
+function handleSelectSynopticScan() {
+  setWorkMode("synoptic");
+  nextTick(() => {
+    synopticViewRef.value?.pickScanPdf();
+  });
 }
 
 function handleCloseOpenPdf(slot: "left" | "right") {
@@ -167,9 +215,23 @@ watch(
   },
 );
 
+function fastCountWords(str: string): number {
+  let count = 0;
+  let inWord = false;
+  for (let i = 0; i < str.length; i++) {
+    const code = str.charCodeAt(i);
+    if (code <= 32 || code === 160) {
+      inWord = false;
+    } else if (!inWord) {
+      inWord = true;
+      count++;
+    }
+  }
+  return count;
+}
+
 const wordCount = computed(() => {
-  const text = markdownSource.value || "";
-  return text.trim() ? text.trim().match(/\S+/g)?.length || 0 : 0;
+  return fastCountWords(markdownSource.value || "");
 });
 
 const charCount = computed(() => {
@@ -475,15 +537,65 @@ function resetEditorSplit() {
 
 type ViewMode = "source" | "split" | "live" | "pdf-qa";
 const rawStoredMode = localStorage.getItem("zentauri-view-mode");
+const rawStoredWorkMode = localStorage.getItem("zentauri-work-mode");
+
 const viewMode = ref<ViewMode>(
   ["source", "split", "live", "pdf-qa"].includes(rawStoredMode as any)
     ? (rawStoredMode as ViewMode)
     : "split",
 );
 
+const workMode = ref<WorkMode>(
+  ["markdown", "synoptic", "pdf-qa"].includes(rawStoredWorkMode as any)
+    ? (rawStoredWorkMode as WorkMode)
+    : (viewMode.value === "pdf-qa" ? "pdf-qa" : "markdown"),
+);
+
+function setWorkMode(mode: WorkMode) {
+  workMode.value = mode;
+  try {
+    localStorage.setItem("zentauri-work-mode", mode);
+  } catch {}
+  if (mode === "pdf-qa") {
+    viewMode.value = "pdf-qa";
+  } else if (mode === "markdown") {
+    if (viewMode.value === "pdf-qa") {
+      const storedViewMode = localStorage.getItem("zentauri-view-mode");
+      const targetViewMode =
+        storedViewMode === "source" || storedViewMode === "split"
+          ? storedViewMode
+          : "split";
+      viewMode.value = targetViewMode as ViewMode;
+    }
+    nextTick(() => {
+      focusEditor();
+    });
+  } else if (mode === "synoptic") {
+    if (viewMode.value === "pdf-qa") {
+      const storedViewMode = localStorage.getItem("zentauri-view-mode");
+      const targetViewMode =
+        storedViewMode === "source" || storedViewMode === "split"
+          ? storedViewMode
+          : "split";
+      viewMode.value = targetViewMode as ViewMode;
+    }
+  }
+}
+
 function setViewMode(mode: ViewMode) {
   viewMode.value = mode;
-  localStorage.setItem("zentauri-view-mode", mode);
+  try {
+    if (mode === "source" || mode === "split") {
+      localStorage.setItem("zentauri-view-mode", mode);
+    }
+  } catch {}
+  if (mode === "pdf-qa") {
+    if (workMode.value !== "pdf-qa") {
+      setWorkMode("pdf-qa");
+    }
+  } else if (workMode.value === "pdf-qa") {
+    setWorkMode("markdown");
+  }
 }
 
 const showPreview = computed(() => viewMode.value === "split");
@@ -764,19 +876,22 @@ const saveStatus = computed(() => {
     if (activeTab.value?.isDirty) {
       return {
         text: "Unsaved (Auto-Save Off)",
-        dotClass: "w-2 h-2 bg-amber-500",
+        dotClass: "w-2.5 h-2.5 bg-amber-600 dark:bg-amber-400 ring-2 ring-amber-500/20",
+        textClass: "text-amber-800 dark:text-amber-300 font-semibold",
         title: "Unsaved changes. Press Cmd/Ctrl+S or click Save.",
       };
     }
     return {
       text: "Saved (Auto-Save Off)",
-      dotClass: "w-2 h-2 bg-slate-400 dark:bg-slate-500",
+      dotClass: "w-2.5 h-2.5 bg-slate-500 dark:bg-slate-400",
+      textClass: "text-app-text-secondary font-medium",
       title: "All changes saved to disk. Auto-Save is disabled.",
     };
   }
   return {
     text: "Saved",
-    dotClass: "w-2 h-2 bg-emerald-500",
+    dotClass: "w-2.5 h-2.5 bg-emerald-600 dark:bg-emerald-400",
+    textClass: "text-app-text-secondary font-medium",
     title: "All changes automatically saved to disk",
   };
 });
@@ -834,12 +949,41 @@ function handleActivityAction(action: string) {
   } else if (action === "copy-html") {
     handleCopyHtml();
   } else if (action === "pdf-qa") {
-    setViewMode(viewMode.value === "pdf-qa" ? "split" : "pdf-qa");
+    setWorkMode(workMode.value === "pdf-qa" ? "markdown" : "pdf-qa");
   }
 }
 
 async function handleIncomingPaths(paths: string[]) {
   if (!paths || paths.length === 0) return;
+
+  if (workMode.value === "pdf-qa") {
+    const docPaths: string[] = [];
+    for (const p of paths) {
+      if (typeof p === "string" && p.trim()) {
+        const lower = p.toLowerCase();
+        if (
+          lower.endsWith(".pdf") ||
+          lower.endsWith(".md") ||
+          lower.endsWith(".markdown")
+        ) {
+          docPaths.push(p);
+        }
+      }
+    }
+    if (docPaths.length > 0) {
+      showExplorerView();
+      const leftDoc = docPaths[0];
+      const rightDoc = docPaths.length > 1 ? docPaths[1] : undefined;
+      nextTick(() => {
+        if (pdfDualViewerRef.value?.loadDocumentPair) {
+          pdfDualViewerRef.value.loadDocumentPair(leftDoc, rightDoc);
+        } else if (pdfDualViewerRef.value?.loadPdfPair) {
+          pdfDualViewerRef.value.loadPdfPair(leftDoc, rightDoc);
+        }
+      });
+      return;
+    }
+  }
 
   const pdfPaths: string[] = [];
   const otherPaths: string[] = [];
@@ -853,7 +997,7 @@ async function handleIncomingPaths(paths: string[]) {
   }
 
   if (pdfPaths.length > 0) {
-    setViewMode("pdf-qa");
+    setWorkMode("pdf-qa");
     showExplorerView();
     const leftPdf = pdfPaths[0];
     const rightPdf = pdfPaths.length > 1 ? pdfPaths[1] : undefined;
@@ -1220,14 +1364,25 @@ onMounted(() => {
           }
           break;
         }
+        case "mode_markdown":
+          setWorkMode("markdown");
+          break;
+        case "mode_synoptic":
+          setWorkMode("synoptic");
+          break;
+        case "mode_pdf_qa":
+          setWorkMode("pdf-qa");
+          break;
         case "view_source":
+          setWorkMode("markdown");
           setViewMode("source");
           break;
         case "view_split":
+          setWorkMode("markdown");
           setViewMode("split");
           break;
         case "view_pdf_qa":
-          setViewMode("pdf-qa");
+          setWorkMode("pdf-qa");
           break;
         case "toggle_sync_scroll":
           cycleSyncMode();
@@ -1330,12 +1485,21 @@ function handleGlobalKeydown(e: KeyboardEvent) {
     activeEl?.getAttribute("contenteditable") === "true" ||
     Boolean(activeEl?.closest(".cm-editor"));
 
-  if (isMod && key === "s") {
+  if (isMod && (key === "1" || code === "Digit1") && !e.shiftKey && !e.altKey) {
+    e.preventDefault();
+    setWorkMode("markdown");
+  } else if (isMod && (key === "2" || code === "Digit2") && !e.shiftKey && !e.altKey) {
+    e.preventDefault();
+    setWorkMode("synoptic");
+  } else if (isMod && (key === "3" || code === "Digit3") && !e.shiftKey && !e.altKey) {
+    e.preventDefault();
+    setWorkMode("pdf-qa");
+  } else if (isMod && key === "s") {
     e.preventDefault();
     forceSave();
   } else if (isMod && e.altKey && (key === "p" || code === "KeyP")) {
     e.preventDefault();
-    setViewMode(viewMode.value === "pdf-qa" ? "split" : "pdf-qa");
+    setWorkMode(workMode.value === "pdf-qa" ? "markdown" : "pdf-qa");
   } else if (isMod && !e.altKey && (key === "p" || code === "KeyP")) {
     e.preventDefault();
     if (e.shiftKey) {
@@ -1641,6 +1805,10 @@ function scrollToActiveTab() {
       });
     }
   });
+}
+
+function handleNewMarkdownTab() {
+  openTab("Untitled Document", `untitled://${Date.now()}`, "");
 }
 
 function openTab(title: string, path: string, content: string) {
@@ -2047,11 +2215,41 @@ async function handleOpenFolder() {
 }
 
 async function loadFile(path: string) {
-  if (path.toLowerCase().endsWith(".pdf")) {
-    setViewMode("pdf-qa");
+  const ext = path.split(".").pop()?.toLowerCase();
+  const filename = path.split(/[/\\]/).pop() || "";
+
+  // In Mode 3 (Vergleich & QA), route Markdown files directly into the comparison slots
+  if (workMode.value === "pdf-qa" && (ext === "md" || ext === "markdown")) {
     showExplorerView();
     nextTick(() => {
-      pdfDualViewerRef.value?.loadPdfFromExternal(path);
+      pdfDualViewerRef.value?.loadDocumentFromExternal(path);
+    });
+    return;
+  }
+
+  // Auto-route PDF files directly into Mode 2 (Scan) or Mode 3 (Dual QA)
+  if (ext === "pdf") {
+    if (workMode.value === "synoptic") {
+      synopticViewRef.value?.loadScanPdf(path);
+      return;
+    }
+    setWorkMode("pdf-qa");
+    showExplorerView();
+    nextTick(() => {
+      pdfDualViewerRef.value?.loadDocumentFromExternal(path);
+    });
+    return;
+  }
+
+  // Auto-route Master-JSON files directly into Mode 2 (Synoptic Edition)
+  if (
+    ext === "json" &&
+    (filename.toLowerCase() === "book.json" ||
+      filename.toLowerCase().endsWith("_master.json"))
+  ) {
+    setWorkMode("synoptic");
+    nextTick(() => {
+      synopticViewRef.value?.loadMasterJsonFile(path);
     });
     return;
   }
@@ -2060,6 +2258,9 @@ async function loadFile(path: string) {
     (t) => t.path === path || t.id === path,
   );
   if (existingIndex >= 0) {
+    if (workMode.value !== "markdown") {
+      setWorkMode("markdown");
+    }
     selectTab(existingIndex);
     showExplorerView();
     return;
@@ -2070,10 +2271,8 @@ async function loadFile(path: string) {
   }
 
   // Ingest Office & rich text formats into Markdown via native Docling pipeline
-  const ext = path.split(".").pop()?.toLowerCase();
   const INGEST_FORMATS = ["docx", "rtf", "epub", "pptx", "xlsx", "odt"];
   if (ext && INGEST_FORMATS.includes(ext)) {
-    const filename = path.split(/[/\\]/).pop() || "Document";
     const extUpper = ext.toUpperCase();
     const noticeMessage = `Die Datei "${filename}" (${extUpper}) wird in reines Markdown gewandelt.
 
@@ -2130,6 +2329,9 @@ Möchten Sie das Dokument jetzt als Markdown importieren?`;
   try {
     const text = await readTextFile(path);
     const title = path.split(/[/\\]/).pop() || "Unknown";
+    if (workMode.value !== "markdown") {
+      setWorkMode("markdown");
+    }
     openTab(title, path, text);
     showExplorerView();
     focusEditor();
@@ -2386,22 +2588,75 @@ async function handleCopyHtml() {
     <!-- Toolbar -->
     <header class="flex-none flex items-center px-4 py-2 border-b border-app-border bg-app-bg-secondary select-none print:hidden relative z-30" data-tauri-drag-region>
       <!-- Auto-Save, Auto-Repair & Export Status -->
-      <div class="flex-1 text-center text-sm font-medium text-app-text-muted absolute left-0 right-0 pointer-events-none flex items-center justify-center gap-2">
-        <span class="inline-block rounded-full" :class="saveStatus.dotClass" :title="saveStatus.title"></span>
-        <span>{{ saveStatus.text }}</span>
+      <div class="flex-1 text-center text-sm absolute left-0 right-0 pointer-events-none flex items-center justify-center gap-2" :class="saveStatus.textClass || 'text-app-text-secondary font-medium'">
+        <span class="inline-block rounded-full shadow-xs" :class="saveStatus.dotClass" :title="saveStatus.title"></span>
+        <span class="tracking-tight">{{ saveStatus.text }}</span>
+      </div>
+      
+      <!-- 3-Work-Modes Switcher (Modus 1, 2, 3) -->
+      <div class="flex items-center bg-app-bg p-0.5 rounded-lg border border-app-border shadow-xs z-10 relative">
+        <!-- Modus 1: Authoring -->
+        <button
+          @click="setWorkMode('markdown')"
+          class="h-7 px-2.5 flex items-center gap-1.5 rounded-md text-xs transition-colors cursor-pointer"
+          :class="workMode === 'markdown' ? 'bg-amber-500/15 text-amber-700 dark:text-amber-400 font-semibold shadow-xs ring-1 ring-amber-500/30' : 'text-app-text-secondary hover:text-app-text hover:bg-app-bg-hover font-medium'"
+          title="Modus 1: Markdown Authoring (Cmd/Ctrl+1)"
+          aria-label="Modus 1: Markdown Authoring"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+          </svg>
+          <span>Authoring</span>
+        </button>
+
+        <!-- Modus 2: Synopse -->
+        <button
+          @click="setWorkMode('synoptic')"
+          class="h-7 px-2.5 flex items-center gap-1.5 rounded-md text-xs transition-colors cursor-pointer"
+          :class="workMode === 'synoptic' ? 'bg-amber-500/15 text-amber-700 dark:text-amber-400 font-semibold shadow-xs ring-1 ring-amber-500/30' : 'text-app-text-secondary hover:text-app-text hover:bg-app-bg-hover font-medium'"
+          title="Modus 2: Synoptische Edition & Master-JSON (Cmd/Ctrl+2)"
+          aria-label="Modus 2: Synoptische Edition"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+            <line x1="12" y1="6" x2="16" y2="6"/>
+            <line x1="12" y1="10" x2="16" y2="10"/>
+            <line x1="12" y1="14" x2="16" y2="14"/>
+          </svg>
+          <span>Synopse</span>
+        </button>
+
+        <!-- Modus 3: Vergleich & QA -->
+        <button
+          @click="setWorkMode('pdf-qa')"
+          class="h-7 px-2.5 flex items-center gap-1.5 rounded-md text-xs transition-colors cursor-pointer"
+          :class="workMode === 'pdf-qa' ? 'bg-amber-500/15 text-amber-700 dark:text-amber-400 font-semibold shadow-xs ring-1 ring-amber-500/30' : 'text-app-text-secondary hover:text-app-text hover:bg-app-bg-hover font-medium'"
+          title="Modus 3: Dokumenten-Vergleich & QA (Cmd/Ctrl+3)"
+          aria-label="Dual PDF QA Mode"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="9" y1="13" x2="15" y2="13"/>
+            <line x1="9" y1="17" x2="15" y2="17"/>
+          </svg>
+          <span>Vergleich</span>
+        </button>
       </div>
       
       <!-- Unified View Mode & Representation Action Toolbar -->
       <div class="flex items-center bg-app-bg p-1 rounded-md border border-app-border shadow-xs z-10 relative ml-auto">
 
-        <!-- Group 1: View Modes (Segmented: Source | Split | Dual PDF QA) -->
-        <div class="flex items-center gap-0.5">
+        <!-- Group 1: Sub-Views (Source | Split) when in Markdown Authoring Mode -->
+        <div v-if="workMode === 'markdown'" class="flex items-center gap-0.5">
           <!-- Source Mode Button -->
           <div class="relative group/tooltip inline-flex items-center">
             <button 
               @click="setViewMode('source')" 
               class="w-7 h-7 flex items-center justify-center rounded transition-colors cursor-pointer bg-app-bg"
-              :class="viewMode === 'source' ? 'text-amber-600 dark:text-amber-400 font-semibold shadow-xs ring-1 ring-amber-500/30' : 'text-app-text-muted hover:text-app-text hover:bg-app-bg-hover'"
+              :class="viewMode === 'source' ? 'text-amber-600 dark:text-amber-400 font-semibold shadow-xs ring-1 ring-amber-500/30' : 'text-app-text-secondary hover:text-app-text hover:bg-app-bg-hover'"
               aria-label="Source Mode"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -2424,7 +2679,7 @@ async function handleCopyHtml() {
             <button 
               @click="setViewMode('split')" 
               class="w-7 h-7 flex items-center justify-center rounded transition-colors cursor-pointer bg-app-bg"
-              :class="viewMode === 'split' ? 'text-amber-600 dark:text-amber-400 font-semibold shadow-xs ring-1 ring-amber-500/30' : 'text-app-text-muted hover:text-app-text hover:bg-app-bg-hover'"
+              :class="viewMode === 'split' ? 'text-amber-600 dark:text-amber-400 font-semibold shadow-xs ring-1 ring-amber-500/30' : 'text-app-text-secondary hover:text-app-text hover:bg-app-bg-hover'"
               aria-label="Split Mode"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -2441,31 +2696,14 @@ async function handleCopyHtml() {
               </div>
             </div>
           </div>
+        </div>
 
-          <!-- Dual PDF QA Mode Button -->
-          <div class="relative group/tooltip inline-flex items-center">
-            <button 
-              @click="setViewMode('pdf-qa')" 
-              class="w-7 h-7 flex items-center justify-center rounded transition-colors cursor-pointer bg-app-bg"
-              :class="viewMode === 'pdf-qa' ? 'text-amber-600 dark:text-amber-400 font-semibold shadow-xs ring-1 ring-amber-500/30' : 'text-app-text-muted hover:text-app-text hover:bg-app-bg-hover'"
-              aria-label="Dual PDF QA Mode"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                <polyline points="14 2 14 8 20 8"/>
-                <line x1="9" y1="13" x2="15" y2="13"/>
-                <line x1="9" y1="17" x2="15" y2="17"/>
-              </svg>
-            </button>
-
-            <!-- Balloon Tooltip -->
-            <div class="pointer-events-none absolute top-full mt-2 left-1/2 -translate-x-1/2 opacity-0 group-hover/tooltip:opacity-100 translate-y-1 group-hover/tooltip:translate-y-0 transition-all duration-150 delay-0 group-hover/tooltip:delay-150 z-50 flex flex-col items-center whitespace-nowrap">
-              <div class="w-2 h-2 -mb-1 rotate-45 bg-[#18181b] dark:bg-[#0f1e35] border-t border-l border-slate-700/60 dark:border-slate-600/60"></div>
-              <div class="px-2 py-1 text-[11px] font-medium rounded shadow-xl bg-[#18181b] text-slate-100 dark:bg-[#0f1e35] dark:text-[#e8e0d3] border border-slate-700/60 dark:border-slate-600/60 leading-tight">
-                Dual PDF QA Comparison (Cmd/Ctrl+3)
-              </div>
-            </div>
-          </div>
+        <!-- Mode Indicator / Info Pill when in Synoptic or PDF-QA Mode -->
+        <div v-else-if="workMode === 'synoptic'" class="px-2 py-0.5 text-xs font-mono font-medium text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
+          <span>Modus 2: Synoptic Edition</span>
+        </div>
+        <div v-else-if="workMode === 'pdf-qa'" class="px-2 py-0.5 text-xs font-mono font-medium text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
+          <span>Modus 3: Vergleich & QA</span>
         </div>
 
         <!-- Distinct Group Separator 1 -->
@@ -2478,7 +2716,7 @@ async function handleCopyHtml() {
             <button
               @click="cycleSyncMode"
               class="h-7 px-1.5 flex items-center justify-center gap-1 rounded transition-colors cursor-pointer bg-app-bg"
-              :class="syncMode !== 'off' ? 'text-amber-600 dark:text-amber-400 font-semibold shadow-xs ring-1 ring-amber-500/30' : 'text-app-text-muted hover:text-app-text hover:bg-app-bg-hover'"
+              :class="syncMode !== 'off' ? 'text-amber-600 dark:text-amber-400 font-semibold shadow-xs ring-1 ring-amber-500/30' : 'text-app-text-secondary hover:text-app-text hover:bg-app-bg-hover font-medium'"
               :aria-label="`Scroll Synchronization: ${syncMode === 'header' ? 'Header Matching' : syncMode === 'percentage' ? 'Percentage' : 'Off'}`"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -2510,7 +2748,7 @@ async function handleCopyHtml() {
             <button
               @click="toggleVimMode"
               class="w-7 h-7 flex items-center justify-center rounded transition-colors cursor-pointer bg-app-bg"
-              :class="vimMode ? 'text-amber-600 dark:text-amber-400 font-bold shadow-xs ring-1 ring-amber-500/30' : 'text-app-text-muted hover:text-app-text hover:bg-app-bg-hover'"
+              :class="vimMode ? 'text-amber-600 dark:text-amber-400 font-bold shadow-xs ring-1 ring-amber-500/30' : 'text-app-text-secondary hover:text-app-text hover:bg-app-bg-hover font-semibold'"
               :aria-label="vimMode ? 'Vim Mode: Active' : 'Vim Mode: Inactive'"
             >
               <span class="font-mono font-bold text-xs select-none leading-none">V</span>
@@ -2529,7 +2767,7 @@ async function handleCopyHtml() {
           <div class="relative group/tooltip inline-flex items-center">
             <button
               @click="toggleTheme"
-              class="w-7 h-7 flex items-center justify-center rounded transition-colors cursor-pointer bg-app-bg text-app-text-muted hover:text-amber-500 hover:bg-app-bg-hover active:scale-95"
+              class="w-7 h-7 flex items-center justify-center rounded transition-colors cursor-pointer bg-app-bg text-app-text-secondary hover:text-amber-600 dark:hover:text-amber-400 hover:bg-app-bg-hover active:scale-95"
               :aria-label="isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'"
             >
               <!-- Sun icon when isDark is true -->
@@ -2584,9 +2822,14 @@ async function handleCopyHtml() {
           :activePath="tabs[activeTabIndex]?.path" 
           :openTabs="tabs"
           :openPdfs="openPdfList"
+          :synopticState="synopticState"
+          :workMode="workMode"
           @select="loadFile" 
           @select-pdf="handleSelectOpenPdf"
           @close-pdf="handleCloseOpenPdf"
+          @open-pdf-slot="handleOpenPdfSlot"
+          @select-synoptic-json="handleSelectSynopticJson"
+          @select-synoptic-scan="handleSelectSynopticScan"
           @open-folder="handleOpenFolder"
           @open-file="handleOpenFile"
           @remove-folder="removeWorkspaceFolder"
@@ -2630,33 +2873,154 @@ async function handleCopyHtml() {
 
       <!-- Main Workspace Area -->
       <div class="flex-1 flex flex-col min-w-0 bg-app-bg relative print:block print:overflow-visible print:h-auto">
-        <!-- Tab Bar -->
-        <div class="flex-none flex items-center overflow-x-auto border-b border-app-border bg-app-bg-secondary print:hidden">
-          <div 
-            v-for="(tab, index) in tabs" 
-            :key="tab.id"
-            @click="selectTab(index)"
-            @contextmenu="handleTabContextMenu(index, $event)"
-            class="flex items-center gap-2 px-4 py-2 text-sm cursor-pointer border-r border-app-border transition-colors whitespace-nowrap"
-            :class="[
-              activeTabIndex === index 
-                ? 'bg-app-bg text-app-text border-t-2 border-t-amber-600 dark:border-t-amber-500 tab-item-active' 
-                : 'bg-app-bg-secondary text-app-text-muted hover:bg-app-bg border-t-2 border-t-transparent'
-            ]"
-          >
-            <span>{{ tab.title }}</span>
-            <span 
-              v-if="tab.isDirty" 
-              class="w-2 h-2 rounded-full bg-amber-500 shrink-0" 
-              title="Unsaved changes"
-            ></span>
-            <button 
-              @click="closeTab(index, $event)" 
-              class="w-5 h-5 flex items-center justify-center rounded-sm hover:bg-app-border text-app-text-muted hover:text-app-text transition-colors"
+        <!-- Mode-Specific Contextual Tab Bar -->
+        <div data-testid="mode-tab-bar" class="flex-none flex items-center overflow-x-auto border-b border-app-border bg-app-bg-secondary print:hidden">
+          <!-- MODE 1: MARKDOWN AUTHORING TABS -->
+          <template v-if="workMode === 'markdown'">
+            <div 
+              v-for="(tab, index) in tabs" 
+              :key="tab.id"
+              @click="selectTab(index)"
+              @contextmenu="handleTabContextMenu(index, $event)"
+              class="flex items-center gap-2 px-4 py-2 text-sm cursor-pointer border-r border-app-border transition-colors whitespace-nowrap"
+              :class="[
+                activeTabIndex === index 
+                  ? 'bg-app-bg text-app-text font-semibold border-t-2 border-t-amber-600 dark:border-t-amber-500 tab-item-active shadow-xs' 
+                  : 'bg-app-bg-secondary text-app-text-secondary hover:text-app-text hover:bg-app-bg border-t-2 border-t-transparent font-medium'
+              ]"
             >
-              ×
+              <span class="tracking-tight">{{ tab.title }}</span>
+              <span 
+                v-if="tab.isDirty" 
+                class="w-2 h-2 rounded-full bg-amber-600 dark:bg-amber-400 shrink-0 shadow-xs ring-1 ring-amber-500/30" 
+                title="Unsaved changes"
+              ></span>
+              <button 
+                @click="closeTab(index, $event)" 
+                class="w-5 h-5 flex items-center justify-center rounded-sm hover:bg-app-border text-app-text-secondary hover:text-app-text transition-colors text-base leading-none"
+              >
+                ×
+              </button>
+            </div>
+            <!-- Quick New Markdown Tab Button -->
+            <button
+              @click="handleNewMarkdownTab"
+              class="px-3 py-2 text-app-text-secondary hover:text-app-text hover:bg-app-bg transition-colors cursor-pointer text-sm font-semibold flex items-center gap-1 border-r border-app-border"
+              title="Neue Notiz / Datei (Cmd/Ctrl+N)"
+            >
+              +
             </button>
-          </div>
+          </template>
+
+          <!-- MODE 2: SYNOPTIC EDITION & MASTER-JSON TABS -->
+          <template v-else-if="workMode === 'synoptic'">
+            <!-- Tab 1: Master-JSON Korpus -->
+            <div
+              class="flex items-center gap-2 px-4 py-2 text-sm cursor-pointer border-r border-app-border bg-app-bg text-app-text font-semibold border-t-2 border-t-amber-600 dark:border-t-amber-500 shadow-xs whitespace-nowrap"
+              :title="synopticState.jsonPath || 'book.json'"
+            >
+              <span class="font-mono text-xs text-amber-700 dark:text-amber-400 font-bold">{ }</span>
+              <span class="tracking-tight">
+                {{ synopticState.jsonPath ? synopticState.jsonPath.split(/[/\\]/).pop() : (synopticState.jsonTitle || 'book.json') }}
+              </span>
+              <span
+                v-if="synopticState.isDirty"
+                class="w-2 h-2 rounded-full bg-amber-600 dark:bg-amber-400 shrink-0 shadow-xs ring-1 ring-amber-500/30"
+                title="Ungespeicherte Änderungen im Korpus"
+              ></span>
+            </div>
+
+            <!-- Tab 2: Scan-Quelle PDF -->
+            <div
+              class="flex items-center gap-2 px-4 py-2 text-sm cursor-pointer border-r border-app-border transition-colors whitespace-nowrap"
+              :class="[
+                synopticState.scanPath
+                  ? 'bg-app-bg text-app-text font-semibold border-t-2 border-t-amber-600/70 shadow-xs'
+                  : 'bg-app-bg-secondary text-app-text-secondary hover:text-app-text hover:bg-app-bg border-t-2 border-t-transparent font-medium'
+              ]"
+              @click="!synopticState.scanPath ? synopticViewRef?.pickScanPdf() : null"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-amber-600 dark:text-amber-400 shrink-0">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+              </svg>
+              <span class="tracking-tight">
+                {{ synopticState.scanFileName ? `${synopticState.scanFileName} (S. ${synopticState.scanCurrentPage}/${synopticState.scanTotalPages})` : '+ Scan-PDF zuordnen...' }}
+              </span>
+              <button
+                v-if="synopticState.scanPath"
+                @click.stop="synopticViewRef?.unloadScanPdf()"
+                class="w-5 h-5 flex items-center justify-center rounded-sm hover:bg-app-border text-app-text-secondary hover:text-app-text transition-colors text-base leading-none"
+                title="Scan-PDF trennen"
+              >
+                ×
+              </button>
+            </div>
+
+            <!-- Quick Action: Open Another JSON -->
+            <button
+              @click="synopticViewRef?.pickAndOpenMasterJson()"
+              class="px-3 py-2 text-xs font-semibold text-app-text-secondary hover:text-app-text hover:bg-app-bg transition-colors cursor-pointer border-r border-app-border flex items-center gap-1.5"
+              title="Anderes Master-JSON (*.json) öffnen"
+            >
+              <span>+ JSON öffnen...</span>
+            </button>
+          </template>
+
+          <!-- MODE 3: DOKUMENTEN-VERGLEICH & QA TABS -->
+          <template v-else-if="workMode === 'pdf-qa'">
+            <!-- Tab 1: Left Document (Referenz) -->
+            <div
+              class="flex items-center gap-2 px-4 py-2 text-sm cursor-pointer border-r border-app-border transition-colors whitespace-nowrap"
+              :class="[
+                leftPdfDoc
+                  ? 'bg-app-bg text-app-text font-semibold border-t-2 border-t-amber-600 dark:border-t-amber-500 shadow-xs'
+                  : 'bg-app-bg-secondary text-app-text-secondary hover:text-app-text hover:bg-app-bg border-t-2 border-t-transparent font-medium'
+              ]"
+              @click="!leftPdfDoc ? pdfDualViewerRef?.pickDocument('left') : null"
+            >
+              <span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-600/30">
+                Links{{ leftPdfDoc?.kind === 'markdown' ? ' · MD' : leftPdfDoc ? ' · PDF' : '' }}
+              </span>
+              <span class="tracking-tight">
+                {{ leftPdfDoc ? (leftPdfDoc.kind === 'markdown' ? leftPdfDoc.name : `${leftPdfDoc.name} (${leftPdfDoc.pageCount} S.)`) : '+ Referenz-Dokument (Links) öffnen...' }}
+              </span>
+              <button
+                v-if="leftPdfDoc"
+                @click.stop="handleCloseOpenPdf('left')"
+                class="w-5 h-5 flex items-center justify-center rounded-sm hover:bg-app-border text-app-text-secondary hover:text-app-text transition-colors text-base leading-none"
+                title="Linkes Dokument schließen"
+              >
+                ×
+              </button>
+            </div>
+
+            <!-- Tab 2: Right Document (Vergleich) -->
+            <div
+              class="flex items-center gap-2 px-4 py-2 text-sm cursor-pointer border-r border-app-border transition-colors whitespace-nowrap"
+              :class="[
+                rightPdfDoc
+                  ? 'bg-app-bg text-app-text font-semibold border-t-2 border-t-amber-600 dark:border-t-amber-500 shadow-xs'
+                  : 'bg-app-bg-secondary text-app-text-secondary hover:text-app-text hover:bg-app-bg border-t-2 border-t-transparent font-medium'
+              ]"
+              @click="!rightPdfDoc ? pdfDualViewerRef?.pickDocument('right') : null"
+            >
+              <span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-600/30">
+                Rechts{{ rightPdfDoc?.kind === 'markdown' ? ' · MD' : rightPdfDoc ? ' · PDF' : '' }}
+              </span>
+              <span class="tracking-tight">
+                {{ rightPdfDoc ? (rightPdfDoc.kind === 'markdown' ? rightPdfDoc.name : `${rightPdfDoc.name} (${rightPdfDoc.pageCount} S.)`) : '+ Vergleichs-Dokument (Rechts) öffnen...' }}
+              </span>
+              <button
+                v-if="rightPdfDoc"
+                @click.stop="handleCloseOpenPdf('right')"
+                class="w-5 h-5 flex items-center justify-center rounded-sm hover:bg-app-border text-app-text-secondary hover:text-app-text transition-colors text-base leading-none"
+                title="Rechtes Dokument schließen"
+              >
+                ×
+              </button>
+            </div>
+          </template>
         </div>
         
         <!-- Editor/Preview/QA Split Container -->
@@ -2664,16 +3028,26 @@ async function handleCopyHtml() {
           ref="editorSplitContainerRef"
           class="flex-1 flex overflow-hidden print:block print:overflow-visible print:h-auto relative"
         >
-          <!-- Dual PDF QA Viewer Pane -->
+          <!-- Dual PDF QA Viewer Pane (Mode 3) -->
           <PdfDualViewer
-            v-show="viewMode === 'pdf-qa'"
+            v-show="workMode === 'pdf-qa'"
             ref="pdfDualViewerRef"
-            @close="setViewMode('split')"
+            @close="setWorkMode('markdown')"
             @update-docs="handlePdfDocsUpdate"
           />
 
-          <!-- Standard Markdown Editor & Preview Panes -->
-          <template v-if="viewMode !== 'pdf-qa'">
+          <!-- Synoptic Master-JSON Edition Pane (Mode 2) -->
+          <SynopticView
+            v-show="workMode === 'synoptic'"
+            ref="synopticViewRef"
+            :currentWorkspace="currentWorkspaceName"
+            :workspaceRoot="workspaceRoot"
+            @open-markdown="setWorkMode('markdown')"
+            @update-synoptic-state="handleSynopticStateUpdate"
+          />
+
+          <!-- Standard Markdown Editor & Preview Panes (Mode 1) -->
+          <template v-if="workMode === 'markdown'">
             <!-- Editor Pane (Center/Left) -->
             <div
               :class="showPreview ? 'flex-none border-r border-app-border' : 'flex-1 border-r-0'"
@@ -2749,6 +3123,7 @@ async function handleCopyHtml() {
       :syncScroll="syncScroll"
       :syncMode="syncMode"
       :viewMode="viewMode"
+      :workMode="workMode"
       :workspaceName="currentWorkspaceName"
       :activeFilePath="tabs[activeTabIndex]?.path"
       :saveStatus="saveStatus"

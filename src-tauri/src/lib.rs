@@ -1134,9 +1134,12 @@ pub fn run() {
                 "View",
                 true,
                 &[
-                    &MenuItem::with_id(app, "view_source", "Source Mode", true, Some("CmdOrCtrl+1"))?,
-                    &MenuItem::with_id(app, "view_split", "Split Mode (Editor + Preview)", true, Some("CmdOrCtrl+2"))?,
-                    &MenuItem::with_id(app, "view_pdf_qa", "Dual PDF QA Mode", true, Some("CmdOrCtrl+3"))?,
+                    &MenuItem::with_id(app, "mode_markdown", "Mode 1: Markdown Authoring", true, Some("CmdOrCtrl+1"))?,
+                    &MenuItem::with_id(app, "mode_synoptic", "Mode 2: Synoptic Edition & Master-JSON", true, Some("CmdOrCtrl+2"))?,
+                    &MenuItem::with_id(app, "mode_pdf_qa", "Mode 3: Dual PDF QA & Proofing", true, Some("CmdOrCtrl+3"))?,
+                    &PredefinedMenuItem::separator(app)?,
+                    &MenuItem::with_id(app, "view_source", "Source Only", true, None::<String>)?,
+                    &MenuItem::with_id(app, "view_split", "Editor + Live Preview", true, None::<String>)?,
                     &PredefinedMenuItem::separator(app)?,
                     &MenuItem::with_id(app, "toggle_sync_scroll", "Toggle Scroll Synchronization", true, None::<String>)?,
                     &PredefinedMenuItem::separator(app)?,
@@ -1219,6 +1222,9 @@ pub fn run() {
                     | "transliterate_devanagari"
                     | "transliterate_hk"
                     | "auto_repair"
+                    | "mode_markdown"
+                    | "mode_synoptic"
+                    | "mode_pdf_qa"
                     | "view_source"
                     | "view_split"
                     | "view_qa"
