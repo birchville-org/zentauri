@@ -52,8 +52,8 @@ Der Datei-Explorer greift auf die native SQLite-Datenbank zu, um Dokumenttitel u
 
 ## 5. QA-Vergleichsmodus & Synchron-Scrollen (Backlog / Referenz-Funktion)
 
-::: info Status: Im Backlog geparkt (v1.3.0)
-Die textbasierte Referenzspalte (`QaReferencePane.vue`) wurde in v1.3.0 aus der aktiven Benutzeroberfläche in den Backlog verschoben, um den Fokus auf die 3 Haupt-Work-Modes (**insbesondere Modus 3: Dual PDF QA & Proofing**) zu richten. Die modularen Komponenten und Heading-Sync-Algorithmen verbleiben im Code für spezialisierte Korpusvergleiche.
+::: info Status: Abgelöst durch Modus 3 (v2.0.0)
+Die frühere textbasierte Referenzspalte (`QaReferencePane.vue` und `heading-sync.ts`) wurde im Zuge der Bereinigung nach v2.0.0 durch **Modus 3: Dual PDF & Markdown QA / Kollationierung** (`PdfDualViewer.vue` + `diffCollation.ts`) abgelöst, der sowohl Vektor-PDF-Vergleiche als auch parallele Markdown-Kollation mit Diakritika-Diff unterstützt.
 :::
 
 Für Übersetzer, Lektoren und vergleichende Textanalysen (nach Vorbild des Payer QA Viewers):

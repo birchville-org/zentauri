@@ -1,64 +1,5 @@
 pub mod db;
 
-#[derive(serde::Serialize, serde::Deserialize, Debug)]
-pub struct HeadingItem {
-    pub level: u32,
-    pub text: String,
-    pub line: usize,
-}
-
-
-#[tauri::command]
-fn parse_outline(content: &str) -> Vec<HeadingItem> {
-    use pulldown_cmark::{Event, HeadingLevel, Parser, Tag, TagEnd};
-
-    let mut headings = Vec::new();
-    let mut current_heading_level: Option<u32> = None;
-    let mut current_heading_text = String::new();
-    let mut current_heading_offset = 0;
-
-    let parser = Parser::new(content).into_offset_iter();
-
-    for (event, range) in parser {
-        match event {
-            Event::Start(Tag::Heading { level, .. }) => {
-                let lvl = match level {
-                    HeadingLevel::H1 => 1,
-                    HeadingLevel::H2 => 2,
-                    HeadingLevel::H3 => 3,
-                    HeadingLevel::H4 => 4,
-                    HeadingLevel::H5 => 5,
-                    HeadingLevel::H6 => 6,
-                };
-                current_heading_level = Some(lvl);
-                current_heading_text.clear();
-                current_heading_offset = range.start;
-            }
-            Event::Text(text) | Event::Code(text) if current_heading_level.is_some() => {
-                current_heading_text.push_str(&text);
-            }
-            Event::End(TagEnd::Heading(_)) => {
-                if let Some(lvl) = current_heading_level.take() {
-                    let line_number = content[..current_heading_offset.min(content.len())]
-                        .bytes()
-                        .filter(|&b| b == b'\n')
-                        .count()
-                        + 1;
-
-                    headings.push(HeadingItem {
-                        level: lvl,
-                        text: current_heading_text.trim().to_string(),
-                        line: line_number,
-                    });
-                }
-            }
-            _ => {}
-        }
-    }
-
-    headings
-}
-
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
 pub struct FileItemNode {
     pub name: String,
@@ -1046,7 +987,6 @@ pub fn run() {
             }
         }))
         .invoke_handler(tauri::generate_handler![
-            parse_outline,
             read_workspace_tree,
             move_file_item,
             duplicate_file_item,

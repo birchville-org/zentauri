@@ -4,6 +4,13 @@ title: Release Notes
 
 # 🚀 Zentauri Release Notes
 
+### ZenTauri v2.0.1
+- **Abhängigkeits- & Dead-Weight-Bereinigung:** Ungenutzte NPM-Pakete (`highlight.js`, `@codemirror/autocomplete`, `@lezer/highlight`, nicht verwendete `@codemirror/lang-*`-Pakete, `autoprefixer`) entfernt, `@types/katex` nach `devDependencies` verschoben sowie ungenutzte Rust-Crates (`reqwest`, `pulldown-cmark`) samt `parse_outline` entfernt.
+- **Bereinigung von Altmodulen:** Nicht mehr referenzierte Altdateien (`QaReferencePane.vue`, `heading-sync.ts`, `markdown-outline.ts`) entfernt, da sie durch Modus 3 (`PdfDualViewer.vue` + `diffCollation.ts`) abgelöst wurden.
+- **Hot-Path-Optimierung der Live-Vorschau (`Preview.vue`):** Zeilen-Zählung auf allokationsfreie Schleife umgestellt und Vorschau-Updates pro Frame über `requestAnimationFrame` gebündelt.
+
+---
+
 ### ZenTauri v2.0.0
 - **3-Work-Modes-Architektur (`⌘1` / `⌘2` / `⌘3`):** Einführung des dedizierten Modus-Umschalters zwischen Markdown Authoring (Modus 1), Synoptischer Master-JSON-Edition (Modus 2) und Dual PDF & Markdown QA / Kollationierung (Modus 3) inklusive StatusBar-Anzeige und isolierten Tastenkürzeln.
 - **Synoptischer Master-JSON-Editor (`SynopticView.vue`, Modus 2):** Split-Pane-Bearbeitung von `book.json`-Editionen parallel zu historischen Scan-PDFs (`hayro_svg`) mit Segmentnavigation (`⌘↑`/`⌘↓`), Devanāgarī-/IAST-/Apparat-Feldern, Snippet-Leiste und Speichern via `⌘S`.

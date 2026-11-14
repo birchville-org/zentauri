@@ -52,8 +52,8 @@ The file explorer natively hooks into the SQLite backend to fetch and display in
 
 ## 5. QA Dual-Document Comparison & Heading Sync (Backlog / Reference Feature)
 
-::: info Status: Parked in Backlog (v1.3.0)
-The text-based QA reference dual-pane (`QaReferencePane.vue`) was parked in the backlog in v1.3.0 to focus the user interface on the primary 3 Work-Modes (specifically **Mode 3: Dual PDF QA & Proofing**). The modular components and heading synchronization algorithms remain in the repository for specialized corpus collation.
+::: info Status: Superseded by Mode 3 (v2.0.0)
+The legacy text-based QA reference pane (`QaReferencePane.vue` and `heading-sync.ts`) was retired in v2.0.0 in favor of **Mode 3: Dual PDF & Markdown QA / Proofing** (`PdfDualViewer.vue` + `diffCollation.ts`), which supports both vector PDF comparison and side-by-side Markdown collation with character-level diacritic diffing.
 :::
 
 Tailored for translators, scholarly editors, and comparative philology (inspired by the Payer QA Viewer):

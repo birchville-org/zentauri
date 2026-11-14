@@ -1,3 +1,15 @@
+# Release Notes — ZenTauri v2.0.1
+
+ZenTauri v2.0.1 is a maintenance and performance patch release following a holistic architecture review, removing unused dependencies and legacy modules while optimizing live-preview rendering.
+
+## Improvements & Fixes (v2.0.1)
+
+* **Dependency & Bundle Cleanup:** Removed unused NPM dependencies (`highlight.js`, `@codemirror/autocomplete`, `@lezer/highlight`, unused `@codemirror/lang-*` packages, `autoprefixer`) and moved `@types/katex` to `devDependencies`. Removed unused Rust crates (`reqwest`, `pulldown-cmark`) and the retired `parse_outline` command.
+* **Legacy Module Removal:** Retired unused legacy components and helpers (`QaReferencePane.vue`, `heading-sync.ts`, `markdown-outline.ts`) superseded by Mode 3 (`PdfDualViewer.vue` + `diffCollation.ts`).
+* **Live Preview Hot-Path Optimization (`Preview.vue`):** Replaced per-keystroke string splitting with allocation-free line counting (`countLines()`) and coalesced preview updates via `requestAnimationFrame` with clean unmount cancellation.
+
+---
+
 # Release Notes — ZenTauri v2.0.0
 
 ZenTauri v2.0.0 introduces the 3-Work-Modes architecture for scholarly digital humanities workflows: Markdown Authoring (`⌘1`), Synoptic Master-JSON Edition (`⌘2`), and Dual PDF & Markdown QA / Proofing (`⌘3`) with philological collation diffing, bounding-box annotations, and 1-click AI Review Prompts.

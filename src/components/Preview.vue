@@ -18,8 +18,18 @@ const html = ref("");
 const sourceLineCount = ref(1);
 let isProgrammaticScroll = false;
 let rafUnlockId: number | null = null;
+let rafPreviewId: number | null = null;
 let unlockTimer: ReturnType<typeof setTimeout> | null = null;
 let programmaticTargetTop: number | null = null;
+
+function countLines(str: string): number {
+  if (!str) return 1;
+  let lines = 1;
+  for (let i = 0; i < str.length; i++) {
+    if (str.charCodeAt(i) === 10) lines++;
+  }
+  return lines;
+}
 
 function clearProgrammaticScrollLock() {
   if (rafUnlockId !== null) {
@@ -55,8 +65,16 @@ function scheduleUnlock() {
 }
 
 function updatePreview() {
-  sourceLineCount.value = props.source ? props.source.split("\n").length : 1;
+  sourceLineCount.value = countLines(props.source);
   html.value = renderMarkdown(props.source, { sourceLines: true });
+}
+
+function schedulePreviewUpdate() {
+  if (rafPreviewId !== null) return;
+  rafPreviewId = requestAnimationFrame(() => {
+    rafPreviewId = null;
+    updatePreview();
+  });
 }
 
 const emit = defineEmits<{
@@ -359,7 +377,7 @@ defineExpose({
 watch(
   () => props.source,
   () => {
-    updatePreview();
+    schedulePreviewUpdate();
   },
 );
 
@@ -381,6 +399,10 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   clearProgrammaticScrollLock();
+  if (rafPreviewId !== null) {
+    cancelAnimationFrame(rafPreviewId);
+    rafPreviewId = null;
+  }
   if (scrollContainer.value) {
     const scroller = scrollContainer.value;
     scroller.removeEventListener("scroll", handleScroll);
