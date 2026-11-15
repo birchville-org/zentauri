@@ -4,7 +4,7 @@ title: Roadmap & Feature-Backlog
 
 # 🗺️ Roadmap & Feature-Backlog
 
-Dieses Dokument erfasst geplante Ausbau-Features, Architekturkonzepte und vorläufig zurückgestellte Funktionen für künftige Versionen (Ziel: **ZenTauri v2.0.0 & v2.1.0**).
+Dieses Dokument erfasst geplante Ausbau-Features, Architekturkonzepte und vorläufig zurückgestellte Funktionen für künftige Versionen (Ziel: **ZenTauri v2.1.0+**).
 
 ---
 
@@ -22,9 +22,9 @@ Dieses Dokument erfasst geplante Ausbau-Features, Architekturkonzepte und vorlä
 | **Dual PDF QA Annotationen & KI** | ✅ **Aktiv** | v2.0.0 | Bounding-Box Overlays auf SVG-Seiten, JSON-Export & 1-Klick AI Review Prompt |
 | **Dual Markdown & Kollations-Diff** | ✅ **Aktiv** | v2.0.0 | Paralleler Markdown-Vergleich (Gerendert & Quelltext) mit Wort-/Zeichen-Diff für Diakritika |
 | **Synoptischer Master-JSON (Modus 2)** | ✅ **Aktiv (Kern)** | v2.0.0 | Split-Pane-Editor für `book.json`-Editionen neben Scan-PDFs (`⌘S`, `⌘↑`/`⌘↓`) |
-| **In-Editor Live-IME (Stufe 2)** | 📋 **Backlog / Konzipiert** | v2.0.0 | CodeMirror-Echtzeitwandlung in `《...》` und Compose-Sequenzen im Fließtext |
-| **Wissensgraph & Wikilinks** | 📋 **Backlog / Pausiert** | v2.0.0 | Re-Integration des Graphen, `[[`-Autovervollständigung und Cmd+Klick-Navigation |
-| **Synchrone Diagramme (Pele)** | 📋 **Backlog / Evaluation** | v2.0.0 | Verzögerungsfreier, synchroner Mermaid-kompatibler Renderer via `pele.run` (~2,5 MB Ersparnis) |
+| **In-Editor Live-IME (Stufe 2)** | 📋 **Backlog / Konzipiert** | v2.1.0 | CodeMirror-Echtzeitwandlung in `《...》` und Compose-Sequenzen im Fließtext |
+| **Wissensgraph & Wikilinks** | 📋 **Backlog / Pausiert** | v2.1.0 | Re-Integration des Graphen, `[[`-Autovervollständigung und Cmd+Klick-Navigation |
+| **Synchrone Diagramme (Pele)** | ✅ **Aktiv (v1.10.0+)** | v1.10.0 | Verzögerungsfreier, synchroner Mermaid-kompatibler Renderer via `pele.run` (~2,5 MB Ersparnis) |
 | **DOCX-Export & CriticMarkup** | 📋 **Backlog / Konzipiert** | v2.1.0 | Akademisches `.docx`-Verlags-Exporttemplate und CodeMirror CriticMarkup Track-Changes |
 | **TEI-P5-Export (Modus 2)** | 📋 **Backlog / Konzipiert** | v2.1.0 | Automatisierte Rust-Kompilierung von `book.json` Master-JSON nach TEI-P5 XML und Typst-PDF |
 | **QA Reference Dual-Pane** | 📋 **Backlog / Pausiert (v1.3.0)** | v2.2.0 | Textbasierter 2-Spalten-Vergleich (in v1.3.0 zugunsten von Modus 3: Dual PDF QA zurückgestellt) |
@@ -40,7 +40,7 @@ Dieses Dokument erfasst geplante Ausbau-Features, Architekturkonzepte und vorlä
 1. **Direktes AST-Mapping (✅ Aktiv):** Übersetzung von Markdown-Elementen, Payer-Containerboxen, KaTeX-Formeln, Tabellen und Fußnoten in semantischen Typst-Code.
 2. **Akademisches Satzlayout & Fontstacks (✅ Aktiv):** Automatische Paginierung, Ränder, Fußnoten und der Birchville Scholarly Fontstack (*STIX Two Text*, *Gentium Plus*, *Noto Serif Devanagari*).
 3. **Plattformunabhängig & leicht (✅ Aktiv):** Keine Chromium- oder Node.js-Abhängigkeiten.
-4. **Zukunftserweiterungen (📋 Ziel: v2.0.0):** Benutzerdefinierte Typst-Vorlagenauswahl und mehrstufiger textkritischer Apparat.
+4. **Zukunftserweiterungen (📋 Ziel: v2.1.0):** Benutzerdefinierte Typst-Vorlagenauswahl und mehrstufiger textkritischer Apparat.
 
 ---
 
@@ -126,8 +126,8 @@ Dieses Dokument erfasst geplante Ausbau-Features, Architekturkonzepte und vorlä
 
 ## 7. Synchroner Diagramm-Renderer via Pele (`pele.run`)
 
-- **Status:** 📋 **Backlog / Evaluation** (Ziel: v2.0.0)
-- **Ziel:** Ersatz von asynchronem Mermaid (v11/12) durch einen abhängigkeitsfreien, synchronen Renderer zur Beseitigung von Render-Verzögerungen und massiven Einsparung von Bundle-Größe.
+- **Status:** ✅ **Aktiv / Implementiert** (seit v1.10.0)
+- **Ziel:** Ersetzt asynchrones Mermaid (v11/12) durch einen abhängigkeitsfreien, synchronen Renderer zur Beseitigung von Render-Verzögerungen und Einsparung von Bundle-Größe.
 
 ### Kernvorteile:
 1. **Verzögerungsfreier synchroner Satz:** Beseitigt Debounce-Timer und asynchrone DOM-Mutationen in der Vorschau durch direktes Rendern in `markdown-it`.

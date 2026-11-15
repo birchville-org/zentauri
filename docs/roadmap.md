@@ -4,7 +4,7 @@ title: Roadmap & Feature Backlog
 
 # 🗺️ Roadmap & Feature Backlog
 
-This document provides transparent tracking of features currently in development, architectural plans, and features parked in the backlog for future releases (target: **ZenTauri v2.0.0**).
+This document provides transparent tracking of features currently in development, architectural plans, and features parked in the backlog for future releases (target: **ZenTauri v2.1.0+**).
 
 ---
 
@@ -22,9 +22,9 @@ This document provides transparent tracking of features currently in development
 | **Dual PDF QA Annotations & AI** | ✅ **Active** | v2.0.0 | Bounding-box annotation overlay on SVG pages, JSON export & 1-click AI Review Prompt |
 | **Dual Markdown & Collation Diff** | ✅ **Active** | v2.0.0 | Side-by-side Markdown comparison (rendered & source) with word/character diacritic diff |
 | **Synoptic Master-JSON (Mode 2)** | ✅ **Active (Core)** | v2.0.0 | Split-pane editor for `book.json` editions alongside PDF scans (`⌘S`, `⌘↑`/`⌘↓`) |
-| **In-Editor Live IME (Stage 2)** | 📋 **Backlog / Conceived** | v2.0.0 | CodeMirror live conversion inside `《...》` and compose sequences in prose |
-| **Knowledge Graph & Wikilinks** | 📋 **Backlog / Parked** | v2.0.0 | Re-integration of interactive graph, `[[` fuzzy autocomplete, and Cmd+Click navigation |
-| **Synchronous Diagrams (Pele)** | 📋 **Backlog / Evaluation** | v2.0.0 | Zero-lag synchronous Mermaid-compatible renderer via `pele.run` (~2.5 MB bundle reduction) |
+| **In-Editor Live IME (Stage 2)** | 📋 **Backlog / Conceived** | v2.1.0 | CodeMirror live conversion inside `《...》` and compose sequences in prose |
+| **Knowledge Graph & Wikilinks** | 📋 **Backlog / Parked** | v2.1.0 | Re-integration of interactive graph, `[[` fuzzy autocomplete, and Cmd+Click navigation |
+| **Synchronous Diagrams (Pele)** | ✅ **Active (v1.10.0+)** | v1.10.0 | Zero-lag synchronous Mermaid-compatible renderer via `pele.run` (~2.5 MB bundle reduction) |
 | **DOCX Export & CriticMarkup** | 📋 **Backlog / Conceived** | v2.1.0 | Scholarly `.docx` export template and CodeMirror CriticMarkup track-changes visualization |
 | **TEI-P5 Export (Mode 2)** | 📋 **Backlog / Conceived** | v2.1.0 | Automated Rust compilation from `book.json` Master-JSON to TEI-P5 XML and Typst-PDF |
 | **QA Reference Dual-Pane** | 📋 **Backlog / Parked (v1.3.0)** | v2.2.0 | Text-based dual-pane comparison (parked in v1.3.0 in favor of Mode 3: Dual PDF QA) |
@@ -40,7 +40,7 @@ This document provides transparent tracking of features currently in development
 1. **Direct AST Mapping (✅ Active):** Compiles Markdown AST elements, Payer container boxes, KaTeX formulas, footnotes, and metadata into semantic Typst markup.
 2. **Academic Layouts & Font Cascades (✅ Active):** Automated page numbering, margins, footnotes, and the Birchville Scholarly Fontstack (*STIX Two Text*, *Gentium Plus*, *Noto Serif Devanagari*).
 3. **No Heavy Chromium/Node Dependencies (✅ Active):** Zero-overhead binary builds without Playwright or headless browsers.
-4. **Future Enhancements (📋 Target: v2.0.0):** User-configurable Typst template selection and multi-column critical apparatus.
+4. **Future Enhancements (📋 Target: v2.1.0):** User-configurable Typst template selection and multi-column critical apparatus.
 
 ---
 
@@ -126,8 +126,8 @@ This document provides transparent tracking of features currently in development
 
 ## 7. Synchronous Diagram Engine via Pele (`pele.run`)
 
-- **Status:** 📋 **Backlog / Evaluation** (Target: v2.0.0)
-- **Goal:** Replacing asynchronous Mermaid (v11/12) with a zero-dependency synchronous renderer to eliminate rendering lag and dramatically reduce bundle size.
+- **Status:** ✅ **Active / Deployed** (since v1.10.0)
+- **Goal:** Replaces asynchronous Mermaid (v11/12) with a zero-dependency synchronous renderer to eliminate rendering lag and reduce bundle size.
 
 ### Key Advantages:
 1. **Zero-Lag Synchronous Rendering:** Eliminates debounce timers and async DOM mutation in the preview by rendering diagrams directly in `markdown-it`.

@@ -82,7 +82,7 @@ Zentauri drops heavy Chromium/Playwright dependencies in favor of native Rust re
 For multilingual scholarly prose (English/German + IAST/Devanāgarī), Zentauri adopts a 3-stage hybrid input architecture at the application level rather than relying on brittle OS layouts or raw ASCII Harvard-Kyoto:
 
 1. **Canonical Persistence (Active):** Source Markdown files always store standard IAST (`kṛṣṇaḥ`) or Devanāgarī (`कृष्णः`).
-2. **In-Editor IME (Roadmap / Backlog for v2.0.0):** Automatic scope-based live transliteration from Harvard-Kyoto inside `《...》` and `⟪...⟫`, accompanied by compose-key sequences for running prose.
+2. **In-Editor IME (Roadmap / Backlog for v2.1.0):** Automatic scope-based live transliteration from Harvard-Kyoto inside `《...》` and `⟪...⟫`, accompanied by compose-key sequences for running prose (compose keys active since v1.10.0).
 3. **Post-Hoc Tooling (Active):** Global shortcuts (`⌥⌘D`, `⌥⌘H`) and toolbar toggles with tag-safe parsing for instantaneous selection toggling.
 
 Full architectural specification and trade-off matrix: [Sanskrit Input Architecture](./scholarly-input-architecture.md) and [Roadmap & Backlog](./roadmap).
@@ -96,10 +96,10 @@ To prevent feature bloat while meeting all demands of scholarly edition projects
 1. **Mode 1: Markdown Authoring (Active)**
    - Single-file and split-pane text authoring (CodeMirror 6).
    - Sanskrit bracket highlighting, KaTeX formulas, and Typst AST compilation.
-2. **Mode 2: Synoptic Master-JSON Edition (Roadmap v2.1.0)**
-   - Specialized split-pane editor for historical editions (`book.json` / AST format as in `brhadaranyaka`).
-   - Pairs page scans (PDF) with segmented field inputs (Devanāgarī, IAST, translation, critical apparatus) for automated compilation into TEI-P5 XML and Typst-PDF.
-3. **Mode 3: Dual PDF QA & Proofing (Active Core / Roadmap v2.0.0)**
-   - Side-by-side vector PDF comparison (`hayro_svg`) with synchronized scroll-lockstep, SWAP, and Finder/CLI launch.
-   - Normalized bounding-box annotations, 1-click clipboard prompt for LLM proofing, and flattened annotated PDF export planned for v2.0.0.
+2. **Mode 2: Synoptic Master-JSON Edition (Active Core / Roadmap v2.1.0)**
+   - Specialized split-pane editor (`SynopticView.vue`) for historical editions (`book.json` / AST format as in `brhadaranyaka`).
+   - Pairs page scans (PDF) with segmented field inputs (Devanāgarī, IAST, translation, critical apparatus); automated compilation into TEI-P5 XML and Typst-PDF planned for v2.1.0.
+3. **Mode 3: Dual PDF QA & Proofing (Active / Roadmap v2.1.0)**
+   - Side-by-side vector PDF (`hayro_svg`) and Markdown collation (`diffCollation.ts`) with synchronized scroll-lockstep, SWAP, reload, and Finder/CLI launch.
+   - Normalized bounding-box annotations and 1-click clipboard prompt for LLM proofing (active); flattened annotated PDF export planned for v2.1.0.
 

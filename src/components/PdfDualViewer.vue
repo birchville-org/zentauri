@@ -678,6 +678,31 @@ function loadVisiblePages(target: "left" | "right", centerIndex: number) {
   }
 }
 
+async function reloadDocument(target: "left" | "right") {
+  const path = target === "left" ? leftPdfPath.value : rightPdfPath.value;
+  if (!path || path.startsWith("browser://")) return;
+
+  const isMd =
+    (target === "left" ? leftDocKind.value : rightDocKind.value) ===
+      "markdown" ||
+    path.toLowerCase().endsWith(".md") ||
+    path.toLowerCase().endsWith(".markdown");
+
+  if (isMd) {
+    await loadMarkdown(target, path);
+  } else {
+    const prevPage =
+      target === "left" ? leftCurrentPage.value : rightCurrentPage.value;
+    await loadPdf(target, path);
+    const newCount =
+      target === "left" ? leftPageCount.value : rightPageCount.value;
+    if (prevPage > 1 && newCount > 0) {
+      await nextTick();
+      goToPage(target, Math.min(prevPage, newCount));
+    }
+  }
+}
+
 function handleSwap() {
   leftLoadToken++;
   rightLoadToken++;
@@ -1835,6 +1860,31 @@ defineExpose({
             >
               {{ leftPdfPath ? 'Change...' : 'Load Document...' }}
             </button>
+            <button
+              v-if="leftPdfPath && !leftPdfPath.startsWith('browser://')"
+              type="button"
+              @click="reloadDocument('left')"
+              :disabled="leftLoading"
+              class="h-6 w-6 flex items-center justify-center rounded bg-app-bg-secondary hover:bg-app-bg-hover disabled:opacity-40 disabled:pointer-events-none border border-app-border text-app-text transition-colors cursor-pointer shadow-2xs active:scale-95"
+              title="Reload Document"
+              aria-label="Reload Left Document"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                :class="{ 'animate-spin': leftLoading }"
+              >
+                <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
+                <path d="M21 3v5h-5" />
+              </svg>
+            </button>
           </div>
         </div>
 
@@ -2266,6 +2316,31 @@ defineExpose({
               class="h-6 px-2 rounded bg-app-bg-secondary hover:bg-app-bg-hover border border-app-border text-[11px] font-medium transition-colors cursor-pointer text-app-text shadow-2xs active:scale-95"
             >
               {{ rightPdfPath ? 'Change...' : 'Load Document...' }}
+            </button>
+            <button
+              v-if="rightPdfPath && !rightPdfPath.startsWith('browser://')"
+              type="button"
+              @click="reloadDocument('right')"
+              :disabled="rightLoading"
+              class="h-6 w-6 flex items-center justify-center rounded bg-app-bg-secondary hover:bg-app-bg-hover disabled:opacity-40 disabled:pointer-events-none border border-app-border text-app-text transition-colors cursor-pointer shadow-2xs active:scale-95"
+              title="Reload Document"
+              aria-label="Reload Right Document"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                :class="{ 'animate-spin': rightLoading }"
+              >
+                <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
+                <path d="M21 3v5h-5" />
+              </svg>
             </button>
           </div>
         </div>

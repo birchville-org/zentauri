@@ -4,6 +4,14 @@ title: Release Notes
 
 # 🚀 Zentauri Release Notes
 
+### ZenTauri v2.0.2
+- **Finder / OS File-Open Routing:** Opening `.md` / `.markdown` files from Finder or importing Office documents (`.docx`, `.odt`, `.rtf`, `.epub`) now reliably switches to Markdown Authoring (Mode 1) even if Mode 2 or Mode 3 was active previously, while keeping in-app drag-and-drop into Mode 3 intact.
+- **Persistent Window Geometry:** Added `tauri-plugin-window-state` (excluding `StateFlags::VISIBLE` for macOS hide-on-close compatibility, with explicit save on close/quit) to restore the last valid window position and size on launch.
+- **Comparison Mode Reload Button (`PdfDualViewer.vue`):** Added a Reload button next to `Change...` in both comparison panes to refresh externally modified PDF or Markdown files while keeping the active PDF page.
+- **Documentation & Roadmap Sync:** Aligned `BACKLOG.md` and `docs/` status milestones (`v2.0.0+` active vs. `v2.1.0` roadmap) and updated the user guides.
+
+---
+
 ### ZenTauri v2.0.1
 - **Dependency & Dead-Weight Cleanup:** Removed unused NPM packages (`highlight.js`, `@codemirror/autocomplete`, `@lezer/highlight`, unused `@codemirror/lang-*` packages, `autoprefixer`), moved `@types/katex` to `devDependencies`, and dropped unused Rust crates (`reqwest`, `pulldown-cmark`) along with `parse_outline`.
 - **Legacy Module Retirement:** Removed unused legacy files (`QaReferencePane.vue`, `heading-sync.ts`, `markdown-outline.ts`) superseded by Mode 3 (`PdfDualViewer.vue` + `diffCollation.ts`).

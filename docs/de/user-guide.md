@@ -122,14 +122,14 @@ devo viṣṇuḥ = ⟪देवो⟫ ⟪विष्णुः⟫ = „Viṣṇ
   - Definitionslisten über `Term\n: Definition`.
 
 ### 4. Synoptische Edition (Modus 2) & Dual QA / Kollationierung (Modus 3)
-- **Work-Mode-Umschaltung:** Wechsel zwischen **Modus 1** (`⌘1`), **Modus 2** (`⌘2`) und **Modus 3** (`⌘3`) über den Header-Umschalter oder Tastenkürzel.
+- **Work-Mode-Umschaltung:** Wechsel zwischen **Modus 1** (`⌘1`), **Modus 2** (`⌘2`) und **Modus 3** (`⌘3`) über den Header-Umschalter oder Tastenkürzel. Die letzte gültige Fenstergeometrie (Position und Größe) wird beim Neustart automatisch wiederhergestellt.
 - **Synoptisches Master-JSON (`book.json`, Modus 2):** Öffnet eine `book.json`-Edition parallel zu einem Scan-PDF. Navigation zwischen Segmenten per `⌘↑` / `⌘↓`, direkte Bearbeitung von Devanāgarī, IAST, Übersetzung und Apparat sowie Speichern mit `⌘S`.
 - **Dual PDF & Markdown Kollationierung (Modus 3):**
   - **PDF ⇄ PDF:** PDF-Seiten werden über die Rust-Engine `hayro_svg` als Vektor-SVG gerendert – Schriften bleiben auch bei starkem Zoom scharf.
   - **Markdown ⇄ Markdown:** Zwei `.md`-Dateien parallel laden und pro Spalte zwischen **Gerendert** und **Quelltext** umschalten.
   - **Philologischer Kollations-Diff:** Über die Schaltfläche **Diff** werden Wort-Substitutionen, Einfügungen, Löschungen sowie zeichenbasierte Diakritika-Abweichungen (z. B. `samskrtam` ⇄ `saṃskṛtam`) farblich markiert, ohne die Markdown-Struktur zu brechen.
   - **Bounding-Box-Annotationen & KI-Review-Prompt:** Normalisierte Markierungsrahmen auf PDF-Seiten zeichnen, im Proofing-Drawer verwalten, als JSON exportieren oder als strukturierten **AI Review Prompt** (inkl. Kollationsstatistik) in die Zwischenablage kopieren.
-  - **Sync-Modi & SWAP:** Scroll-Synchronisation per `% (Prozentual)`, `Seite (Lockstep)` oder `Off`; linkes und rechtes Dokument per **SWAP** tauschen.
+  - **Sync-Modi, SWAP & Reload:** Scroll-Synchronisation per `% (Prozentual)`, `Seite (Lockstep)` oder `Off`; linkes und rechtes Dokument per **SWAP** tauschen und extern aktualisierte PDFs oder Markdown-Dateien über den **Reload-Button** neben `Change...` direkt neu laden.
 
 ### 5. Individuelle Gestaltung (`custom.css`)
 Über die Konfigurationsdatei `~/.config/zentauri/custom.css` (macOS/Linux) bzw. `%APPDATA%\zentauri\custom.css` (Windows) können alle Farben, Schriftarten und Container individuell überschrieben werden:

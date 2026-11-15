@@ -924,14 +924,23 @@ pub fn ingest_document_impl(path: &str) -> Result<String, String> {
 
 static IS_QUITTING: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
 
+fn window_state_flags() -> tauri_plugin_window_state::StateFlags {
+    tauri_plugin_window_state::StateFlags::all()
+        & !tauri_plugin_window_state::StateFlags::VISIBLE
+}
+
 #[tauri::command]
 fn exit_app(app: tauri::AppHandle) {
+    use tauri_plugin_window_state::AppHandleExt;
     IS_QUITTING.store(true, std::sync::atomic::Ordering::SeqCst);
+    let _ = app.save_window_state(window_state_flags());
     app.exit(0);
 }
 
 fn trigger_graceful_quit(app_handle: &tauri::AppHandle) {
+    use tauri_plugin_window_state::AppHandleExt;
     IS_QUITTING.store(true, std::sync::atomic::Ordering::SeqCst);
+    let _ = app_handle.save_window_state(window_state_flags());
     let handle = app_handle.clone();
     if let Some(window) = app_handle.get_webview_window("main") {
         let _ = window.emit("request-app-quit", ());
@@ -954,6 +963,11 @@ pub fn run() {
         .plugin(tauri_plugin_persisted_scope::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_process::init())
+        .plugin(
+            tauri_plugin_window_state::Builder::default()
+                .with_state_flags(window_state_flags())
+                .build(),
+        )
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_single_instance::init(|app, argv, cwd| {
             let cwd_path = std::path::Path::new(&cwd);
@@ -1228,6 +1242,8 @@ pub fn run() {
             #[cfg(target_os = "macos")]
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
                 if !IS_QUITTING.load(std::sync::atomic::Ordering::SeqCst) {
+                    use tauri_plugin_window_state::AppHandleExt;
+                    let _ = window.app_handle().save_window_state(window_state_flags());
                     api.prevent_close();
                     let _ = window.hide();
                 }

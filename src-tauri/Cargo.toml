@@ -1,6 +1,6 @@
 [package]
 name = "ZenTauri"
-version = "2.0.1"
+version = "2.0.2"
 description = "A Tauri App"
 
 authors = ["you"]
@@ -29,6 +29,7 @@ tauri-plugin-persisted-scope = "2.0.0"
 tauri-plugin-updater = "2"
 tauri-plugin-process = "2"
 tauri-plugin-single-instance = "2"
+tauri-plugin-window-state = "2"
 typst-as-lib = { version = "0.16.0", features = ["typst-kit-fonts", "typst-kit-embed-fonts"] }
 typst-pdf = "0.15.1"
 typst = "0.15.1"

@@ -4,6 +4,14 @@ title: Release Notes
 
 # 🚀 Zentauri Release Notes
 
+### ZenTauri v2.0.2
+- **Finder- / OS-Dateiöffnung im Authoring-Modus:** Das Öffnen von `.md`- / `.markdown`-Dateien über den Finder sowie der Office-Ingest (`.docx`, `.odt`, `.rtf`, `.epub`) wechseln nun automatisch in den Authoring-Modus (Modus 1), auch wenn zuvor Modus 2 oder Modus 3 aktiv war; Drag & Drop innerhalb von Modus 3 bleibt unverändert erhalten.
+- **Persistente Fenstergeometrie:** Integration von `tauri-plugin-window-state` (ohne `StateFlags::VISIBLE` für macOS Hide-on-Close, mit explizitem Disk-Flush beim Schließen/Beenden) zur Wiederherstellung der letzten gültigen Fensterposition und -größe beim Start.
+- **Reload-Button im Vergleichsmodus (`PdfDualViewer.vue`):** Neuer Reload-Button neben `Change...` in beiden Vergleichsspalten, um extern aktualisierte PDFs oder Markdown-Dateien unter Beibehaltung der aktuellen PDF-Seite neu zu laden.
+- **Dokumentations- & Roadmap-Abgleich:** Status- und Zielversionen in `BACKLOG.md` sowie `docs/` (`v2.0.0+` aktiv vs. `v2.1.0` Roadmap) angeglichen und die User-Guides ergänzt.
+
+---
+
 ### ZenTauri v2.0.1
 - **Abhängigkeits- & Dead-Weight-Bereinigung:** Ungenutzte NPM-Pakete (`highlight.js`, `@codemirror/autocomplete`, `@lezer/highlight`, nicht verwendete `@codemirror/lang-*`-Pakete, `autoprefixer`) entfernt, `@types/katex` nach `devDependencies` verschoben sowie ungenutzte Rust-Crates (`reqwest`, `pulldown-cmark`) samt `parse_outline` entfernt.
 - **Bereinigung von Altmodulen:** Nicht mehr referenzierte Altdateien (`QaReferencePane.vue`, `heading-sync.ts`, `markdown-outline.ts`) entfernt, da sie durch Modus 3 (`PdfDualViewer.vue` + `diffCollation.ts`) abgelöst wurden.

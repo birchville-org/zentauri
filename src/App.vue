@@ -958,10 +958,13 @@ function handleActivityAction(action: string) {
   }
 }
 
-async function handleIncomingPaths(paths: string[]) {
+async function handleIncomingPaths(
+  paths: string[],
+  source: "os" | "drop" = "drop",
+) {
   if (!paths || paths.length === 0) return;
 
-  if (workMode.value === "pdf-qa") {
+  if (source === "drop" && workMode.value === "pdf-qa") {
     const docPaths: string[] = [];
     for (const p of paths) {
       if (typeof p === "string" && p.trim()) {
@@ -1009,6 +1012,16 @@ async function handleIncomingPaths(paths: string[]) {
     nextTick(() => {
       pdfDualViewerRef.value?.loadPdfPair(leftPdf, rightPdf);
     });
+  }
+
+  if (
+    source === "os" &&
+    pdfPaths.length === 0 &&
+    otherPaths.some((p) => /\.(md|markdown)$/i.test(p))
+  ) {
+    if (workMode.value !== "markdown") {
+      setWorkMode("markdown");
+    }
   }
 
   for (const p of otherPaths) {
@@ -1259,7 +1272,7 @@ onMounted(() => {
 
     listen<string[]>("open-files-batch", (event) => {
       if (event.payload && event.payload.length > 0) {
-        handleIncomingPaths(event.payload);
+        handleIncomingPaths(event.payload, "os");
       }
     })
       .then((unlisten) => {
@@ -1288,7 +1301,7 @@ onMounted(() => {
     invoke<string[]>("get_pending_open_files")
       .then((paths) => {
         if (paths && paths.length > 0) {
-          handleIncomingPaths(paths);
+          handleIncomingPaths(paths, "os");
         }
       })
       .catch((err) => {
@@ -2322,6 +2335,9 @@ Möchten Sie das Dokument jetzt als Markdown importieren?`;
       const markdown = await invoke<string>("ingest_document", { path });
       const mdFilename = `${filename.replace(/\.[^.]+$/, "")}.md`;
       const targetMdPath = path.replace(/\.[^.]+$/, ".md");
+      if (workMode.value !== "markdown") {
+        setWorkMode("markdown");
+      }
       openTab(mdFilename, targetMdPath, markdown);
       if (activeTabIndex.value >= 0 && tabs.value[activeTabIndex.value]) {
         tabs.value[activeTabIndex.value].isDirty = true;

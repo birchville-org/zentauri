@@ -11,6 +11,11 @@ vi.mock("@tauri-apps/plugin-dialog", () => ({
   open: vi.fn(),
 }));
 
+vi.mock("@tauri-apps/plugin-fs", () => ({
+  readTextFile: vi.fn(),
+  writeTextFile: vi.fn(),
+}));
+
 describe("PdfDualViewer", () => {
   it("renders dual PDF viewer with toolbar and initial empty states", () => {
     const wrapper = mount(PdfDualViewer);
@@ -460,5 +465,63 @@ describe("PdfDualViewer", () => {
     expect(vm.rightDocKind).toBe("pdf");
     expect(vm.rightMarkdownContent).toBe("");
     expect(vm.rightMarkdownHtml).toBe("");
+  });
+
+  it("renders reload buttons next to Change... and reloads PDF or Markdown documents", async () => {
+    (window as any).__TAURI_INTERNALS__ = {};
+    try {
+      const { invoke } = await import("@tauri-apps/api/core");
+      const { readTextFile } = await import("@tauri-apps/plugin-fs");
+
+      (invoke as any).mockImplementation(async (cmd: string) => {
+        if (cmd === "get_pdf_info") {
+          return { page_count: 3, file_name: "doc.pdf" };
+        }
+        if (cmd === "render_pdf_page_svg") {
+          return "<svg></svg>";
+        }
+        return [];
+      });
+      (readTextFile as any).mockResolvedValue("# Updated Markdown");
+
+      const wrapper = mount(PdfDualViewer);
+      const vm = wrapper.vm as any;
+
+      // Hidden when no documents are loaded
+      expect(
+        wrapper.find("button[aria-label='Reload Left Document']").exists(),
+      ).toBe(false);
+      expect(
+        wrapper.find("button[aria-label='Reload Right Document']").exists(),
+      ).toBe(false);
+
+      await vm.loadPdf("left", "/docs/doc.pdf");
+      await vm.loadMarkdown("right", "/docs/notes.md", "# Initial");
+      await wrapper.vm.$nextTick();
+
+      const reloadLeftBtn = wrapper.find(
+        "button[aria-label='Reload Left Document']",
+      );
+      const reloadRightBtn = wrapper.find(
+        "button[aria-label='Reload Right Document']",
+      );
+      expect(reloadLeftBtn.exists()).toBe(true);
+      expect(reloadRightBtn.exists()).toBe(true);
+
+      (invoke as any).mockClear();
+      (readTextFile as any).mockClear();
+
+      await reloadLeftBtn.trigger("click");
+      await reloadRightBtn.trigger("click");
+      await wrapper.vm.$nextTick();
+
+      expect(invoke).toHaveBeenCalledWith("get_pdf_info", {
+        path: "/docs/doc.pdf",
+      });
+      expect(readTextFile).toHaveBeenCalledWith("/docs/notes.md");
+      expect(vm.rightMarkdownContent).toBe("# Updated Markdown");
+    } finally {
+      (window as any).__TAURI_INTERNALS__ = undefined;
+    }
   });
 });

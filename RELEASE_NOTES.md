@@ -1,3 +1,16 @@
+# Release Notes — ZenTauri v2.0.2
+
+ZenTauri v2.0.2 is a usability and stability patch release improving OS file-open routing, window geometry persistence, and comparison-mode reloading.
+
+## Improvements & Fixes (v2.0.2)
+
+* **Finder / OS File Opening in Authoring Mode:** Double-clicking `.md` / `.markdown` files or importing Office documents (`.docx`, `.odt`, `.rtf`, `.epub`) from Finder now switches automatically to Markdown Authoring (Mode 1) even when Mode 2 or Mode 3 was previously active, while preserving drag-and-drop into Mode 3.
+* **Persistent Window Geometry:** Added `tauri-plugin-window-state` (excluding `StateFlags::VISIBLE` for macOS window-hide compatibility, with explicit disk flush on close/quit) to save and restore the last valid window position and size on startup.
+* **Comparison Mode Reload Button (`PdfDualViewer.vue`):** Added a Reload button next to `Change...` on both left and right panes to re-read externally updated PDF or Markdown files while preserving the current PDF page.
+* **Documentation & Roadmap Alignment:** Updated `BACKLOG.md` and `docs/` status entries for Mode 2/3 and documented the Reload button and window geometry persistence in the user guides.
+
+---
+
 # Release Notes — ZenTauri v2.0.1
 
 ZenTauri v2.0.1 is a maintenance and performance patch release following a holistic architecture review, removing unused dependencies and legacy modules while optimizing live-preview rendering.

@@ -122,14 +122,14 @@ devo viṣṇuḥ = ⟪देवो⟫ ⟪विष्णुः⟫ = "Viṣṇu 
   - Lexical definition lists via `Term\n: Definition`.
 
 ### 4. Synoptic Edition (Mode 2) & Dual QA / Collation (Mode 3)
-- **Work-Mode Switching:** Toggle between **Modus 1** (`⌘1`), **Modus 2** (`⌘2`), and **Modus 3** (`⌘3`) via the header switcher or keyboard shortcuts.
+- **Work-Mode Switching:** Toggle between **Modus 1** (`⌘1`), **Modus 2** (`⌘2`), and **Modus 3** (`⌘3`) via the header switcher or keyboard shortcuts. ZenTauri automatically saves and restores your last valid window geometry (position and size) across launches.
 - **Synoptic Master-JSON (`book.json`, Mode 2):** Open a `book.json` edition alongside a reference scan PDF. Navigate segments with `⌘↑` / `⌘↓`, edit Devanāgarī, IAST, translation, and apparatus fields directly, and save with `⌘S`.
 - **Dual PDF & Markdown Collation (Mode 3):**
   - **PDF ⇄ PDF:** Pages are compiled as vector SVG via `hayro_svg` for sharp typography at any zoom level.
   - **Markdown ⇄ Markdown:** Load two `.md` files side-by-side and switch each pane between **Rendered** scholarly preview and **Source** view.
   - **Philological Collation Diff:** Toggle **Diff** in the toolbar to highlight word substitutions, additions, deletions, and intra-word diacritic changes (such as `samskrtam` ⇄ `saṃskṛtam`) while preserving Markdown structure.
   - **Bounding-Box Annotations & AI Review Prompt:** Draw normalized bounding-box annotations on PDF pages, manage them in the Proofing Drawer, export them as JSON, or copy a structured **AI Review Prompt** (including collation diffs) to the clipboard.
-  - **Sync Modes & SWAP:** Synchronize scrolling by `% (Percentage)`, `Page (Lockstep)`, or `Off`, and flip left/right documents with **SWAP**.
+  - **Sync Modes, SWAP & Reload:** Synchronize scrolling by `% (Percentage)`, `Page (Lockstep)`, or `Off`, flip left/right documents with **SWAP**, and re-read an externally updated PDF or Markdown file from disk using the **Reload** button next to `Change...`.
 
 ### 5. Custom Styling (`custom.css`)
 Override colors, fonts, and container styles via `~/.config/zentauri/custom.css` (macOS/Linux) or `%APPDATA%\zentauri\custom.css` (Windows):

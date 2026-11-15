@@ -317,6 +317,60 @@ describe("App Component Integration", () => {
     (window as any).__TAURI_INTERNALS__ = undefined;
   });
 
+  it("switches from pdf-qa mode to markdown Authoring when opening an .md file from OS/Finder", async () => {
+    (window as any).__TAURI_INTERNALS__ = {};
+    localStorage.setItem("zentauri-work-mode", "pdf-qa");
+    localStorage.setItem("zentauri-view-mode", "pdf-qa");
+
+    const { readTextFile } = await import("@tauri-apps/plugin-fs");
+    (readTextFile as any).mockResolvedValueOnce("# Finder Note\nHello");
+
+    const loadDocumentPairMock = vi.fn();
+    const MockPdfDualViewer = defineComponent({
+      name: "PdfDualViewer",
+      setup(_, { expose }) {
+        expose({
+          loadDocumentPair: loadDocumentPairMock,
+          loadPdfPair: vi.fn(),
+          loadDocumentFromExternal: vi.fn(),
+          leftPdfPath: ref(""),
+          rightPdfPath: ref(""),
+        });
+        return () => h("div", { class: "mock-pdf-dual-viewer" });
+      },
+    });
+
+    const wrapper = mountApp({
+      global: {
+        stubs: {
+          Editor: true,
+          Preview: true,
+          Cheatsheet: true,
+          HelpSystem: true,
+          Settings: true,
+          SearchPanel: true,
+          UpdateNotification: true,
+          StatusBar: true,
+          PdfDualViewer: MockPdfDualViewer,
+        },
+      },
+    });
+
+    const batchHandler = listeners["open-files-batch"];
+    expect(batchHandler).toBeDefined();
+
+    batchHandler({ payload: ["/path/to/note.md"] });
+    await nextTick();
+    await nextTick();
+    await new Promise((r) => setTimeout(r, 10));
+
+    expect(localStorage.getItem("zentauri-work-mode")).toBe("markdown");
+    expect(loadDocumentPairMock).not.toHaveBeenCalled();
+    expect(wrapper.text()).toContain("note.md");
+
+    (window as any).__TAURI_INTERNALS__ = undefined;
+  });
+
   it("handles duplicate_file menu event by duplicating active file and opening it", async () => {
     const { invoke } = await import("@tauri-apps/api/core");
     (invoke as any).mockImplementation(async (cmd: string, args: any) => {

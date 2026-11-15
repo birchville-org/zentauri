@@ -11,10 +11,10 @@ Zentauri gliedert sich in drei klar abgegrenzte, zuschaltbare Arbeitsmodi in der
 1. **Modus 1: Markdown Authoring (Aktiv)**
    - Fokussiertes Schreiben von Lektionen (Payer-Kurs), Notizen und philologischen Essays.
    - CodeMirror 6, KaTeX, Sanskrit-Live-IME, Typst-PDF-Export.
-2. **Modus 2: Synoptische Edition & Master-JSON (Geplant)**
+2. **Modus 2: Synoptische Edition & Master-JSON (Kern aktiv / Export geplant)**
    - Segmentierte Bearbeitung alter gescannter Ausgaben (`book.json` / AST-Gliederung wie im Projekt `brhadaranyaka`).
    - Split-Pane: Scan-PDF links ⇄ strukturierter, feldorientierter JSON-Editor rechts.
-3. **Modus 3: Dual PDF QA & Proofing (In Konzeption / Backlog)**
+3. **Modus 3: Dual PDF QA & Proofing (Aktiv / Export & Automation im Backlog)**
    - 2-spaltiger Vektor-PDF-Vergleich (Original vs. Neusatz).
    - Visuelle Bounding-Box-Annotationen, 1-Klick-Clipboard-Prompt für KIs und annotierter PDF-Export.
 
@@ -75,7 +75,7 @@ In Zentauri ist das primäre QA-Proofing-Konzept jedoch für Modus 3 (**Dual PDF
 
 ## 4. Dreistufiges Hybridkonzept für Sanskrit-Eingabe (In-Editor IME & Live-Transliteration)
 
-- **Status:** Teilweise implementiert (Stufe 1 & 3 aktiv; Stufe 2 Compose-Keys in v1.10.0 aktiv; Scope-basierter Live-IME geplant für v2.0)
+- **Status:** Teilweise implementiert (Stufe 1 & 3 aktiv; Stufe 2 Compose-Keys in v1.10.0 aktiv; Scope-basierter Live-IME geplant für v2.1.0)
 - **Komponenten:** `src/components/Editor.vue`, `src/lib/editor-extensions/sanskrit-compose.ts`, `src/lib/transliteration.ts`
 
 ### Hintergrund & Motivation
@@ -98,7 +98,7 @@ Ein reines OS-Tastaturlayout zwingt zu ständigen Unterbrechungen des Schreibflu
 
 ## 5. PDF-Vergleich: Visuelle Annotationen & KI-Korrektur-Bridge (Dual PDF QA)
 
-- **Status:** Backlog / Konzipiert (Diskussionsstand Oktober 2026)
+- **Status:** Stufe 1 & 2 (Overlay, Review-Drawer, JSON-Export & KI-Prompt) aktiv (v2.0.0+); annotierter PDF-Export & Stufe 3 im Backlog
 - **Komponenten:** `src/components/PdfDualViewer.vue`, `src-tauri/src/lib.rs` (PDF-Annotation/Export), optionale KI-Bridge-Module
 
 ### Hintergrund & Motivation
@@ -125,7 +125,7 @@ Beim visuellen PDF-Vergleich (z. B. Referenz-PDF vs. generiertes Dokument im rec
 
 ## 6. Synoptischer Master-JSON Editor für Alt-Ausgaben (`book.json` / Modus 2)
 
-- **Status:** Backlog / Konzeptioniert (Oktober 2026)
+- **Status:** Kern-Split-Pane-Editor (`SynopticView.vue`) aktiv (v2.0.0+); Silent Auto-Repair & TEI/Typst-Export im Backlog
 - **Komponenten:** `src/components/MasterJsonEditor.vue` (neu), `src/components/PdfDualViewer.vue`, `src-tauri/src/lib.rs` (JSON-I/O & AST-Validierung)
 - **Referenz-Projekt:** [`/Volumes/SanDisk1TB/proj/brhadaranyaka`](file:///Volumes/SanDisk1TB/proj/brhadaranyaka) (Bṛhadāraṇyaka-Upaniṣad 1.4 Master-JSON & QA-Viewer)
 
@@ -194,7 +194,7 @@ Zentauri schlägt diese Brücke unter einem strikten Architekturprinzip: **Plain
 - **Referenz:** [`pele.run`](https://pele.run) (Steph Ango / kepano, MIT, Zero Dependencies)
 
 ### Hintergrund & Motivation
-ZenTauri nutzt aktuell die offizielle `mermaid`-Bibliothek (v11/12). Obwohl Mermaid mächtig ist, bringt es signifikante Nachteile für einen nativen, leichtgewichtigen Desktop-Editor mit:
+ZenTauri nutzte ursprünglich die offizielle `mermaid`-Bibliothek (v11/12). Obwohl Mermaid mächtig ist, brachte es signifikante Nachteile für einen nativen, leichtgewichtigen Desktop-Editor mit:
 1. **Enorme Bundle-Größe:** Mermaid zersplittert im Vite-Build in über 20 Chunks (`mermaid.core` 605 kB, `cytoscape.esm` 443 kB, `cynefin` 690 kB, `architectureDiagram` 151 kB, etc.) mit einem Gesamtgewicht von über 2,5 MB minifiziert.
 2. **Asynchrone DOM-Mutation & Race Conditions:** Mermaid rendert ausschließlich asynchron im DOM (`await mermaid.run()`). Dies erzwingt in `Preview.vue` künstliche Debounce-Timer (`setTimeout(200)`), Request-IDs (`mermaidRunId`) und sichtbares Flackern/Nachladen bei jedem Tastendruck im Editor.
 3. **Schwieriges Theming:** Mermaid injiziert Inline-Styles in SVG-Elemente. Der Wechsel zwischen Tag- und Nachtmodus (Birchville Pergament `#fcf9f2` ↔ Kerzenlicht `#0a1628`) erfordert ein komplettes Neuinitialisieren und Neu-Rendern aller Diagramme.

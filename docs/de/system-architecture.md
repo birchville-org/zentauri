@@ -89,9 +89,9 @@ Um Feature-Creep im Kern-Editor zu vermeiden und gleichzeitig den vielfältigen 
 1. **Modus 1: Markdown Authoring (Aktiv)**
    - Einzelfenster- und Split-Pane-Textverfassung (CodeMirror 6).
    - Sanskrit-Klammer-Hervorhebung, KaTeX-Formeln und nativer Typst-PDF-Export.
-2. **Modus 2: Synoptische Master-JSON Edition (Roadmap v2.1.0)**
-   - Spezialisierter Split-Pane-Editor für historische Editionen (`book.json` / AST-Format wie in `brhadaranyaka`).
-   - Kopplung von Scan-PDFs mit segmentierten Eingabefeldern (Devanāgarī, IAST, Übersetzung, Apparat) zur automatischen Kompilierung nach TEI-P5 XML und Typst-PDF.
-3. **Modus 3: Dual PDF QA & Proofing (Aktiv Kern / Roadmap v2.0.0)**
-   - 2-spaltiger Vektor-PDF-Vergleich (`hayro_svg`) mit synchronem Scroll-Lockstep, SWAP-Seitenwechsel und CLI-/Finder-Integration.
-   - Visuelle Bounding-Box-Annotationen, 1-Klick-Review-Prompt für KIs und annotierter PDF-Export geplant für Version 2.0.0.
+2. **Modus 2: Synoptische Master-JSON Edition (Aktiv Kern / Roadmap v2.1.0)**
+   - Spezialisierter Split-Pane-Editor (`SynopticView.vue`) für historische Editionen (`book.json` / AST-Format wie in `brhadaranyaka`).
+   - Kopplung von Scan-PDFs mit segmentierten Eingabefeldern (Devanāgarī, IAST, Übersetzung, Apparat); automatische Kompilierung nach TEI-P5 XML und Typst-PDF geplant für v2.1.0.
+3. **Modus 3: Dual PDF QA & Proofing (Aktiv / Roadmap v2.1.0)**
+   - 2-spaltiger Vektor-PDF- (`hayro_svg`) und Markdown-Vergleich (`diffCollation.ts`) mit synchronem Scroll-Lockstep, SWAP-Seitenwechsel, Reload und CLI-/Finder-Integration.
+   - Visuelle Bounding-Box-Annotationen und 1-Klick-Review-Prompt für KIs (aktiv); annotierter PDF-Export geplant für Version 2.1.0.
